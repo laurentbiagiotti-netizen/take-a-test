@@ -5,6 +5,7 @@ import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody"
 import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraAnomaly, type CameraStatus } from "@/lib/proctor/camera-monitor";
 import { faceReady, formatClock, fullscreenSupported, useAutoCamera } from "@/lib/exam/client";
+import { CameraChip, CheckRow, ConfirmBar, RulesList, StartRow, cameraTone, type CheckState } from "@/components/exam/ui";
 
 /**
  * Épreuve d'essai publique : vérifie le poste (caméra avec détection de
@@ -12,7 +13,7 @@ import { faceReady, formatClock, fullscreenSupported, useAutoCamera } from "@/li
  * mini-épreuve question par question, en plein écran, caméra analysée.
  * Rien n'est enregistré.
  */
-type Check = { id: string; label: string; state: "todo" | "ok" | "ko" | "info"; detail?: string };
+type Check = { id: string; label: string; state: CheckState; detail?: string };
 
 /** Accès au serveur de la démo ; remplaçable (version GitHub Pages, sans serveur). */
 export type DemoApi = {
@@ -45,10 +46,10 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   modelUrl?: string;
 }) {
   const [checks, setChecks] = useState<Check[]>([
-    { id: "camera", label: "Caméra et visage", state: "todo" },
-    { id: "fullscreen", label: "Plein écran", state: "todo" },
-    { id: "screens", label: "Un seul écran", state: "todo" },
-    { id: "seb", label: "Safe Exam Browser", state: "todo" },
+    { id: "camera", label: "Caméra et visage", state: "pending" },
+    { id: "fullscreen", label: "Plein écran", state: "step" },
+    { id: "screens", label: "Un seul écran", state: "pending" },
+    { id: "seb", label: "Safe Exam Browser", state: "optional" },
   ]);
   const [stage, setStage] = useState<"checks" | "exam" | "done">("checks");
   const [step, setStep] = useState(0);
@@ -78,19 +79,19 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
 
   useEffect(() => {
     const extended = (window.screen as any).isExtended;
-    set("screens", extended === true ? "ko" : extended === false ? "ok" : "info",
+    set("screens", extended === true ? "fix" : extended === false ? "ok" : "manual",
       extended === true ? "Écran secondaire détecté : débranchez-le le jour de l'épreuve." : extended === false ? undefined : "Non vérifiable avec ce navigateur.");
-    set("seb", inSeb ? "ok" : "info", inSeb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
+    set("seb", inSeb ? "ok" : "optional", inSeb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
     const fs = inSeb || fullscreenSupported();
     setCanFull(fs);
-    set("fullscreen", fs ? "info" : "ko", inSeb ? "Géré par Safe Exam Browser." : fs ? "Obligatoire : il s'active au démarrage, l'épreuve ne commence pas sans lui."
+    set("fullscreen", fs ? "step" : "fix", inSeb ? "Géré par Safe Exam Browser." : fs ? "Obligatoire : il s'active au démarrage, l'épreuve ne commence pas sans lui."
       : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette) : passez l'épreuve sur un ordinateur.");
   }, []);
 
   useEffect(() => {
-    if (camera.state === "pending") set("camera", "info", "Ouverture de la caméra : autorisez l'accès quand le navigateur le demande.");
-    else if (camera.state === "denied") set("camera", "ko", "Caméra refusée ou coupée : autorisez-la (icône dans la barre d'adresse) puis réessayez, ou commencez sans, ce sera signalé.");
-    else set("camera", "info", "Caméra active : analyse du visage en cours…");
+    if (camera.state === "pending") set("camera", "pending", "Ouverture de la caméra : autorisez l'accès quand le navigateur le demande.");
+    else if (camera.state === "denied") set("camera", "fix", "Caméra refusée ou coupée : autorisez-la (icône dans la barre d'adresse) puis réessayez, ou commencez sans, ce sera signalé.");
+    else set("camera", "pending", "Caméra active : analyse du visage en cours…");
   }, [camera.state]);
 
   // Chrono d'essai
@@ -107,8 +108,11 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
       video: camera.videoRef.current, modelUrl,
       onStatus: (s) => {
         setCam(s);
+        if (stage === "checks" && s.ready && s.faces === null && !s.anomaly) {
+          set("camera", "ok", "Caméra active (la détection de visage n'est pas disponible sur ce navigateur).");
+        }
         if (stage === "checks" && s.faces !== null) {
-          set("camera", s.faces === 1 ? "ok" : "ko",
+          set("camera", s.faces === 1 ? "ok" : "fix",
             s.faces === 1 ? "Un visage détecté : parfait." : s.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra, bien éclairé." : `${s.faces} visages détectés : vous devez être seul(e) dans le champ.`);
         }
       },
@@ -194,14 +198,8 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const totalPts = result ? result.results.reduce((s, r) => s + r.points, 0) + objectives.length + 1 : 0;
   const q = step > 0 ? questions[step - 1] : null;
 
-  const Badge = ({ s }: { s: Check["state"] }) => (
-    <span className={`badge ${s === "ok" ? "badge-ok" : s === "ko" ? "badge-danger" : s === "info" ? "badge-warn" : "badge-muted"}`}>
-      {s === "ok" ? "OK" : s === "ko" ? "Problème" : s === "info" ? "À noter" : "À tester"}
-    </span>
-  );
-
-  const camLabel = cam?.anomaly ? ANOMALY_LABEL[cam.anomaly] : cam?.faces === 1 ? "visage OK" : cam?.faces === 0 ? "aucun visage" : (cam?.faces ?? 0) > 1 ? `${cam?.faces} visages` : "analyse…";
-  const camBad = !!cam?.anomaly || (cam?.faces !== null && cam?.faces !== undefined && cam.faces !== 1);
+  const camState = cameraTone(camOn, cam);
+  const ready = canFull && (faceOk || camDenied);
 
   return (
     <div className="min-h-screen relative">
@@ -225,12 +223,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
           <a href={staticSite ? "https://cybersup.ai" : "/"} className="py-5"><img src={logoSrc} alt="Cybersup" className="h-6 w-auto" /></a>
           <div className="flex items-center gap-4 text-sm">
             <span className="badge-warn">Épreuve d&apos;essai</span>
-            {stage === "exam" && camOn && (
-              <div className="relative">
-                <video ref={camera.attach} className={`w-24 h-14 rounded bg-black object-cover border ${camBad ? "border-danger" : "border-line"}`} muted playsInline />
-                <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${camBad ? "bg-danger text-white" : "bg-ok text-bg"}`}>{camLabel}</span>
-              </div>
-            )}
+            {stage === "exam" && <CameraChip videoRef={camera.attach} live={camOn} cam={cam} />}
             {stage === "exam" && <span className="font-mono text-lg">{formatClock(left)}</span>}
           </div>
         </div>
@@ -250,42 +243,32 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
               <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous, question par question : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
               {staticSite && <p className="text-xs text-faint mt-2 max-w-2xl">Version de démonstration publiée sur GitHub Pages : tout s&apos;exécute dans votre navigateur. Dans la vraie plateforme, la machine, les réponses et la correction restent sur le serveur.</p>}
             </div>
-            <section className="grid md:grid-cols-2 gap-4">
-              <div className="card space-y-3">
-                <div className="h2">1. Vérification du poste</div>
-                {checks.map((c) => (
-                  <div key={c.id} className="flex items-start justify-between gap-3 border-t border-line pt-3 first:border-0 first:pt-0">
-                    <div>
-                      <div className="text-sm font-medium">{c.label}</div>
-                      {c.detail && <div className="text-xs text-muted mt-0.5">{c.detail}</div>}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {c.id === "camera" && camDenied && <button className="btn-secondary !py-1 text-xs" onClick={camera.open}>Réessayer</button>}
-                      <Badge s={c.state} />
-                    </div>
-                  </div>
-                ))}
+            <section className="grid md:grid-cols-[1.1fr_1fr] gap-4">
+              <div className="card">
+                <div className="h2">Vérification du poste</div>
+                <ul className="mt-4 space-y-3">
+                  {checks.map((c) => (
+                    <CheckRow key={c.id} label={c.label} detail={c.detail} state={c.state}
+                      action={c.id === "camera" && camDenied ? <button className="btn-secondary !py-1 text-xs mt-2" onClick={camera.open}>Réessayer</button> : undefined} />
+                  ))}
+                </ul>
+                {banner && <p className="text-danger text-sm mt-4" role="alert">{banner}</p>}
+                <StartRow ready={ready} onStart={begin} disabled={!ready}
+                  label="Commencer l'épreuve d'essai"
+                  hint={!canFull ? "Ordinateur nécessaire (plein écran)" : faceOk ? "Prêt : le plein écran s'activera au clic" : camDenied ? "Possible sans caméra, mais signalé au surveillant" : "En attente de la détection de votre visage"} />
               </div>
               <div className="card">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="h2">Aperçu caméra</div>
-                  {camOn && <span className={`badge ${camBad ? "badge-danger" : cam?.faces === 1 ? "badge-ok" : "badge-muted"}`}>{camLabel}</span>}
+                  <span className={`text-xs flex items-center gap-1.5 ${camState.tone === "ok" ? "text-ok" : camState.tone === "idle" ? "text-muted" : camState.tone === "warn" ? "text-warn" : "text-danger"}`}>
+                    <span aria-hidden className={`w-2 h-2 rounded-full ${camState.tone === "ok" ? "bg-ok" : camState.tone === "idle" ? "bg-faint" : camState.tone === "warn" ? "bg-warn" : "bg-danger"}`} />{camState.label}
+                  </span>
                 </div>
                 <video ref={stage === "checks" ? camera.attach : undefined} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
-                <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, la caméra est analysée en continu : absence de visage, plusieurs personnes, caméra masquée ou image figée sont signalées.</p>
+                <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, l&apos;image est analysée en continu : absence de visage, autre personne dans le champ, caméra masquée ou image figée sont signalées.</p>
               </div>
             </section>
-            <div className="card text-sm text-muted space-y-1">
-              <div className="h2 text-fg mb-2">Le jour de l&apos;épreuve</div>
-              <p>Plein écran obligatoire : l&apos;épreuve ne démarre pas sans lui et reste masquée si vous en sortez. Caméra ouverte automatiquement et analysée en continu ; la refuser ou la couper n&apos;arrête pas l&apos;épreuve mais c&apos;est signalé au surveillant. Un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
-              <p>Une question à la fois, sans retour en arrière : une réponse validée est définitive. Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
-            </div>
-            {banner && <p className="text-danger text-sm">{banner}</p>}
-            <div className="flex items-center gap-4">
-              <button className="btn" onClick={begin} disabled={!canFull || (!faceOk && !camDenied)}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
-              {!faceOk && !camDenied && <span className="text-xs text-muted">Disponible dès que la caméra détecte votre visage.</span>}
-              {camDenied && <span className="text-xs text-warn">Sans caméra, vous pouvez commencer, mais ce sera signalé au surveillant.</span>}
-            </div>
+            <RulesList />
           </>
         )}
 
@@ -317,14 +300,18 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             )}
 
             <div className="flex justify-end items-center gap-2">
-              {confirmNext ? <>
-                <span className="text-sm text-danger">{step < total - 1 ? "Valider ? Vous ne pourrez plus revenir sur cette question." : "Rendre la copie définitivement ?"}</span>
-                <button className="btn-secondary" onClick={() => setConfirmNext(false)}>Annuler</button>
-                <button className="btn" onClick={validate}>Confirmer</button>
-              </> : step < total - 1
-                ? <button className="btn" onClick={() => setConfirmNext(true)}>Valider et continuer →</button>
-                : <button className="btn" onClick={() => setConfirmNext(true)}>Valider et voir mon score</button>}
+              {step < total - 1
+                ? <button className="btn" onClick={() => setConfirmNext(true)} disabled={confirmNext}>Valider et continuer →</button>
+                : <button className="btn" onClick={() => setConfirmNext(true)} disabled={confirmNext}>Valider et voir mon score</button>}
             </div>
+            {confirmNext && (
+              <ConfirmBar
+                message={step < total - 1 ? "Valider cette réponse ?" : "Rendre la copie ?"}
+                detail={step < total - 1 ? "Vous ne pourrez plus revenir sur cette question." : "C'est définitif : votre score s'affichera ensuite."}
+                confirmLabel={step < total - 1 ? "Valider" : "Rendre la copie"}
+                onConfirm={validate} onCancel={() => setConfirmNext(false)} />
+            )}
+            <div className="h-20" aria-hidden />
           </>
         )}
 

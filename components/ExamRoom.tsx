@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
 import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proctor/camera-monitor";
+import { CameraChip, CheckRow, ConfirmBar, RulesList, StartRow } from "@/components/exam/ui";
 import { EVENT_LABEL, TYPE_HINT, faceReady, formatClock, fullscreenSupported, isAnswered, useAutoCamera, useTimeAlerts } from "@/lib/exam/client";
 
 /**
@@ -370,44 +371,38 @@ export default function ExamRoom(props: {
       : cam.anomaly ? `${ANOMALY_LABEL[cam.anomaly]} : placez-vous seul, face à la caméra, dans un endroit éclairé.`
       : faceOk ? "Visage détecté, tout est prêt."
       : cam.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra." : cam.faces && cam.faces > 1 ? "Plusieurs visages détectés : vous devez être seul." : "Analyse de l'image…";
-    const checks: { label: string; ok: boolean | null; detail: string }[] = [
-      { label: "Caméra", ok: camera.state === "pending" ? null : faceOk, detail: camMsg },
-      { label: "Plein écran", ok: canFull, detail: canFull ? "Il s'activera au clic sur « Commencer »." : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette). Utilisez un ordinateur avec Chrome, Edge, Firefox ou Safari." },
-    ];
+    const startHint = !canFull ? "Ordinateur nécessaire (plein écran)"
+      : faceOk ? "Prêt : le plein écran s'activera au clic"
+      : camera.state === "denied" ? "Possible sans caméra, mais signalé au surveillant"
+      : "En attente de la détection de votre visage";
     return (
-      <main className="max-w-2xl mx-auto p-6 sm:p-10">
-        <h1 className="h1">{title}</h1>
-        {description && <p className="text-muted mt-2 whitespace-pre-wrap">{description}</p>}
-        <div className="card mt-6 space-y-2 text-sm">
-          <p><b>{resuming ? "Reprise de l'épreuve." : "Avant de commencer :"}</b></p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Durée : <b>{durationMinutes} minutes</b>, chronométrées par le serveur (le chrono continue si vous fermez la page).</li>
-            <li><b>Une question à la fois</b> : une réponse validée est définitive, aucun retour en arrière.</li>
-            <li>Le <b>plein écran est obligatoire</b> : l&apos;épreuve ne démarre pas sans lui ; en sortir est une infraction et masque l&apos;épreuve jusqu&apos;à votre retour.</li>
-            <li>La <b>caméra s&apos;active automatiquement</b> et reste allumée : des photos sont prises régulièrement et l&apos;image est analysée (absence de visage, plusieurs personnes, caméra masquée). Si vous la refusez ou la coupez, l&apos;épreuve continue mais le surveillant est prévenu.</li>
-            <li>Copier, coller, clic droit, raccourcis et changement d&apos;onglet ou de fenêtre sont bloqués et journalisés. Un seul écran.</li>
-            <li>Au bout de <b>{maxViolations} infractions</b>, l&apos;épreuve s&apos;arrête automatiquement.</li>
-          </ul>
+      <main className="max-w-4xl mx-auto p-6 sm:p-10 space-y-6">
+        <div>
+          <h1 className="h1">{title}</h1>
+          {description && <p className="text-muted mt-2 whitespace-pre-wrap">{description}</p>}
+          <p className="text-sm mt-3"><b>{resuming ? "Reprise de l'épreuve." : "Durée :"}</b> {durationMinutes} minutes, chronométrées par le serveur.</p>
         </div>
-        <div className="card mt-4 grid sm:grid-cols-[10rem_1fr] gap-4 items-start">
-          <video ref={camera.attach} className={`w-40 h-28 bg-black rounded border ${faceOk ? "border-ok" : "border-line"}`} muted playsInline aria-label="Aperçu de la caméra" />
-          <ul className="text-sm space-y-3">
-            {checks.map((c) => (
-              <li key={c.label}>
-                <div className="font-medium flex items-center gap-2">
-                  <span aria-hidden className={`inline-block w-2 h-2 rounded-full ${c.ok === null ? "bg-faint" : c.ok ? "bg-ok" : "bg-warn"}`} />
-                  {c.label}
-                </div>
-                <p className={c.ok ? "text-ok" : "text-muted"}>{c.detail}</p>
-                {c.label === "Caméra" && camera.state === "denied" && <button className="btn-secondary mt-2" onClick={camera.open}>Réessayer</button>}
-              </li>
-            ))}
-          </ul>
-        </div>
-        {banner && <p className="text-danger text-sm mt-4" role="alert">{banner}</p>}
-        <button className="btn mt-6" onClick={start} disabled={phase === "starting" || !canStart}>
-          {phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"}
-        </button>
+        <section className="grid md:grid-cols-[1.1fr_1fr] gap-4">
+          <div className="card">
+            <div className="h2">Vérification du poste</div>
+            <ul className="mt-4 space-y-3">
+              <CheckRow label="Caméra et visage" detail={camMsg}
+                state={camera.state === "pending" || (camera.state === "live" && !cam) ? "pending" : faceOk ? "ok" : "fix"}
+                action={camera.state === "denied" ? <button className="btn-secondary !py-1 text-xs mt-2" onClick={camera.open}>Réessayer</button> : undefined} />
+              <CheckRow label="Plein écran" state={canFull ? "step" : "fix"}
+                detail={canFull ? "Obligatoire : il s'active au clic sur « Commencer »." : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette). Utilisez un ordinateur avec Chrome, Edge, Firefox ou Safari."} />
+            </ul>
+            {banner && <p className="text-danger text-sm mt-4" role="alert">{banner}</p>}
+            <StartRow ready={canStart && faceOk} onStart={start} disabled={phase === "starting" || !canStart}
+              label={phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"} hint={startHint} />
+          </div>
+          <div className="card">
+            <div className="h2">Aperçu caméra</div>
+            <video ref={camera.attach} className={`mt-3 w-full aspect-video rounded-md bg-black object-cover border ${faceOk ? "border-ok" : "border-line"}`} muted playsInline aria-label="Aperçu de la caméra" />
+            <p className="text-xs text-muted mt-2">Placez-vous seul, face à la caméra, dans un endroit éclairé. Des photos sont prises pendant l&apos;épreuve et conservées de façon sécurisée pendant la durée fixée par l&apos;école.</p>
+          </div>
+        </section>
+        <RulesList maxViolations={maxViolations} />
       </main>
     );
   }
@@ -451,14 +446,7 @@ export default function ExamRoom(props: {
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
           <span className="text-xs text-muted">Infractions : {violations}/{maxViolations}</span>
-          <div className="relative">
-            <video ref={camera.attach} className={`w-24 h-16 bg-black rounded border ${cam?.anomaly ? "border-danger" : "border-line"}`} muted playsInline aria-label="Caméra" />
-            {camera.state === "live" && (
-              <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${cam?.anomaly ? "bg-danger text-white" : cam?.faces === 1 ? "bg-ok text-bg" : "bg-surface-2 text-muted"}`}>
-                {cam?.anomaly ? ANOMALY_LABEL[cam.anomaly] : cam?.faces === 1 ? "visage OK" : cam?.ready ? "analyse…" : "chargement…"}
-              </span>
-            )}
-          </div>
+          <CameraChip videoRef={camera.attach} live={camera.state === "live"} cam={cam} />
           <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`} aria-label={`Temps restant ${formatClock(remaining)}`}>{formatClock(remaining)}</div>
         </div>
       </header>
@@ -485,23 +473,23 @@ export default function ExamRoom(props: {
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-muted">Une réponse validée est définitive.</span>
-              {confirming ? (
-                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirmation">
-                  <span className="text-sm text-danger">
-                    {confirming === "submit"
-                      ? (() => { const n = questions.filter((x) => x.type !== "terminal" && !isAnswered(answers[x.id])).length; return n ? `${n} sans réponse. Rendre la copie ?` : "Rendre la copie définitivement ?"; })()
-                      : isAnswered(answers[q.id]) || q.type === "terminal" ? "Valider ? Pas de retour possible." : "Aucune réponse. Passer quand même ?"}
-                  </span>
-                  <button className="btn-secondary" onClick={() => setConfirming(null)}>Annuler</button>
-                  <button className="btn" disabled={advancing} onClick={confirming === "submit" ? submit : next} autoFocus>Confirmer</button>
-                </div>
-              ) : !isLast
-                ? <button className="btn" onClick={() => setConfirming("next")} disabled={advancing}>Valider et continuer →</button>
-                : <button className="btn" onClick={() => setConfirming("submit")}>Valider et rendre la copie</button>}
+              {!isLast
+                ? <button className="btn" onClick={() => setConfirming("next")} disabled={advancing || !!confirming}>Valider et continuer →</button>
+                : <button className="btn" onClick={() => setConfirming("submit")} disabled={!!confirming}>Valider et rendre la copie</button>}
             </div>
           </div>
         )}
+        <div className="h-20" aria-hidden />
       </main>
+      {confirming && q && (() => {
+        const unanswered = questions.filter((x) => x.type !== "terminal" && !isAnswered(answers[x.id])).length;
+        const empty = !isAnswered(answers[q.id]) && q.type !== "terminal";
+        return confirming === "submit"
+          ? <ConfirmBar message="Rendre la copie ?" confirmLabel="Rendre la copie" onConfirm={submit} onCancel={() => setConfirming(null)}
+              detail={unanswered ? `${unanswered} question(s) sans réponse. C'est définitif.` : "C'est définitif : votre accusé de réception s'affichera ensuite."} />
+          : <ConfirmBar message={empty ? "Passer sans répondre ?" : "Valider cette réponse ?"} confirmLabel={empty ? "Passer" : "Valider"} busy={advancing}
+              onConfirm={next} onCancel={() => setConfirming(null)} detail="Vous ne pourrez plus revenir sur cette question." />;
+      })()}
     </div>
   );
 }

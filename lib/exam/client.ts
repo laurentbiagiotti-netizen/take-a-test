@@ -77,7 +77,7 @@ export function useAutoCamera(onLost?: () => void) {
     if (live()) return true;
     setState("pending");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
       streamRef.current = stream;
       stream.getVideoTracks().forEach((t) => t.addEventListener("ended", () => { setState("denied"); lostRef.current?.(); }));
       if (videoRef.current) attach(videoRef.current);

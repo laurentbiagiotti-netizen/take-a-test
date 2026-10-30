@@ -39,3 +39,17 @@ describe("petites règles d'affichage", () => {
     expect(faceReady(false, { faces: 1, brightness: 120, anomaly: null, ready: true })).toBe(false);
   });
 });
+
+import { mergeBoxes } from "@/lib/proctor/camera-monitor";
+describe("fusion des détections caméra", () => {
+  const b = (x: number, y: number, w: number, score = 0.9) => ({ x, y, w, h: w, score });
+  it("un même visage vu par les deux détecteurs compte une fois", () => {
+    expect(mergeBoxes([b(100, 100, 200), b(110, 105, 190, 0.6)])).toHaveLength(1);
+  });
+  it("une petite personne au fond est conservée", () => {
+    expect(mergeBoxes([b(100, 100, 300), b(900, 80, 40, 0.4)])).toHaveLength(2);
+  });
+  it("les détections minuscules (bruit) sont ignorées", () => {
+    expect(mergeBoxes([b(100, 100, 300), b(900, 80, 8, 0.4)])).toHaveLength(1);
+  });
+});
