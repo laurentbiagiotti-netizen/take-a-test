@@ -30,7 +30,7 @@ export default function UnlockForm({ testId }: { testId: string }) {
         placeholder="XXXX-XXXX-XXXX" value={code} maxLength={32} autoComplete="off"
         onChange={(e) => setCode(e.target.value.toUpperCase())} autoFocus required
       />
-      {err && <p className="text-sm text-red-600">{err}</p>}
+      {err && <p className="text-sm text-danger">{err}</p>}
       <button className="btn w-full justify-center" disabled={loading || !code}>
         {loading ? "Vérification…" : "Valider le code"}
       </button>

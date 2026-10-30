@@ -1,24 +1,31 @@
 import { NextResponse } from "next/server";
 import { apiError, body, UUID, withApi } from "@/lib/api/handler";
+import { validateScenario } from "@/lib/terminal/shell";
 
 /**
  * GET : questions du test (les bonnes réponses ne sont incluses que si la
  * clé possède aussi la portée tests:write).
  * PUT : remplace toutes les questions (refusé si des candidats ont commencé).
- *   [{ type, prompt, points, image_url?, options?: [{id?, text, image_url?}], correct?: [optionId|index] }]
+ *   [{ type, prompt, points, image_url?, options?: [{id?, text, image_url?}], correct?: [optionId|index],
+ *      terminal?: { scenario: {...}, flag: "CYBER{...}" } }]
  */
 export const GET = withApi<{ id: string }>("tests:read", async ({ admin, scopes }, { id }) => {
   if (!UUID.test(id)) return apiError(404, "not_found");
   const { data: qs } = await admin.from("questions").select("*").eq("test_id", id).order("position");
   let keys = new Map<string, unknown>();
+  let terms = new Map<string, unknown>();
   if (scopes.includes("tests:write") && qs?.length) {
-    const { data: k } = await admin.from("answer_keys").select("*").in("question_id", qs.map((q) => q.id));
+    const ids = qs.map((q) => q.id);
+    const { data: k } = await admin.from("answer_keys").select("*").in("question_id", ids);
     keys = new Map((k || []).map((r) => [r.question_id, r.correct]));
+    const { data: t } = await admin.from("question_terminals").select("*").in("question_id", ids);
+    terms = new Map((t || []).map((r) => [r.question_id, { scenario: r.scenario, flag: r.flag }]));
   }
-  return NextResponse.json({ data: (qs || []).map((q) => scopes.includes("tests:write") ? { ...q, correct: keys.get(q.id) ?? null } : q) });
+  return NextResponse.json({ data: (qs || []).map((q) => scopes.includes("tests:write")
+    ? { ...q, correct: keys.get(q.id) ?? null, terminal: terms.get(q.id) ?? null } : q) });
 });
 
-const TYPES = new Set(["mcq_single", "mcq_multi", "long_text"]);
+const TYPES = new Set(["mcq_single", "mcq_multi", "long_text", "terminal"]);
 
 export const PUT = withApi<{ id: string }>("tests:write", async ({ admin, req }, { id }) => {
   if (!UUID.test(id)) return apiError(404, "not_found");
@@ -31,13 +38,20 @@ export const PUT = withApi<{ id: string }>("tests:write", async ({ admin, req },
 
   const rows: any[] = [];
   const keyRows: any[] = [];
+  const termRows: any[] = [];
   for (const [i, q] of input.entries()) {
     if (!q || !TYPES.has(q.type) || typeof q.prompt !== "string" || !q.prompt.trim()) {
       return apiError(400, "validation_error", `Question ${i + 1} invalide`);
     }
     const qid = crypto.randomUUID();
     let options = null;
-    if (q.type !== "long_text") {
+    if (q.type === "terminal") {
+      const err = validateScenario(q.terminal?.scenario);
+      if (err) return apiError(400, "validation_error", `Question ${i + 1} : ${err}`);
+      const flag = String(q.terminal?.flag || "").trim();
+      if (!flag || flag.length > 200) return apiError(400, "validation_error", `Question ${i + 1} : flag requis (200 caractères max)`);
+      termRows.push({ question_id: qid, scenario: q.terminal.scenario, flag });
+    } else if (q.type !== "long_text") {
       if (!Array.isArray(q.options) || q.options.length < 2) return apiError(400, "validation_error", `Question ${i + 1} : 2 options minimum`);
       options = q.options.map((o: any) => ({ id: crypto.randomUUID(), text: String(o.text ?? ""), image_url: o.image_url ?? null, _ref: o.id }));
       const correct = (Array.isArray(q.correct) ? q.correct : []).map((c: any) => {
@@ -58,6 +72,7 @@ export const PUT = withApi<{ id: string }>("tests:write", async ({ admin, req },
     const ins = await admin.from("questions").insert(rows);
     if (ins.error) return apiError(400, "validation_error", ins.error.message);
     if (keyRows.length) await admin.from("answer_keys").insert(keyRows);
+    if (termRows.length) await admin.from("question_terminals").insert(termRows);
   }
   return NextResponse.json({ data: { count: rows.length } });
 });

@@ -15,8 +15,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function Panel({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <main className="max-w-xl mx-auto p-10 text-center">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <div className="text-slate-600 mt-3 space-y-2">{children}</div>
+      <h1 className="h1">{title}</h1>
+      <div className="text-muted mt-3 space-y-2">{children}</div>
       <div className="mt-6"><a href="/dashboard" className="btn-secondary">Retour au tableau de bord</a></div>
     </main>
   );
@@ -48,7 +48,7 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
         <Panel title="Ouvrez cet examen dans Safe Exam Browser">
           <p>Cet examen se passe uniquement dans Safe Exam Browser (SEB), qui verrouille votre ordinateur pendant l&apos;épreuve.</p>
           <p>Installez SEB, puis ouvrez le fichier de configuration <code>.seb</code> transmis par l&apos;école : l&apos;examen se lancera automatiquement.</p>
-          {r.reason === "no_keys_configured" && <p className="text-red-600 text-sm">Configuration SEB incomplète côté école : prévenez le surveillant.</p>}
+          {r.reason === "no_keys_configured" && <p className="text-danger text-sm">Configuration SEB incomplète côté école : prévenez le surveillant.</p>}
           <div className="flex gap-3 justify-center pt-3">
             <a href="https://safeexambrowser.org/download_en.html" className="btn" target="_blank" rel="noreferrer">Télécharger SEB</a>
           </div>
@@ -89,8 +89,8 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
   if (!st.unlocked) {
     return (
       <main className="max-w-md mx-auto p-10">
-        <h1 className="text-2xl font-bold">{st.title}</h1>
-        <p className="text-slate-600 mt-2">Saisissez le code d&apos;accès reçu par e-mail pour continuer.</p>
+        <h1 className="h1">{st.title}</h1>
+        <p className="text-muted mt-2">Saisissez le code d&apos;accès reçu par e-mail pour continuer.</p>
         <UnlockForm testId={id} />
       </main>
     );

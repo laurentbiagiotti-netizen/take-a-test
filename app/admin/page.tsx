@@ -16,20 +16,21 @@ export default async function AdminHome() {
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Administration · Examens</h1>
+        <h1 className="h1">Administration · Examens</h1>
         <div className="flex gap-2">
           {isAdmin && <Link href="/admin/new" className="btn">Nouveau test</Link>}
           {isAdmin && <Link href="/admin/api" className="btn-secondary">API et webhooks</Link>}
-          <form action="/auth/signout" method="post"><button className="btn-secondary">Déconnexion</button></form>
+          {isAdmin && <Link href="/admin/audit" className="btn-secondary">Journal</Link>}
+          
         </div>
       </div>
       <div className="mt-6 space-y-3">
-        {(tests || []).length === 0 && <p className="text-slate-600">Aucun examen.</p>}
+        {(tests || []).length === 0 && <p className="text-muted">Aucun examen.</p>}
         {(tests || []).map((t) => (
           <div key={t.id} className="card flex items-center justify-between">
             <div>
-              <div className="font-semibold">{t.title} {t.is_published ? <span className="text-xs text-green-700 ml-2">published</span> : <span className="text-xs text-slate-500 ml-2">draft</span>}</div>
-              <div className="text-sm text-slate-600">{t.description}</div>
+              <div className="font-semibold">{t.title} {t.is_published ? <span className="badge-ok ml-2">publié</span> : <span className="badge-muted ml-2">brouillon</span>}</div>
+              <div className="text-sm text-muted">{t.description}</div>
             </div>
             <div className="flex gap-2">
               {isAdmin && <Link href={`/admin/tests/${t.id}`} className="btn-secondary">Modifier</Link>}

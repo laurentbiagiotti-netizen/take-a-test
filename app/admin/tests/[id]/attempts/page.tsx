@@ -21,13 +21,13 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
   const now = Date.now();
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
-      <a href="/admin" className="text-sm text-slate-600">← Retour</a>
+      <a href="/admin" className="text-sm text-muted">← Retour</a>
       <div className="flex items-center justify-between mt-2">
-        <h1 className="text-2xl font-bold">Tentatives</h1>
+        <h1 className="h1">Tentatives</h1>
         <a className="btn-secondary" href={`/admin/tests/${id}/attempts`}>Actualiser</a>
       </div>
       <table className="mt-6 w-full text-sm">
-        <thead className="text-left text-slate-500">
+        <thead className="text-left text-muted">
           <tr><th className="py-2">Candidat</th><th>Statut</th><th>Note</th><th>Infractions</th><th>Identité</th><th>Connexion</th><th>Rendu</th><th></th></tr>
         </thead>
         <tbody>
@@ -38,11 +38,11 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
                 <td className="py-2">{a.candidate?.full_name || a.candidate?.email}</td>
                 <td>{STATUS[a.status] || a.status}</td>
                 <td>{a.score ?? "-"}{a.max_score != null ? ` / ${a.max_score}` : ""}</td>
-                <td className={a.violation_count ? "text-red-600 font-semibold" : ""}>{a.violation_count}</td>
-                <td className={a.identity_status === "submitted" ? "text-amber-700 font-semibold" : a.identity_status === "rejected" ? "text-red-600" : ""}>
+                <td className={a.violation_count ? "text-danger font-semibold" : ""}>{a.violation_count}</td>
+                <td className={a.identity_status === "submitted" ? "text-warn font-semibold" : a.identity_status === "rejected" ? "text-danger" : ""}>
                   {a.identity_status === "submitted" ? "à vérifier" : a.identity_status}
                 </td>
-                <td className={silent ? "text-red-600" : "text-slate-500"}>
+                <td className={silent ? "text-danger" : "text-muted"}>
                   {a.status === "in_progress" ? (silent ? "perdue" : "en ligne") : "-"}
                 </td>
                 <td>{a.submitted_at ? new Date(a.submitted_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "-"}</td>

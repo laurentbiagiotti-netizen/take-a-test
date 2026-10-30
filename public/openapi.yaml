@@ -11,6 +11,13 @@ info:
     peut expirer, se révoque à tout moment et cesse de fonctionner si son
     créateur n'est plus administrateur.
 
+    Signature (obligatoire par défaut) : chaque requête porte
+    `X-Cx-Timestamp` (secondes unix, ±5 min), `X-Cx-Nonce` (16 à 64 caractères
+    [A-Za-z0-9_-], usage unique) et `X-Cx-Signature` =
+    hex(HMAC-SHA256(secret_de_signature, "<ts>\n<nonce>\n<MÉTHODE>\n<chemin?requête>\n<sha256_hex(corps)>")).
+    Corps vide pour GET et DELETE. Exemple : `scripts/api-client.mjs`.
+    Une clé peut aussi être limitée à des plages d'IP.
+
     Quota : `API_RATE_LIMIT` appels par minute et par clé (120 par défaut),
     au-delà réponse 429 avec `Retry-After`. Tous les appels sont journalisés.
 
@@ -72,7 +79,13 @@ components:
       type: object
       required: [type, prompt]
       properties:
-        type: { type: string, enum: [mcq_single, mcq_multi, long_text] }
+        type: { type: string, enum: [mcq_single, mcq_multi, long_text, terminal] }
+        terminal:
+          type: object
+          description: "Pour type=terminal : scénario du système de fichiers simulé et flag attendu"
+          properties:
+            scenario: { type: object }
+            flag: { type: string, maxLength: 200 }
         prompt: { type: string }
         points: { type: number, default: 1 }
         image_url: { type: [string, "null"] }

@@ -1,5 +1,4 @@
-import { NextRequest } from "next/server";
-import { examError, examGuard, json, rpcError } from "@/lib/exam/guard";
+import { examError, examRoute, json, rpcError } from "@/lib/exam/guard";
 import { readImage } from "@/lib/exam/images";
 import { randomHex } from "@/lib/security/tokens";
 
@@ -8,11 +7,7 @@ import { randomHex } from "@/lib/security/tokens";
  * selfie, stockées dans un bucket privé (lecture surveillants uniquement,
  * purge automatique après la durée de conservation du test).
  */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ testId: string }> }) {
-  const { testId } = await params;
-  const g = await examGuard(req, testId);
-  if ("res" in g) return g.res;
-  const { ctx } = g;
+export const POST = examRoute({ rotate: false }, async (ctx, req) => {
   if (!ctx.attemptId) return examError("attempt_not_found");
 
   const form = await req.formData().catch(() => null);
@@ -36,4 +31,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tes
   });
   if (error) { await bucket.remove([paths.document, paths.selfie]); return rpcError(error); }
   return json({ ok: true });
-}
+});

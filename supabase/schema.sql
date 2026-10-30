@@ -12,7 +12,7 @@
 -- Types
 ------------------------------------------------------------
 create type user_role as enum ('admin', 'proctor', 'candidate');
-create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text');
+create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal');
 create type attempt_status as enum ('pending', 'in_progress', 'submitted', 'terminated', 'expired');
 create type identity_status as enum ('not_required', 'pending', 'submitted', 'verified', 'rejected');
 
@@ -81,6 +81,15 @@ create table answer_keys (
   correct jsonb               -- [option_id, ...]
 );
 
+-- Questions « terminal » : système de fichiers simulé et flag attendu.
+-- Admin uniquement : le scénario n'est jamais envoyé au navigateur, les
+-- commandes sont interprétées par le serveur.
+create table question_terminals (
+  question_id uuid primary key references questions(id) on delete cascade,
+  scenario jsonb not null,
+  flag text not null check (length(flag) between 1 and 200)
+);
+
 create table attempts (
   id uuid primary key default gen_random_uuid(),
   test_id uuid not null references tests(id) on delete cascade,
@@ -109,6 +118,9 @@ create table attempts (
   media_purged_at timestamptz,
   event_seq int not null default 0,
   last_event_hash text,
+  request_nonce_hash text,
+  recent_nonce_hashes text[] not null default '{}',
+  resume_allowed boolean not null default false,
   unique (test_id, candidate_id)
 );
 create index on attempts(status, deadline_at);
@@ -165,6 +177,40 @@ create table api_keys (
   revoked_at timestamptz
 );
 
+alter table api_keys add column allowed_cidrs text[] not null default '{}';
+alter table api_keys add column require_signature boolean not null default true;
+alter table api_keys add column signing_secret_enc text;
+
+-- Anti-rejeu : chaque nonce de requête signée n'est accepté qu'une fois.
+create table api_nonces (
+  key_id uuid not null references api_keys(id) on delete cascade,
+  nonce text not null,
+  created_at timestamptz not null default now(),
+  primary key (key_id, nonce)
+);
+
+-- Journal des actions d'administration (qui a changé quoi, quand).
+create table admin_audit (
+  id bigserial primary key,
+  actor uuid,
+  actor_role text,
+  table_name text not null,
+  op text not null,
+  row_id text,
+  changed jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table terminal_history (
+  id bigserial primary key,
+  attempt_id uuid not null references attempts(id) on delete cascade,
+  question_id uuid not null references questions(id) on delete cascade,
+  cwd text,
+  command text not null,
+  created_at timestamptz not null default now()
+);
+create index on terminal_history(attempt_id, id);
+
 create table api_rate (
   key_id uuid not null references api_keys(id) on delete cascade,
   window_start timestamptz not null,
@@ -208,14 +254,21 @@ create index on webhook_outbox(next_try_at) where delivered_at is null;
 ------------------------------------------------------------
 -- Fonctions utilitaires de rôle
 ------------------------------------------------------------
+-- Le staff doit être authentifié en double facteur (TOTP, niveau aal2) :
+-- un mot de passe volé ne suffit pas à lire ou modifier quoi que ce soit.
+create or replace function public._mfa_ok() returns boolean
+language sql stable as $$
+  select coalesce(auth.jwt()->>'aal', '') = 'aal2';
+$$;
+
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists(select 1 from profiles where id = auth.uid() and role = 'admin');
+  select _mfa_ok() and exists(select 1 from profiles where id = auth.uid() and role = 'admin');
 $$;
 
 create or replace function public.is_staff() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists(select 1 from profiles where id = auth.uid() and role in ('admin', 'proctor'));
+  select _mfa_ok() and exists(select 1 from profiles where id = auth.uid() and role in ('admin', 'proctor'));
 $$;
 
 create or replace function public._is_staff_user(p_user uuid) returns boolean
@@ -250,6 +303,10 @@ alter table api_rate enable row level security;
 alter table api_audit enable row level security;
 alter table webhooks enable row level security;
 alter table webhook_outbox enable row level security;
+alter table question_terminals enable row level security;
+alter table api_nonces enable row level security;
+alter table admin_audit enable row level security;
+alter table terminal_history enable row level security;
 
 -- Aucun accès anonyme, et aucun droit d'écriture implicite sur les profils.
 revoke all on all tables in schema public from anon;
@@ -279,6 +336,11 @@ create policy "questions staff read" on questions for select to authenticated
 
 create policy "keys admin all" on answer_keys for all to authenticated
   using (is_admin()) with check (is_admin());
+create policy "terminals admin all" on question_terminals for all to authenticated
+  using (is_admin()) with check (is_admin());
+create policy "terminal history staff read" on terminal_history for select to authenticated
+  using (is_staff());
+create policy "admin audit read" on admin_audit for select to authenticated using (is_admin());
 
 create policy "attempts staff read" on attempts for select to authenticated
   using (is_staff());
@@ -393,6 +455,52 @@ create trigger questions_locked before update or delete on questions
   for each row execute function _questions_locked();
 
 ------------------------------------------------------------
+-- Journal des actions d'administration. Les valeurs secrètes (codes,
+-- clés, flags, bonnes réponses) ne sont jamais recopiées : seulement le
+-- nom des colonnes modifiées.
+------------------------------------------------------------
+create or replace function public._admin_audit() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  v_old jsonb := case when tg_op <> 'INSERT' then to_jsonb(old) end;
+  v_new jsonb := case when tg_op <> 'DELETE' then to_jsonb(new) end;
+  v_cols jsonb;
+  v_secret boolean := tg_table_name in ('test_secrets', 'answer_keys', 'question_terminals', 'invites', 'api_keys', 'webhooks');
+begin
+  if tg_op = 'UPDATE' then
+    select jsonb_object_agg(k, case when v_secret then '"(masqué)"'::jsonb else v_new->k end)
+      into v_cols from jsonb_object_keys(v_new) k where v_new->k is distinct from v_old->k;
+    if v_cols is null then return new; end if;
+  elsif not v_secret then
+    v_cols := null;
+  end if;
+  insert into admin_audit(actor, actor_role, table_name, op, row_id, changed)
+  values (coalesce(auth.uid(), nullif(current_setting('app.actor', true), '')::uuid),
+          coalesce(nullif(current_setting('app.actor_role', true), ''), auth.jwt()->>'role'), tg_table_name, tg_op,
+          coalesce(v_new->>'id', v_old->>'id', v_new->>'test_id', v_old->>'test_id', v_new->>'question_id', v_old->>'question_id'),
+          v_cols);
+  return coalesce(new, old);
+end; $$;
+
+create trigger audit_tests after insert or update or delete on tests for each row execute function _admin_audit();
+create trigger audit_test_secrets after insert or update or delete on test_secrets for each row execute function _admin_audit();
+create trigger audit_questions after insert or update or delete on questions for each row execute function _admin_audit();
+create trigger audit_answer_keys after insert or update or delete on answer_keys for each row execute function _admin_audit();
+create trigger audit_question_terminals after insert or update or delete on question_terminals for each row execute function _admin_audit();
+create trigger audit_invites after insert or update or delete on invites for each row execute function _admin_audit();
+create trigger audit_profiles after update on profiles for each row execute function _admin_audit();
+create trigger audit_api_keys after insert or update or delete on api_keys for each row execute function _admin_audit();
+create trigger audit_webhooks after insert or update or delete on webhooks for each row execute function _admin_audit();
+create trigger audit_answers_grading after update of score, feedback on answers for each row
+  when (coalesce(current_setting('app.actor', true), '') <> '')
+  execute function _admin_audit();
+
+create or replace function public._admin_audit_immutable() returns trigger
+language plpgsql as $$ begin raise exception 'admin_audit est en ajout seul'; end; $$;
+create trigger admin_audit_no_change before update or delete on admin_audit
+  for each row execute function _admin_audit_immutable();
+
+------------------------------------------------------------
 -- Inscription : toujours candidat.
 ------------------------------------------------------------
 create or replace function public.handle_new_user()
@@ -443,15 +551,22 @@ begin
   if a.id is null or a.status not in ('pending', 'in_progress') then return; end if;
 
   for r in
-    select q.id as qid, q.type, q.points, an.id as aid, an.response, k.correct
+    select q.id as qid, q.type, q.points, an.id as aid, an.response, k.correct, qt.flag
     from questions q
     left join answers an on an.question_id = q.id and an.attempt_id = p_attempt
     left join answer_keys k on k.question_id = q.id
+    left join question_terminals qt on qt.question_id = q.id
     where q.id = any(coalesce(a.question_order, '{}'))
   loop
     v_max := v_max + r.points;
     continue when r.aid is null or r.type = 'long_text';
     s := 0;
+    if r.type = 'terminal' then
+      if r.flag is not null and trim(coalesce(r.response->>'flag', '')) = trim(r.flag) then s := r.points; end if;
+      update answers set score = s where id = r.aid;
+      v_total := v_total + s;
+      continue;
+    end if;
     resp := coalesce(r.response->'selected', '[]'::jsonb);
     correct := coalesce(r.correct, '[]'::jsonb);
     if jsonb_array_length(correct) > 0
@@ -651,7 +766,7 @@ end; $$;
 -- Démarrage (ou reprise autorisée) : tirage des questions, chrono serveur,
 -- jeton de session unique.
 create or replace function public.exam_begin(p_user uuid, p_attempt uuid, p_new_token_hash text,
-                                             p_prev_token_hash text, p_ip text, p_ua text)
+                                             p_prev_token_hash text, p_ip text, p_ua text, p_nonce_hash text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
@@ -718,9 +833,14 @@ begin
       -- mêmes contrôles de poste que pour toute autre action.
       a := _load_session(p_user, p_attempt, p_prev_token_hash, p_ip, p_ua);
       if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+      perform _log(a.id, 'session_reloaded', 'warning', null, p_ip);
+      if (select count(*) from proctor_events where attempt_id = a.id and kind = 'session_reloaded') > 3 then
+        a := _add_violation(a.id, 'excessive_reloads', null, p_ip);
+        if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+      end if;
       v_token := 'keep';
-    elsif a.session_token_hash is null or t.allow_resume then
-      update attempts set session_token_hash = p_new_token_hash, session_started_at = now(),
+    elsif a.resume_allowed or t.allow_resume then
+      update attempts set session_token_hash = p_new_token_hash, session_started_at = now(), resume_allowed = false,
         last_seen_at = now(), client_ip = p_ip, user_agent = left(coalesce(p_ua, ''), 500)
       where id = a.id returning * into a;
       v_token := 'new';
@@ -735,8 +855,17 @@ begin
     return jsonb_build_object('status', a.status);
   end if;
 
+  if p_nonce_hash is null or length(p_nonce_hash) <> 64 then raise exception 'bad_token' using errcode = 'P0001'; end if;
+  update attempts set recent_nonce_hashes = (array_remove(array[request_nonce_hash], null) || recent_nonce_hashes)[1:3],
+                      request_nonce_hash = p_nonce_hash where id = a.id;
+
   select jsonb_agg(jsonb_build_object(
       'id', q2.id, 'type', q2.type, 'prompt', q2.prompt, 'points', q2.points, 'image_url', q2.image_url,
+      'terminal', (select jsonb_build_object(
+          'cwd', coalesce(qt.scenario->>'home', '/home/' || coalesce(qt.scenario->>'user', 'candidat')),
+          'prompt', coalesce(qt.scenario->>'user', 'candidat') || '@' || coalesce(qt.scenario->>'hostname', 'lab') || ':~$',
+          'motd', qt.scenario->>'motd')
+        from question_terminals qt where qt.question_id = q2.id and q2.type = 'terminal'),
       'options', (select jsonb_agg(o order by array_position(
                      array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
                   from jsonb_array_elements(q2.options) o))
@@ -803,6 +932,11 @@ begin
       raise exception 'bad_response' using errcode = 'P0001';
     end if;
     p_response := jsonb_build_object('text', p_response->>'text');
+  elsif q.type = 'terminal' then
+    if jsonb_typeof(p_response->'flag') <> 'string' or length(p_response->>'flag') > 200 then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('flag', p_response->>'flag');
   else
     v_sel := p_response->'selected';
     if jsonb_typeof(v_sel) <> 'array' then raise exception 'bad_response' using errcode = 'P0001'; end if;
@@ -887,6 +1021,74 @@ begin
   return jsonb_build_object('status', 'submitted');
 end; $$;
 
+-- Jeton de requête tournant : chaque appel d'examen présente le jeton reçu
+-- à l'appel précédent et en reçoit un nouveau. Une copie de session
+-- utilisée en parallèle désynchronise la chaîne : infraction et session
+-- coupée (le surveillant doit autoriser la reprise). Le jeton précédent est
+-- toléré une fois (réponse perdue sur un réseau instable).
+create or replace function public.exam_rotate_nonce(p_user uuid, p_attempt uuid, p_token_hash text,
+                                                    p_nonce_hash text, p_next_hash text, p_ip text)
+returns text language plpgsql security definer set search_path = public as $$
+declare a attempts;
+begin
+  select * into a from attempts where id = p_attempt and candidate_id = p_user for update;
+  if a.id is null then return 'attempt_not_found'; end if;
+  if a.status <> 'in_progress' then return 'closed'; end if;
+  if a.session_token_hash is null or a.session_token_hash is distinct from p_token_hash then return 'session_invalid'; end if;
+  if p_next_hash is null or length(p_next_hash) <> 64 then return 'bad_token'; end if;
+  -- Accepte le jeton courant ou l'un des 3 précédents (réponses perdues sur
+  -- un réseau instable, requête en vol pendant un rechargement).
+  if p_nonce_hash is not null and (p_nonce_hash = a.request_nonce_hash or p_nonce_hash = any(a.recent_nonce_hashes)) then
+    update attempts set recent_nonce_hashes = (array_remove(array[a.request_nonce_hash], null) || array_remove(a.recent_nonce_hashes, p_nonce_hash))[1:3],
+                        request_nonce_hash = p_next_hash where id = a.id;
+    return 'ok';
+  end if;
+  -- Jeton inconnu : utilisation parallèle d'une session copiée. Session coupée,
+  -- reprise uniquement sur autorisation du surveillant (resume_allowed).
+  a := _add_violation(a.id, 'request_replay', jsonb_build_object('reason', 'nonce_mismatch'), p_ip);
+  update attempts set session_token_hash = null, request_nonce_hash = null, recent_nonce_hashes = '{}', resume_allowed = false where id = a.id;
+  perform _log(a.id, 'session_killed', 'critical', '{"reason":"parallel_use_suspected"}', p_ip);
+  return 'session_killed';
+end; $$;
+
+-- Terminal : renvoie le scénario d'une question terminal au serveur (jamais
+-- au navigateur) après les contrôles de session ; limite à 30 commandes / 15 s.
+create or replace function public.exam_terminal_scenario(p_user uuid, p_attempt uuid, p_token_hash text,
+                                                         p_question uuid, p_ip text, p_ua text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  a attempts;
+  v_scn jsonb;
+  v_n int;
+begin
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
+  if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+  if now() > a.deadline_at then raise exception 'time_over' using errcode = 'P0001'; end if;
+  if not (p_question = any(a.question_order)) then raise exception 'bad_question' using errcode = 'P0001'; end if;
+  select scenario into v_scn from question_terminals qt join questions q on q.id = qt.question_id
+   where qt.question_id = p_question and q.type = 'terminal';
+  if v_scn is null then raise exception 'bad_question' using errcode = 'P0001'; end if;
+  select count(*) into v_n from terminal_history where attempt_id = a.id and created_at > now() - interval '15 seconds';
+  if v_n >= 30 then raise exception 'too_many_attempts' using errcode = 'P0001'; end if;
+  return jsonb_build_object('status', 'in_progress', 'scenario', v_scn);
+end; $$;
+
+create or replace function public.exam_terminal_log(p_attempt uuid, p_question uuid, p_cwd text, p_cmd text)
+returns void language sql security definer set search_path = public as $$
+  insert into terminal_history(attempt_id, question_id, cwd, command) values (p_attempt, p_question, left(p_cwd, 300), left(p_cmd, 500));
+$$;
+
+-- API : enregistre un nonce de requête signée ; faux s'il a déjà servi.
+create or replace function public.api_use_nonce(p_key uuid, p_nonce text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_n int;
+begin
+  delete from api_nonces where created_at < now() - interval '15 minutes';
+  insert into api_nonces(key_id, nonce) values (p_key, p_nonce) on conflict do nothing;
+  get diagnostics v_n = row_count;
+  return v_n = 1;
+end; $$;
+
 -- Clôt les tentatives dont le délai est dépassé (à appeler par le cron).
 create or replace function public.expire_overdue_attempts()
 returns int language plpgsql security definer set search_path = public as $$
@@ -912,11 +1114,13 @@ declare
   v_min int;
 begin
   if not _is_staff_user(p_actor) then raise exception 'forbidden' using errcode = '42501'; end if;
+  perform set_config('app.actor', p_actor::text, true);
+  perform set_config('app.actor_role', (select role::text from profiles where id = p_actor), true);
   select * into a from attempts where id = p_attempt for update;
   if a.id is null then raise exception 'attempt_not_found' using errcode = 'P0002'; end if;
 
   if p_action = 'reset_session' then
-    update attempts set session_token_hash = null where id = a.id;
+    update attempts set session_token_hash = null, resume_allowed = true where id = a.id;
     perform _log(a.id, 'staff_reset_session', 'info', jsonb_build_object('by', p_actor), null);
   elsif p_action = 'extend_time' then
     v_min := (p_arg->>'minutes')::int;
@@ -958,6 +1162,8 @@ declare
   v_total numeric;
 begin
   if not _is_staff_user(p_actor) then raise exception 'forbidden' using errcode = '42501'; end if;
+  perform set_config('app.actor', p_actor::text, true);
+  perform set_config('app.actor_role', (select role::text from profiles where id = p_actor), true);
   select * into an from answers where id = p_answer for update;
   if an.id is null then raise exception 'answer_not_found' using errcode = 'P0002'; end if;
   select * into q from questions where id = an.question_id;

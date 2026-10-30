@@ -28,21 +28,21 @@ function LoginInner() {
 
   return (
     <main className="max-w-md mx-auto px-6 py-16">
-      <h1 className="text-2xl font-bold">Sign in</h1>
+      <h1 className="h1">Connexion</h1>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        <button className="btn w-full justify-center" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
+        <input className="input" type="email" placeholder="Adresse e-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="input" type="password" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        {err && <p className="text-sm text-danger">{err}</p>}
+        <button className="btn w-full justify-center" disabled={loading}>{loading ? "Connexion…" : "Se connecter"}</button>
       </form>
-      <p className="mt-4 text-sm text-slate-600">No account? <Link href="/signup" className="underline">Sign up</Link></p>
+      <p className="mt-4 text-sm text-muted">Pas encore de compte ? <Link href="/signup" className="underline">Créer un compte</Link></p>
     </main>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="p-10">Loading…</main>}>
+    <Suspense fallback={<main className="p-10">Chargement…</main>}>
       <LoginInner />
     </Suspense>
   );

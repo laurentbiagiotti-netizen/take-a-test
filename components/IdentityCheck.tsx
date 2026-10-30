@@ -55,11 +55,11 @@ export default function IdentityCheck({ testId, title, rejected }: { testId: str
 
   return (
     <main className="max-w-xl mx-auto p-10">
-      <h1 className="text-2xl font-bold">{title}</h1>
-      <h2 className="font-semibold mt-4">Vérification d&apos;identité</h2>
-      {rejected && <p className="text-red-600 text-sm mt-2">Votre précédente vérification a été refusée par le surveillant. Recommencez en suivant les consignes.</p>}
+      <h1 className="h1">{title}</h1>
+      <h2 className="h2 mt-4">Vérification d&apos;identité</h2>
+      {rejected && <p className="text-danger text-sm mt-2">Votre précédente vérification a été refusée par le surveillant. Recommencez en suivant les consignes.</p>}
       {step === "intro" && (
-        <div className="mt-3 text-slate-600 text-sm space-y-2">
+        <div className="mt-3 text-muted text-sm space-y-2">
           <p>Avant l&apos;épreuve, nous avons besoin de deux photos prises avec votre webcam :</p>
           <ol className="list-decimal pl-5 space-y-1">
             <li>votre pièce d&apos;identité (carte d&apos;identité, passeport ou titre de séjour), bien lisible ;</li>
@@ -71,7 +71,7 @@ export default function IdentityCheck({ testId, title, rejected }: { testId: str
       )}
       {(step === "document" || step === "selfie" || step === "sending") && (
         <div className="mt-4">
-          <p className="text-sm text-slate-700 mb-2">
+          <p className="text-sm text-fg mb-2">
             {step === "document" ? "Étape 1/2 : présentez votre pièce d'identité face à la caméra." : "Étape 2/2 : regardez la caméra, visage bien éclairé."}
           </p>
           <video ref={videoRef} className="w-full rounded bg-black" muted playsInline />
@@ -80,7 +80,7 @@ export default function IdentityCheck({ testId, title, rejected }: { testId: str
           </button>
         </div>
       )}
-      {err && <p className="text-red-600 text-sm mt-3">{err}</p>}
+      {err && <p className="text-danger text-sm mt-3">{err}</p>}
     </main>
   );
 }

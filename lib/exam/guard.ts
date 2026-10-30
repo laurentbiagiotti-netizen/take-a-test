@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { clientIp, publicUrl, sameOrigin, userAgent } from "@/lib/security/request";
 import { mergeKeys, sebRequired, verifySeb } from "@/lib/security/seb";
-import { examCookieName, sha256Hex } from "@/lib/security/tokens";
+import { examCookieName, randomHex, sha256Hex } from "@/lib/security/tokens";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,6 +16,8 @@ export type ExamCtx = {
   ip: string | null;
   ua: string;
   admin: ReturnType<typeof adminClient>;
+  /** Jeton de requête suivant, à renvoyer au client (en-tête X-Exam-Nonce). */
+  nextNonce: string | null;
 };
 
 /** Messages renvoyés au candidat (jamais le détail technique). */
@@ -33,6 +35,7 @@ const MESSAGES: Record<string, [number, string]> = {
   device_changed: [409, "Changement d'appareil détecté."],
   session_locked: [409, "Cet examen est déjà ouvert sur un autre appareil. Contactez le surveillant."],
   session_invalid: [409, "Session d'examen invalide ou ouverte ailleurs. Contactez le surveillant."],
+  session_killed: [409, "Utilisation simultanée de votre session détectée : elle a été coupée. Contactez le surveillant."],
   test_closed: [403, "La période de passage de cet examen est terminée."],
   test_not_open: [403, "Cet examen n'est pas encore ouvert."],
   no_questions: [409, "Cet examen ne contient aucune question."],
@@ -65,7 +68,7 @@ export function rpcError(err: { message?: string } | null): NextResponse {
  *  4. Récupération de la tentative et du jeton de session (cookie httpOnly)
  */
 export async function examGuard(
-  req: NextRequest, testId: string,
+  req: NextRequest, testId: string, rotate = false,
 ): Promise<{ ctx: ExamCtx } | { res: NextResponse }> {
   if (!UUID.test(testId)) return { res: examError("test_not_found") };
   if (req.method !== "GET" && !sameOrigin(req)) return { res: examError("bad_origin") };
@@ -92,18 +95,47 @@ export async function examGuard(
   const { data: attempt } = await admin.from("attempts").select("id")
     .eq("test_id", testId).eq("candidate_id", user.id).maybeSingle();
   const token = req.cookies.get(examCookieName(testId))?.value || null;
+  const tokenHash = token && /^[a-f0-9]{64}$/.test(token) ? await sha256Hex(token) : null;
+  const ip = clientIp(req);
+
+  // 5. Jeton de requête tournant (anti-partage de session et anti-rejeu)
+  let nextNonce: string | null = null;
+  if (rotate) {
+    if (!attempt?.id || !tokenHash) return { res: examError("session_invalid") };
+    const sent = req.headers.get("x-exam-nonce") || "";
+    const candidate = randomHex(32);
+    const { data: r, error } = await admin.rpc("exam_rotate_nonce", {
+      p_user: user.id, p_attempt: attempt.id, p_token_hash: tokenHash,
+      p_nonce_hash: /^[a-f0-9]{64}$/.test(sent) ? await sha256Hex(sent) : null,
+      p_next_hash: await sha256Hex(candidate), p_ip: ip,
+    });
+    if (error) return { res: rpcError(error) };
+    if (r === "ok") nextNonce = candidate;
+    else if (r !== "closed") return { res: examError(r === "session_killed" ? "session_killed" : "session_invalid") };
+  }
 
   return {
     ctx: {
-      userId: user.id,
-      email: user.email || "",
-      testId,
-      attemptId: attempt?.id || null,
-      tokenHash: token && /^[a-f0-9]{64}$/.test(token) ? await sha256Hex(token) : null,
-      ip: clientIp(req),
-      ua: userAgent(req),
-      admin,
+      userId: user.id, email: user.email || "", testId,
+      attemptId: attempt?.id || null, tokenHash, ip, ua: userAgent(req), admin, nextNonce,
     },
+  };
+}
+
+/** Enveloppe de route d'examen : contrôles communs + renvoi du jeton suivant. */
+export function examRoute(
+  opts: { rotate: boolean },
+  fn: (ctx: ExamCtx, req: NextRequest) => Promise<NextResponse>,
+) {
+  return async (req: NextRequest, { params }: { params: Promise<{ testId: string }> }) => {
+    const { testId } = await params;
+    const g = await examGuard(req, testId, opts.rotate);
+    if ("res" in g) return g.res;
+    let res: NextResponse;
+    try { res = await fn(g.ctx, req); }
+    catch (e) { console.error("[exam]", e); res = examError("server_error"); }
+    if (g.ctx.nextNonce) res.headers.set("X-Exam-Nonce", g.ctx.nextNonce);
+    return res;
   };
 }
 

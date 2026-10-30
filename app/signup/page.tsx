@@ -29,16 +29,16 @@ export default function SignupPage() {
 
   return (
     <main className="max-w-md mx-auto px-6 py-16">
-      <h1 className="text-2xl font-bold">Create candidate account</h1>
-      <p className="text-sm text-slate-600 mt-1">Already invited? Use the email your administrator sent invites to.</p>
+      <h1 className="h1">Créer un compte candidat</h1>
+      <p className="text-sm text-muted mt-1">Vous avez reçu une invitation ? Utilisez exactement l&apos;adresse e-mail à laquelle elle a été envoyée.</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <input className="input" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Password (min 6)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        <button className="btn w-full justify-center" disabled={loading}>{loading ? "Creating…" : "Sign up"}</button>
+        <input className="input" placeholder="Nom et prénom" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <input className="input" type="email" placeholder="Adresse e-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="input" type="password" placeholder="Mot de passe (12 caractères minimum)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required />
+        {err && <p className="text-sm text-danger">{err}</p>}
+        <button className="btn w-full justify-center" disabled={loading}>{loading ? "Création…" : "Créer le compte"}</button>
       </form>
-      <p className="mt-4 text-sm text-slate-600">Already have an account? <Link href="/login" className="underline">Sign in</Link></p>
+      <p className="mt-4 text-sm text-muted">Déjà un compte ? <Link href="/login" className="underline">Se connecter</Link></p>
     </main>
   );
 }

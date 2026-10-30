@@ -38,21 +38,21 @@ export default function StaffActions({ attemptId, status, identityStatus, isAdmi
           const m = prompt("Minutes supplémentaires (tiers-temps, incident) :", "10");
           if (m) act("extend_time", { minutes: parseInt(m, 10) });
         }}>Ajouter du temps</button>}
-        {active && <button className="btn-secondary text-red-700" disabled={busy} onClick={() => {
+        {active && <button className="btn-secondary text-danger" disabled={busy} onClick={() => {
           const reason = prompt("Motif de l'arrêt (consigné au journal) :");
           if (reason) act("terminate", { reason });
         }}>Arrêter l&apos;épreuve</button>}
         {["submitted", "verified", "rejected"].includes(identityStatus) && <>
           <button className="btn-secondary" disabled={busy} onClick={() => act("review_identity", { ok: true })}>Identité conforme</button>
-          <button className="btn-secondary text-red-700" disabled={busy} onClick={() => {
+          <button className="btn-secondary text-danger" disabled={busy} onClick={() => {
             const note = prompt("Motif du refus :");
             if (note !== null) act("review_identity", { ok: false, note });
           }}>Identité non conforme</button>
         </>}
         <button className="btn-secondary" onClick={verify}>Vérifier l&apos;intégrité du journal</button>
-        {isAdmin && <button className="btn-secondary text-red-700" disabled={busy} onClick={() => act("reset_attempt", {}, "Supprimer définitivement cette tentative (réponses et journal) pour permettre un nouveau passage ?")}>Supprimer la tentative</button>}
+        {isAdmin && <button className="btn-secondary text-danger" disabled={busy} onClick={() => act("reset_attempt", {}, "Supprimer définitivement cette tentative (réponses et journal) pour permettre un nouveau passage ?")}>Supprimer la tentative</button>}
       </div>
-      {chain && <p className={chain.startsWith("Journal intègre") ? "text-green-700" : "text-red-700 font-semibold"}>{chain}</p>}
+      {chain && <p className={chain.startsWith("Journal intègre") ? "text-ok" : "text-danger font-semibold"}>{chain}</p>}
     </div>
   );
 }

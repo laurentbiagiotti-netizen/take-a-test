@@ -7,6 +7,8 @@ import { appUrl, trustedProxyHops } from "./env";
  * le client peut forger.
  */
 export function clientIp(req: Request | NextRequest): string | null {
+  // Sans proxy de confiance, aucun en-tête d'IP n'est fiable (forgeable).
+  if (trustedProxyHops() === 0) return null;
   const xff = req.headers.get("x-forwarded-for");
   if (xff) {
     const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);

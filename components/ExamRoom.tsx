@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Terminal from "@/components/Terminal";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
@@ -8,7 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  */
 
 type Opt = { id: string; text: string; image_url?: string | null };
-type Q = { id: string; type: "mcq_single" | "mcq_multi" | "long_text"; prompt: string; options: Opt[] | null; points: number; image_url?: string | null };
+type Q = { id: string; type: "mcq_single" | "mcq_multi" | "long_text" | "terminal"; prompt: string; options: Opt[] | null; points: number; image_url?: string | null;
+  terminal?: { cwd: string; prompt: string; motd?: string | null } | null };
 type Phase = "prep" | "starting" | "active" | "ended" | "blocked";
 
 const HEARTBEAT_MS = 10_000;
@@ -28,6 +30,10 @@ export default function ExamRoom(props: {
   const clockOffset = useRef(0);
   const textTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const phaseRef = useRef<Phase>("prep");
+  // Jeton de requête tournant : chaque appel renvoie le suivant. Les appels
+  // sont sérialisés (file d'attente) pour ne jamais désynchroniser la chaîne.
+  const nonceRef = useRef<string | null>(null);
+  const queueRef = useRef<Promise<unknown>>(Promise.resolve());
 
   const [phase, setPhaseState] = useState<Phase>("prep");
   const [questions, setQuestions] = useState<Q[]>([]);
@@ -55,20 +61,29 @@ export default function ExamRoom(props: {
     setPhase("ended");
   }, []);
 
-  const post = useCallback(async (path: string, body?: unknown) => {
-    const r = await fetch(api(path), {
-      method: "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body ?? {}),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
-    if (typeof j?.violation_count === "number") setViolations(j.violation_count);
-    if (!r.ok && (j?.error === "session_invalid" || j?.error === "seb_required")) {
-      stopMedia();
-      setBanner(j.message); setPhase("blocked");
-    }
-    return { ok: r.ok, data: j };
+  const post = useCallback((path: string, body?: unknown, form?: FormData): Promise<{ ok: boolean; data: any }> => {
+    const task = async () => {
+      const headers: Record<string, string> = {};
+      if (!form) headers["Content-Type"] = "application/json";
+      if (nonceRef.current) headers["X-Exam-Nonce"] = nonceRef.current;
+      let r: Response;
+      try {
+        r = await fetch(api(path), { method: "POST", credentials: "same-origin", headers, body: form ?? JSON.stringify(body ?? {}) });
+      } catch { return { ok: false, data: { message: "Connexion perdue, nouvel essai dans quelques secondes." } }; }
+      const next = r.headers.get("X-Exam-Nonce");
+      if (next) nonceRef.current = next;
+      const j = await r.json().catch(() => ({}));
+      if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
+      if (typeof j?.violation_count === "number") setViolations(j.violation_count);
+      if (!r.ok && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
+        stopMedia();
+        setBanner(j.message); setPhase("blocked");
+      }
+      return { ok: r.ok, data: j };
+    };
+    const p = queueRef.current.then(task, task);
+    queueRef.current = p.catch(() => {});
+    return p;
   }, [api, end]);
 
   const report = useCallback((kind: string, detail?: Record<string, unknown>, isViolation = false) => {
@@ -205,12 +220,10 @@ export default function ExamRoom(props: {
       const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.6));
       if (!blob) return;
       const fd = new FormData(); fd.append("image", blob, "snap.jpg");
-      const r = await fetch(api("snapshot"), { method: "POST", body: fd, credentials: "same-origin" });
-      const j = await r.json().catch(() => ({}));
-      if (j?.status && j.status !== "in_progress") end(j.status);
+      await post("snapshot", undefined, fd);
     }, SNAPSHOT_MS);
     return () => clearInterval(i);
-  }, [phase, requireWebcam, report, api, end]);
+  }, [phase, requireWebcam, report, post]);
 
   // Chrono (affichage) ; la vraie limite est appliquée par le serveur
   useEffect(() => {
@@ -248,8 +261,14 @@ export default function ExamRoom(props: {
     textTimers.current[q.id] = setTimeout(() => save(q, { text }), 800);
   };
 
+  const setFlag = (q: Q, flag: string) => {
+    setAnswers((a) => ({ ...a, [q.id]: { flag } }));
+    clearTimeout(textTimers.current[q.id]);
+    textTimers.current[q.id] = setTimeout(() => save(q, { flag }), 600);
+  };
+
   const submit = async () => {
-    const unanswered = questions.filter((q) => !answers[q.id] || (answers[q.id].selected?.length === 0) || answers[q.id].text === "").length;
+    const unanswered = questions.filter((q) => !answers[q.id] || (answers[q.id].selected?.length === 0) || answers[q.id].text === "" || answers[q.id].flag === "").length;
     if (!confirm(unanswered ? `${unanswered} question(s) sans réponse. Rendre la copie définitivement ?` : "Rendre la copie définitivement ?")) return;
     await Promise.all(Object.entries(textTimers.current).map(async ([qid, t]) => {
       clearTimeout(t);
@@ -266,8 +285,8 @@ export default function ExamRoom(props: {
   if (phase === "ended" || phase === "blocked") {
     return (
       <main className="max-w-xl mx-auto p-10 text-center">
-        <h1 className="text-2xl font-bold">{phase === "ended" ? "Épreuve terminée" : "Accès bloqué"}</h1>
-        <p className="text-slate-600 mt-3">{phase === "ended" ? endMessage : banner}</p>
+        <h1 className="h1">{phase === "ended" ? "Épreuve terminée" : "Accès bloqué"}</h1>
+        <p className="text-muted mt-3">{phase === "ended" ? endMessage : banner}</p>
         <a href="/dashboard" className="btn mt-6 inline-flex">Retour</a>
       </main>
     );
@@ -276,8 +295,8 @@ export default function ExamRoom(props: {
   if (phase === "prep" || phase === "starting") {
     return (
       <main className="max-w-2xl mx-auto p-10">
-        <h1 className="text-2xl font-bold">{title}</h1>
-        {description && <p className="text-slate-600 mt-2 whitespace-pre-wrap">{description}</p>}
+        <h1 className="h1">{title}</h1>
+        {description && <p className="text-muted mt-2 whitespace-pre-wrap">{description}</p>}
         <div className="card mt-6 space-y-2 text-sm">
           <p><b>{resuming ? "Reprise de l'épreuve." : "Avant de commencer :"}</b></p>
           <ul className="list-disc pl-5 space-y-1">
@@ -290,7 +309,7 @@ export default function ExamRoom(props: {
             <li>L&apos;examen ne peut être ouvert que sur un seul appareil à la fois.</li>
           </ul>
         </div>
-        {banner && <p className="text-red-600 text-sm mt-4">{banner}</p>}
+        {banner && <p className="text-danger text-sm mt-4">{banner}</p>}
         <button className="btn mt-6" onClick={start} disabled={phase === "starting"}>
           {phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"}
         </button>
@@ -304,7 +323,7 @@ export default function ExamRoom(props: {
   const clock = `${hh ? hh + ":" : ""}${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 
   return (
-    <div className="min-h-screen bg-slate-50 select-none relative overflow-auto">
+    <div className="min-h-screen bg-bg select-none relative overflow-auto">
       {/* Filigrane : dissuade les photos d'écran et permet de tracer une fuite */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden opacity-[0.07] select-none">
         <div className="flex flex-wrap gap-x-24 gap-y-16 -rotate-[25deg] -translate-x-1/4 -translate-y-1/4 w-[200vw]">
@@ -312,16 +331,16 @@ export default function ExamRoom(props: {
         </div>
       </div>
 
-      {banner && <div className="bg-red-600 text-white text-center py-2 text-sm relative z-50">{banner}</div>}
-      <header className="flex items-center justify-between p-4 border-b bg-white relative z-30">
-        <div><b>{title}</b> <span className="text-slate-500 text-sm">· Question {idx + 1}/{questions.length}</span></div>
+      {banner && <div className="bg-danger text-white text-center py-2 text-sm relative z-50">{banner}</div>}
+      <header className="flex items-center justify-between p-4 border-b bg-surface relative z-30">
+        <div className="flex items-center gap-4"><img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" /><span className="text-faint">|</span><b className="font-display uppercase text-sm">{title}</b> <span className="text-muted text-sm">Question {idx + 1}/{questions.length}</span></div>
         <div className="flex items-center gap-4">
-          <span className={`text-xs ${saving === "error" ? "text-red-600" : "text-slate-400"}`}>
+          <span className={`text-xs ${saving === "error" ? "text-danger" : "text-faint"}`}>
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
-          <span className="text-xs text-slate-500">Infractions : {violations}/{maxViolations}</span>
+          <span className="text-xs text-muted">Infractions : {violations}/{maxViolations}</span>
           {requireWebcam && <video ref={videoRef} className="w-24 h-16 bg-black rounded" muted playsInline />}
-          <div className={`font-mono text-lg ${remaining < 300 ? "text-red-600" : ""}`}>{clock}</div>
+          <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`}>{clock}</div>
           <button className="btn" onClick={submit}>Rendre la copie</button>
         </div>
       </header>
@@ -329,10 +348,10 @@ export default function ExamRoom(props: {
       <nav className="max-w-3xl mx-auto px-6 pt-4 flex flex-wrap gap-1 relative z-30">
         {questions.map((qq, i) => {
           const a = answers[qq.id];
-          const done = a && ((a.selected && a.selected.length) || (a.text && a.text.trim()));
+          const done = a && ((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim()));
           return (
             <button key={qq.id} onClick={() => setIdx(i)}
-              className={`w-8 h-8 text-xs rounded border ${i === idx ? "border-slate-900 font-bold" : "border-slate-300"} ${done ? "bg-slate-200" : "bg-white"}`}>
+              className={`w-8 h-8 text-xs rounded border ${i === idx ? "border-accent font-bold" : "border-line"} ${done ? "bg-surface-2" : "bg-surface"}`}>
               {i + 1}
             </button>
           );
@@ -342,12 +361,25 @@ export default function ExamRoom(props: {
       <main className="max-w-3xl mx-auto p-6 relative z-30">
         {q && (
           <div className="card">
-            <div className="text-sm text-slate-500">
-              {q.type === "long_text" ? "Réponse rédigée" : q.type === "mcq_multi" ? "Plusieurs réponses possibles" : "Une seule réponse"} · {q.points} pt{q.points > 1 ? "s" : ""}
+            <div className="text-sm text-muted">
+              {q.type === "terminal" ? "Défi terminal" : q.type === "long_text" ? "Réponse rédigée" : q.type === "mcq_multi" ? "Plusieurs réponses possibles" : "Une seule réponse"} · {q.points} pt{q.points > 1 ? "s" : ""}
             </div>
             <h2 className="text-lg font-semibold mt-1 whitespace-pre-wrap">{q.prompt}</h2>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}
             <div className="mt-4 space-y-2">
+              {q.type === "terminal" && q.terminal && (
+                <div className="space-y-3">
+                  <Terminal key={q.id} initialCwd={q.terminal.cwd} initialPrompt={q.terminal.prompt} motd={q.terminal.motd}
+                    run={async (command, cwd) => {
+                      const { ok, data } = await post("terminal", { question_id: q.id, command, cwd });
+                      return ok ? data : { error: data?.message || "Commande refusée." };
+                    }} />
+                  <label className="block text-sm text-muted">Flag trouvé
+                    <input className="input mt-1 font-mono" maxLength={200} placeholder="CYBER{...}" autoComplete="off" spellCheck={false}
+                      value={answers[q.id]?.flag || ""} onChange={(e) => setFlag(q, e.target.value)} />
+                  </label>
+                </div>
+              )}
               {q.type === "long_text" && (
                 <textarea
                   className="input min-h-[220px] font-mono" maxLength={20000} spellCheck={false}
@@ -361,7 +393,7 @@ export default function ExamRoom(props: {
                 const sel: string[] = answers[q.id]?.selected || [];
                 const checked = sel.includes(opt.id);
                 return (
-                  <label key={opt.id} className={`flex gap-2 items-center p-2 rounded border cursor-pointer ${checked ? "border-slate-900 bg-slate-100" : "border-slate-200 bg-white"}`}>
+                  <label key={opt.id} className={`flex gap-2 items-center p-2 rounded border cursor-pointer ${checked ? "border-accent bg-surface-2" : "border-line bg-surface"}`}>
                     <input
                       type={q.type === "mcq_single" ? "radio" : "checkbox"} name={`q-${q.id}`} checked={checked}
                       onChange={(e) => {

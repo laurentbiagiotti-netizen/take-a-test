@@ -2,7 +2,10 @@
 
 Plateforme auto-hébergée d'examens surveillés (tests d'admission, QCM, épreuves rédigées), fork durci de [Take A Test](https://github.com/ExPl0iT-29/take-a-test) (licence MIT, voir `LICENSE`).
 
-Next.js 15 + Supabase (hébergé ou auto-hébergé) + Safe Exam Browser.
+Next.js 15 + Supabase (hébergé ou auto-hébergé) + Safe Exam Browser. Interface en français, aux couleurs de Cybersup.
+
+- **Démo publique** sur `/demo` : vérification du poste (caméra, plein écran, écran unique, SEB) et épreuve d'essai avec QCM et défis en terminal Linux.
+- **Questions « défi terminal »** : le candidat explore un serveur Linux simulé et retrouve un flag.
 
 ---
 
@@ -55,10 +58,35 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **RGPD** : photos (webcam, identité) purgées automatiquement après la durée de conservation fixée par test ; webcam désactivable par test.
 - En-têtes HTTP durcis (CSP stricte, COOP, CORP, HSTS, `no-referrer`).
 
+### Sécurité du staff et de l'infrastructure
+
+- **Double authentification (TOTP) obligatoire** pour les admins et surveillants, exigée jusque dans la base (RLS) : un mot de passe volé ne donne accès à rien. Enrôlement guidé sur `/mfa`.
+- **Liste d'IP autorisées** pour l'interface d'administration (`ADMIN_ALLOWED_CIDRS`), par exemple le réseau de l'école et Tailscale. C'est une défense en profondeur : elle ne couvre pas un appel direct à Supabase avec une session staff volée (la double authentification reste la vraie barrière). Les clés d'API ayant une portée d'écriture doivent obligatoirement être limitées à des IP.
+- **Journal d'administration inaltérable** (`/admin/audit`) : qui a créé, modifié ou supprimé quoi, sans jamais recopier les valeurs secrètes.
+- **CSP avec nonce par requête** : aucun script ne s'exécute sans le nonce de la page (plus de `unsafe-inline`), polices auto-hébergées, aucune ressource tierce.
+- **Jeton de requête tournant** pendant l'épreuve : chaque appel présente le jeton reçu au précédent. Une session copiée et utilisée en parallèle désynchronise la chaîne : infraction, session coupée, reprise sur autorisation du surveillant.
+
+### Défis terminal
+
+Le scénario (système de fichiers JSON et flag) reste **sur le serveur** : le navigateur n'envoie que la commande et ne reçoit que la sortie. Le shell est simulé en lecture seule (aucune vraie commande n'est exécutée) : `ls`, `cd`, `cat`, `grep`, `find`, `head`, `tail`, `wc`, `sort`, `uniq`, `base64`, `file`, pipes, variables d'environnement, dossiers interdits. Les motifs `grep` sont littéraux par défaut (anti-ReDoS), 30 commandes par 15 s maximum, chaque commande est journalisée et visible par le correcteur. Format du scénario :
+
+```json
+{
+  "user": "candidat", "hostname": "cybersup-lab", "home": "/home/candidat",
+  "motd": "Message d'accueil",
+  "files": { "/home/candidat/.indice": "Regarde dans /var/backups\n", "/var/backups/note.b64": "Q1lCRVJ7Li4ufQo=\n" },
+  "denied": ["/root"],
+  "env": { "INDICE": "..." }
+}
+```
+
 ### API REST et webhooks
 
 - API v1 (`/api/v1`) : examens, questions, invitations, résultats (JSON ou CSV), détail des tentatives, actions de surveillance.
 - Clés d'API hachées, à portées, avec expiration, révocation, quota par minute et journal d'appels.
+- **Signature HMAC-SHA256 de chaque requête** (activée par défaut) : horodatage à ±5 min et nonce à usage unique (anti-rejeu). Le secret de signature est chiffré en base (AES-256-GCM, clé `API_SECRETS_KEY` hors base).
+- **Liste d'IP autorisées par clé**. Une clé cesse de fonctionner si son créateur n'est plus admin.
+- Client d'exemple : `scripts/api-client.mjs`.
 - Webhooks signés HMAC à chaque copie rendue, interrompue ou expirée (file d'envoi en base, renvois automatiques).
 - Documentation OpenAPI : [`public/openapi.yaml`](./public/openapi.yaml), servie sur `/openapi.yaml`.
 
@@ -80,7 +108,10 @@ Dans **Authentication > Providers > Email**, activer la **confirmation d'e-mail*
 ```bash
 cp .env.local.example .env.local
 ```
-`SUPABASE_SERVICE_ROLE_KEY`, `APP_URL` et `CRON_SECRET` sont obligatoires.
+`SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `CRON_SECRET` et `API_SECRETS_KEY` sont obligatoires. Pour générer les secrets :
+```bash
+openssl rand -hex 32
+```
 
 ### 4. Lancer
 ```bash
@@ -93,6 +124,7 @@ S'inscrire sur `/signup`, puis en SQL :
 update profiles set role = 'admin' where email = 'vous@cybersup.ai';
 update profiles set role = 'proctor' where email = 'surveillant@cybersup.ai';
 ```
+À la connexion suivante, `/mfa` demande d'enrôler une application d'authentification (vérifier que le TOTP est activé dans Supabase, Authentication > Multi-Factor). Le premier enrôlement est accordé à quiconque connaît le mot de passe : donner le rôle staff juste avant que la personne se connecte, vérifier qu'elle a bien enrôlé elle-même son téléphone, et activer dans Supabase les e-mails de notification de sécurité (ajout d'un facteur MFA).
 
 ### 6. Tâche planifiée
 Appeler `/api/cron/maintenance` **toutes les minutes** avec l'en-tête `Authorization: Bearer <CRON_SECRET>` (cron système, Vercel Cron, n8n…). Elle clôt les épreuves expirées, envoie les webhooks et purge les photos arrivées en fin de conservation.

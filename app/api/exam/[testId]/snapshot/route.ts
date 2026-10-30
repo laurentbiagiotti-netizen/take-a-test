@@ -1,16 +1,10 @@
-import { NextRequest } from "next/server";
-import { examError, examGuard, json, rpcError } from "@/lib/exam/guard";
+import { examError, examRoute, json, rpcError } from "@/lib/exam/guard";
 import { readImage } from "@/lib/exam/images";
 import { randomHex } from "@/lib/security/tokens";
 
 /** Capture webcam : déposée par le SERVEUR dans le bucket privé. */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ testId: string }> }) {
-  const { testId } = await params;
-  const g = await examGuard(req, testId);
-  if ("res" in g) return g.res;
-  const { ctx } = g;
+export const POST = examRoute({ rotate: true }, async (ctx, req) => {
   if (!ctx.attemptId || !ctx.tokenHash) return examError("session_invalid");
-
   const form = await req.formData().catch(() => null);
   const img = await readImage(form?.get("image") ?? null, 300 * 1024);
   if (!img || img.type === "image/png") return examError("bad_response");
@@ -27,4 +21,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tes
     return error ? rpcError(error) : json(data);
   }
   return json(data);
-}
+});

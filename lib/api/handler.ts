@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { clientIp } from "@/lib/security/request";
 import { sha256Hex, timingSafeEqual } from "@/lib/security/tokens";
+import { ipInCidrs } from "@/lib/security/cidr";
+import { hmacHex, open } from "@/lib/security/secretbox";
 import type { ApiScope } from "./scopes";
 
 /**
@@ -10,6 +12,14 @@ import type { ApiScope } from "./scopes";
  *  - Seul le SHA-256 de la clé est stocké ; comparaison en temps constant
  *  - Portées (scopes) par clé, expiration, révocation
  *  - Quota par clé et par minute (API_RATE_LIMIT, 120 par défaut)
+ *  - Liste d'IP autorisées par clé (allowed_cidrs)
+ *  - Signature HMAC-SHA256 de chaque requête, horodatée (±5 min), avec
+ *    nonce à usage unique (anti-rejeu) :
+ *      X-Cx-Timestamp: <secondes unix>
+ *      X-Cx-Nonce:     <16 à 64 caractères [A-Za-z0-9_-]>
+ *      X-Cx-Signature: hex(HMAC_SHA256(secret_de_signature,
+ *                        "<ts>\n<nonce>\n<MÉTHODE>\n<chemin?requête>\n<sha256_hex(corps)>"))
+ *    Le secret de signature est chiffré en base (AES-GCM, clé API_SECRETS_KEY).
  *  - Chaque appel est journalisé dans api_audit
  */
 export type ApiCtx = {
@@ -37,7 +47,7 @@ export function withApi<P = Record<string, string>>(scope: ApiScope, handler: Ha
       if (!m) { res = apiError(401, "unauthorized", "Clé d'API manquante ou mal formée"); return res; }
       const [, key, prefix] = m;
       const { data: k } = await admin.from("api_keys")
-        .select("id, key_hash, scopes, revoked_at, expires_at, created_by").eq("prefix", prefix.toLowerCase()).maybeSingle();
+        .select("id, key_hash, scopes, revoked_at, expires_at, created_by, allowed_cidrs, require_signature, signing_secret_enc").eq("prefix", prefix.toLowerCase()).maybeSingle();
       const hash = await sha256Hex(key);
       if (!k || !timingSafeEqual(hash, k.key_hash) || k.revoked_at || (k.expires_at && new Date(k.expires_at) < new Date())) {
         res = apiError(401, "unauthorized", "Clé d'API invalide, expirée ou révoquée"); return res;
@@ -48,6 +58,30 @@ export function withApi<P = Record<string, string>>(scope: ApiScope, handler: Ha
         ? await admin.from("profiles").select("role").eq("id", k.created_by).maybeSingle()
         : { data: null };
       if (owner?.role !== "admin") { res = apiError(401, "unauthorized", "Le propriétaire de la clé n'est plus administrateur"); return res; }
+
+      // Restriction d'origine réseau
+      if (k.allowed_cidrs?.length && !ipInCidrs(clientIp(req), k.allowed_cidrs)) {
+        res = apiError(403, "ip_not_allowed", "Adresse IP non autorisée pour cette clé"); return res;
+      }
+
+      // Signature HMAC horodatée + nonce unique
+      if (k.require_signature) {
+        const ts = req.headers.get("x-cx-timestamp") || "";
+        const nonce = req.headers.get("x-cx-nonce") || "";
+        const sig = (req.headers.get("x-cx-signature") || "").toLowerCase();
+        if (!/^\d{10}$/.test(ts) || !/^[A-Za-z0-9_-]{16,64}$/.test(nonce) || !/^[a-f0-9]{64}$/.test(sig)) {
+          res = apiError(401, "signature_required", "En-têtes X-Cx-Timestamp, X-Cx-Nonce et X-Cx-Signature requis"); return res;
+        }
+        if (Math.abs(Date.now() / 1000 - Number(ts)) > 300) { res = apiError(401, "signature_expired", "Horodatage hors fenêtre (±5 min)"); return res; }
+        if (!k.signing_secret_enc) { res = apiError(401, "signature_invalid"); return res; }
+        const u = new URL(req.url);
+        const raw = req.method === "GET" || req.method === "DELETE" ? "" : await req.clone().text();
+        const canonical = `${ts}\n${nonce}\n${req.method}\n${u.pathname}${u.search}\n${await sha256Hex(raw)}`;
+        const expected = await hmacHex(await open(k.signing_secret_enc, `api_key:${prefix.toLowerCase()}`), canonical);
+        if (!timingSafeEqual(expected, sig)) { res = apiError(401, "signature_invalid", "Signature invalide"); return res; }
+        const { data: fresh } = await admin.rpc("api_use_nonce", { p_key: k.id, p_nonce: nonce });
+        if (fresh !== true) { res = apiError(401, "replay_detected", "Nonce déjà utilisé"); return res; }
+      }
       if (!k.scopes.includes(scope)) { res = apiError(403, "insufficient_scope", `Portée requise : ${scope}`); return res; }
       const limit = parseInt(process.env.API_RATE_LIMIT || "120", 10);
       const { data: allowed } = await admin.rpc("api_rate_hit", { p_key: k.id, p_limit: limit });

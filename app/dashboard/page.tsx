@@ -18,26 +18,26 @@ export default async function Dashboard() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Mes examens</h1>
+        <h1 className="h1">Mes examens</h1>
         <form action="/auth/signout" method="post"><button className="btn-secondary">Déconnexion</button></form>
       </div>
       <div className="mt-6 space-y-3">
-        {(tests || []).length === 0 && <p className="text-slate-600">Aucun examen disponible pour le moment.</p>}
+        {(tests || []).length === 0 && <p className="text-muted">Aucun examen disponible pour le moment.</p>}
         {(tests || []).map((t: any) => {
           const done = ["submitted", "terminated", "expired"].includes(t.status);
           return (
             <div key={t.test_id} className="card flex items-center justify-between">
               <div>
                 <div className="font-semibold">{t.title}</div>
-                {t.description && <div className="text-sm text-slate-600">{t.description}</div>}
-                <div className="text-xs text-slate-500 mt-1">
+                {t.description && <div className="text-sm text-muted">{t.description}</div>}
+                <div className="text-xs text-muted mt-1">
                   Durée : {t.duration_minutes} min
                   {t.opens_at && <> · ouvre le {fmt(t.opens_at)}</>}
                   {t.closes_at && <> · ferme le {fmt(t.closes_at)}</>}
                 </div>
               </div>
               <div>
-                {done ? <span className="text-sm text-slate-600">Terminé</span>
+                {done ? <span className="text-sm text-muted">Terminé</span>
                   : <Link href={`/test/${t.test_id}`} className="btn">{t.status === "in_progress" ? "Reprendre" : "Accéder"}</Link>}
               </div>
             </div>

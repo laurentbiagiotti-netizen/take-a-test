@@ -2,21 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body { height: 100%; }
-body { @apply bg-slate-50 text-slate-900; }
+/* Charte Cybersup (variables officielles) + palette sombre du launcher */
+:root {
+  --cs-navy: #0a1047; --cs-indigo: #303880; --cs-orange: #fd7119; --cs-orange-light: #ffa364; --cs-cream: #f6e9e0;
+  color-scheme: dark;
+}
 
-/* Landing page: dotted grid + radial glow (used by app/page.tsx) */
-.bg-grid {
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0);
-  background-size: 24px 24px;
-}
-.bg-radial-glow {
-  background:
-    radial-gradient(60% 50% at 50% 0%, rgba(99,102,241,0.18) 0%, transparent 60%),
-    radial-gradient(40% 40% at 70% 10%, rgba(217,70,239,0.12) 0%, transparent 60%);
-}
-.btn { @apply inline-flex items-center px-4 py-2 rounded-md bg-slate-900 text-white text-sm font-medium hover:bg-slate-700 disabled:opacity-50; }
-.btn-secondary { @apply inline-flex items-center px-4 py-2 rounded-md border border-slate-300 bg-white text-sm font-medium hover:bg-slate-100; }
-.input { @apply w-full px-3 py-2 border border-slate-300 rounded-md text-sm; }
-.card { @apply bg-white border border-slate-200 rounded-lg p-4 shadow-sm; }
+@layer base { *, ::before, ::after { border-color: #232a3d; } }
+
+html, body { min-height: 100%; }
+body { @apply bg-bg text-fg font-sans antialiased; }
+::selection { background: rgba(253, 113, 25, 0.35); }
+
+/* Titres : Archivo Black en majuscules (charte), sans espacement exagéré */
+.h1 { @apply font-display uppercase text-2xl leading-tight text-fg; }
+.h2 { @apply font-display uppercase text-base leading-tight text-fg; }
+.label { @apply text-sm text-muted; }
+
+.btn { @apply inline-flex items-center gap-2 px-4 py-2 rounded-md bg-accent text-bg text-sm font-semibold hover:bg-accent-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors; }
+.btn-secondary { @apply inline-flex items-center gap-2 px-4 py-2 rounded-md border border-line-strong bg-transparent text-fg text-sm font-medium hover:border-accent hover:text-accent disabled:opacity-40 transition-colors; }
+.btn-danger { @apply inline-flex items-center gap-2 px-4 py-2 rounded-md border border-danger/50 text-danger text-sm font-medium hover:bg-danger/10; }
+.input { @apply w-full px-3 py-2 rounded-md text-sm bg-bg border border-line text-fg placeholder:text-faint focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent; }
+.card { @apply bg-surface border border-line rounded-lg p-5; }
+.badge { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border; }
+.badge-ok { @apply badge border-ok/40 text-ok; }
+.badge-warn { @apply badge border-warn/40 text-warn; }
+.badge-danger { @apply badge border-danger/40 text-danger; }
+.badge-muted { @apply badge border-line-strong text-muted; }
+
+table { @apply text-fg; }
+thead { @apply text-muted; }
+code { @apply font-mono text-[0.9em]; }
+input[type="checkbox"], input[type="radio"] { accent-color: #fd7119; }
+a.underline { @apply decoration-accent/60 underline-offset-2; }

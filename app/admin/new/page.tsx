@@ -23,15 +23,15 @@ export default function NewTest() {
 
   return (
     <main className="max-w-xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-bold">New test</h1>
+      <h1 className="h1">Nouvel examen</h1>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <input className="input" placeholder="Titre" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <textarea className="input" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <label className="block text-sm">Duration (minutes)
+        <label className="block text-sm">Durée (minutes)
           <input className="input mt-1" type="number" min={1} value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} />
         </label>
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        <button className="btn">Create</button>
+        {err && <p className="text-sm text-danger">{err}</p>}
+        <button className="btn">Créer</button>
       </form>
     </main>
   );
