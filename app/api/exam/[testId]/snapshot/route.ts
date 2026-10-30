@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tes
   if (up.error) { console.error("[snapshot]", up.error); return examError("server_error"); }
 
   const { data, error } = await ctx.admin.rpc("exam_add_snapshot", {
-    p_user: ctx.userId, p_attempt: ctx.attemptId, p_token_hash: ctx.tokenHash, p_path: path, p_ip: ctx.ip,
+    p_user: ctx.userId, p_attempt: ctx.attemptId, p_token_hash: ctx.tokenHash, p_path: path, p_ip: ctx.ip, p_ua: ctx.ua,
   });
   if (error || data?.status !== "in_progress") {
     await ctx.admin.storage.from("snapshots").remove([path]);

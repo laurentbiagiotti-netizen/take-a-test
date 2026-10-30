@@ -32,12 +32,19 @@ function timingSafeEqualHex(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export function mergeKeys(perTest: Partial<SebKeys> | null | undefined): SebKeys {
+/**
+ * Par défaut seules les Browser Exam Keys sont acceptées : la Config Key se
+ * recalcule à partir du fichier .seb, donc un candidat qui obtient ce fichier
+ * pourrait forger les en-têtes hors de SEB. La BEK dépend en plus du binaire
+ * SEB et du sel propre à l'examen (examKeySalt). La Config Key n'est acceptée
+ * que si le test l'autorise explicitement (parc hétérogène, risque assumé).
+ */
+export function mergeKeys(perTest: Partial<SebKeys> | null | undefined, acceptConfigKey = false): SebKeys {
   const g = globalSebKeys();
   const norm = (arr?: string[] | null) => (arr || []).map((k) => k.trim().toLowerCase()).filter(Boolean);
   return {
     bek: Array.from(new Set([...g.bek, ...norm(perTest?.bek)])),
-    ck: Array.from(new Set([...g.ck, ...norm(perTest?.ck)])),
+    ck: acceptConfigKey ? Array.from(new Set([...g.ck, ...norm(perTest?.ck)])) : [],
   };
 }
 

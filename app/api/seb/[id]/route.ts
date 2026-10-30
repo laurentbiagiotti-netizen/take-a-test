@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { appHost, appUrl, supabaseHost } from "@/lib/security/env";
+import { requireStaff } from "@/lib/auth/staff";
 
 /**
  * Génère le fichier .seb (plist XML non chiffré) d'un examen.
  *
- * Après génération : ouvrir le fichier dans l'outil de configuration SEB,
- * relever la Config Key (onglet Exam) et la coller dans les réglages SEB du
- * test côté admin. Pour une sécurité maximale, enregistrer ensuite le .seb
- * chiffré par mot de passe depuis l'outil SEB avant de le distribuer.
+ * Réservé aux administrateurs : un candidat qui obtient le .seb en clair
+ * peut recalculer la Config Key et le hash du mot de passe de sortie.
+ *
+ * Procédure : télécharger, ouvrir dans l'outil de configuration SEB, relever
+ * la Browser Exam Key (onglet Exam, une par version/OS de SEB autorisée),
+ * la coller dans les réglages du test, puis RÉENREGISTRER le .seb chiffré
+ * par mot de passe avant de le distribuer.
+ *
+ * Le fichier contient un sel propre à l'examen (examKeySalt) : la Browser
+ * Exam Key est donc différente pour chaque examen et ne peut pas être
+ * réutilisée d'une session à l'autre.
  */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,13 +24,21 @@ function xml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const staff = await requireStaff(req, true);
+  if ("res" in staff) return staff.res;
   if (!UUID.test(id)) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const admin = adminClient();
   const { data: test } = await admin.from("tests").select("id, is_published").eq("id", id).maybeSingle();
-  if (!test?.is_published) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const { data: sec } = await admin.from("test_secrets").select("seb_quit_password_hash").eq("test_id", id).maybeSingle();
+  if (!test) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const { data: sec } = await admin.from("test_secrets").select("seb_quit_password_hash, seb_exam_key_salt").eq("test_id", id).maybeSingle();
+  let salt = sec?.seb_exam_key_salt;
+  if (!salt) {
+    const b = new Uint8Array(32); crypto.getRandomValues(b);
+    salt = Buffer.from(b).toString("base64");
+    await admin.from("test_secrets").upsert({ test_id: id, seb_exam_key_salt: salt }, { onConflict: "test_id" });
+  }
 
   const origin = appUrl();
   const startUrl = `${origin}/test/${id}`;
@@ -88,6 +104,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     <dict><key>action</key><integer>1</integer><key>active</key><true/><key>expression</key><string>${xml(supabaseHost())}/storage/v1/object/public/question-images/*</string><key>regex</key><false/></dict>
   </array>
   <key>sendBrowserExamKey</key><true/>
+  <key>examKeySalt</key><data>${salt}</data>
 </dict>
 </plist>`;
 

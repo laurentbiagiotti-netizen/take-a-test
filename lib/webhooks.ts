@@ -27,6 +27,12 @@ export async function deliverPendingWebhooks(limit = 20): Promise<{ delivered: n
   for (const row of (rows || []) as any[]) {
     const wh = row.webhook;
     if (!wh?.active) continue;
+    // Réservation atomique : un seul processus envoie une ligne donnée.
+    const { data: claimed } = await admin.from("webhook_outbox")
+      .update({ next_try_at: new Date(Date.now() + 120_000).toISOString() })
+      .eq("id", row.id).is("delivered_at", null).lte("next_try_at", new Date().toISOString())
+      .select("id");
+    if (!claimed?.length) continue;
     const body = JSON.stringify(row.payload);
     const t = Math.floor(Date.now() / 1000);
     const sig = await hmacHex(wh.secret, `${t}.${body}`);

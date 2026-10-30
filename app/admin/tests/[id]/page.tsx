@@ -53,7 +53,9 @@ export default function EditTest() {
   const updateSecrets = async (patch: any) => {
     const next = { ...secrets, ...patch, test_id: id };
     setSecrets(next);
-    const { error } = await supabase.from("test_secrets").upsert(next);
+    // Le sel SEB n'est jamais réécrit depuis l'interface (il fixe les Browser Exam Keys).
+    const { seb_exam_key_salt: _salt, ...payload } = next;
+    const { error } = await supabase.from("test_secrets").upsert(payload);
     setMsg(error ? `Erreur : ${error.message}` : null);
   };
 
@@ -170,6 +172,10 @@ export default function EditTest() {
             <input type="checkbox" checked={!!test.require_id_check} onChange={(e) => updateTest({ require_id_check: e.target.checked })} />
             Vérification d&apos;identité (pièce + selfie) avant l&apos;épreuve
           </label>
+          {test.require_id_check && <label className="flex items-center gap-2 pl-6">
+            <input type="checkbox" checked={!!test.id_verify_before_start} onChange={(e) => updateTest({ id_verify_before_start: e.target.checked })} />
+            Attendre la validation du surveillant avant de laisser commencer
+          </label>}
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!test.allow_resume} onChange={(e) => updateTest({ allow_resume: e.target.checked })} />
             Autoriser la reprise sur un autre appareil sans intervention du surveillant
@@ -215,7 +221,15 @@ export default function EditTest() {
 
         <div className="border-t pt-3 space-y-2 text-sm">
           <div className="font-medium">Clés Safe Exam Browser</div>
-          <p className="text-xs text-slate-500">Téléchargez le .seb, ouvrez-le dans l&apos;outil de configuration SEB, onglet « Exam », et collez la <b>Config Key</b> (recommandé, valable pour tous les postes) et/ou les Browser Exam Keys. Une clé de 64 caractères hexadécimaux par ligne.</p>
+          <p className="text-xs text-slate-500">
+            1. <a className="underline" href={`/api/seb/${id}`}>Télécharger le .seb</a> (contient un sel propre à cet examen).
+            2. L&apos;ouvrir dans l&apos;outil de configuration SEB, onglet « Exam », copier la <b>Browser Exam Key</b> (une par version et système de SEB utilisés par les candidats).
+            3. Réenregistrer le .seb <b>chiffré par mot de passe</b> avant de le distribuer. Une clé de 64 caractères hexadécimaux par ligne.
+          </p>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.seb_accept_config_key} onChange={(e) => updateTest({ seb_accept_config_key: e.target.checked })} />
+            Accepter aussi la Config Key (plus simple pour un parc hétérogène, mais forgeable par qui obtient le .seb en clair)
+          </label>
           <label className="block">Config Keys
             <textarea key={"ck" + (secrets.seb_config_keys || []).join()} className="input mt-1 font-mono text-xs" rows={2} defaultValue={(secrets.seb_config_keys || []).join("\n")}
               onBlur={(e) => updateSecrets({ seb_config_keys: keyList(e.target.value) })} />
@@ -230,7 +244,7 @@ export default function EditTest() {
             </label>
             <button className="btn-secondary" type="button" onClick={saveQuitPassword}>Enregistrer</button>
           </div>
-          {test.require_seb && !(secrets.seb_config_keys?.length || secrets.seb_browser_exam_keys?.length) &&
+          {test.require_seb && !(secrets.seb_browser_exam_keys?.length || (test.seb_accept_config_key && secrets.seb_config_keys?.length)) &&
             <p className="text-red-600 text-xs">SEB est obligatoire mais aucune clé n&apos;est configurée : personne ne pourra composer.</p>}
         </div>
         {msg && <p className="text-red-600 text-sm">{msg}</p>}

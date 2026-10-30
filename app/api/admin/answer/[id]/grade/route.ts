@@ -14,7 +14,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   if (error) {
     const code = error.message.split(":")[0];
-    return NextResponse.json({ error: code === "score_out_of_range" ? "Note hors barème" : code }, { status: 400 });
+    const msg: Record<string, string> = { score_out_of_range: "Note hors barème", auto_graded: "Les QCM sont corrigés automatiquement", attempt_not_finished: "La copie n'est pas encore rendue" };
+    return NextResponse.json({ error: msg[code] || code }, { status: 400 });
   }
   return NextResponse.json(data);
 }

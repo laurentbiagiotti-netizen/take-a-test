@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tes
 
   const { data, error } = await ctx.admin.rpc("exam_save_answer", {
     p_user: ctx.userId, p_attempt: ctx.attemptId, p_token_hash: ctx.tokenHash,
-    p_question: body.question_id, p_response: body.response,
+    p_question: body.question_id, p_response: body.response, p_ip: ctx.ip, p_ua: ctx.ua,
   });
   if (error) return rpcError(error);
   if (data?.status !== "in_progress") kickWebhooks();

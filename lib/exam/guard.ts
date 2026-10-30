@@ -30,6 +30,7 @@ const MESSAGES: Record<string, [number, string]> = {
   locked: [403, "Saisissez d'abord votre code d'accès."],
   identity_required: [403, "Vérification d'identité requise avant de commencer."],
   identity_not_expected: [409, "Vérification d'identité déjà transmise."],
+  device_changed: [409, "Changement d'appareil détecté."],
   session_locked: [409, "Cet examen est déjà ouvert sur un autre appareil. Contactez le surveillant."],
   session_invalid: [409, "Session d'examen invalide ou ouverte ailleurs. Contactez le surveillant."],
   test_closed: [403, "La période de passage de cet examen est terminée."],
@@ -74,13 +75,13 @@ export async function examGuard(
   if (!user) return { res: examError("not_signed_in") };
 
   const admin = adminClient();
-  const { data: test } = await admin.from("tests").select("id, require_seb, is_published").eq("id", testId).maybeSingle();
+  const { data: test } = await admin.from("tests").select("id, require_seb, is_published, seb_accept_config_key").eq("id", testId).maybeSingle();
   if (!test || !test.is_published) return { res: examError("test_not_found") };
 
   if (sebRequired(test.require_seb)) {
     const { data: sec } = await admin.from("test_secrets")
       .select("seb_browser_exam_keys, seb_config_keys").eq("test_id", testId).maybeSingle();
-    const keys = mergeKeys({ bek: sec?.seb_browser_exam_keys, ck: sec?.seb_config_keys });
+    const keys = mergeKeys({ bek: sec?.seb_browser_exam_keys, ck: sec?.seb_config_keys }, test.seb_accept_config_key);
     const r = await verifySeb(publicUrl(req), req.headers, keys);
     if (!r.ok) {
       if (r.reason === "no_keys_configured") console.error(`[exam] SEB exigé sans clé configurée pour le test ${testId}`);

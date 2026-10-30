@@ -38,6 +38,8 @@ create table tests (
   invite_only boolean not null default true,
   require_id_check boolean not null default false,
   require_webcam boolean not null default true,
+  id_verify_before_start boolean not null default false,
+  seb_accept_config_key boolean not null default false,
   draw_count int check (draw_count is null or draw_count > 0),
   shuffle_questions boolean not null default true,
   shuffle_options boolean not null default true,
@@ -57,7 +59,8 @@ create table test_secrets (
   access_code text,
   seb_browser_exam_keys text[] not null default '{}',
   seb_config_keys text[] not null default '{}',
-  seb_quit_password_hash text
+  seb_quit_password_hash text,
+  seb_exam_key_salt text
 );
 
 -- Les questions ne contiennent jamais la bonne réponse (voir answer_keys).
@@ -104,6 +107,8 @@ create table attempts (
   identity_note text,
   end_reason text,
   media_purged_at timestamptz,
+  event_seq int not null default 0,
+  last_event_hash text,
   unique (test_id, candidate_id)
 );
 create index on attempts(status, deadline_at);
@@ -140,6 +145,7 @@ create table proctor_events (
   detail jsonb,
   ip text,
   created_at timestamptz not null default clock_timestamp(),
+  seq int,
   prev_hash text,
   hash text
 );
@@ -249,6 +255,7 @@ alter table webhook_outbox enable row level security;
 revoke all on all tables in schema public from anon;
 revoke all on all sequences in schema public from anon;
 revoke insert, update, delete on profiles from authenticated;
+revoke truncate, references, trigger on all tables in schema public from authenticated;
 
 -- profiles : chacun lit le sien, le staff lit tout. Le rôle n'est JAMAIS
 -- modifiable par l'utilisateur (aucune politique UPDATE, droit révoqué).
@@ -281,8 +288,6 @@ create policy "answers staff read" on answers for select to authenticated
 
 create policy "invites admin all" on invites for all to authenticated
   using (is_admin()) with check (is_admin());
-create policy "invites staff read" on invites for select to authenticated
-  using (is_staff());
 
 create policy "events staff read" on proctor_events for select to authenticated
   using (is_staff());
@@ -294,26 +299,30 @@ create policy "webhooks admin all" on webhooks for all to authenticated
 create policy "outbox admin read" on webhook_outbox for select to authenticated using (is_admin());
 
 ------------------------------------------------------------
--- Journal chaîné : chaque événement contient le hash du précédent.
--- Toute modification ou suppression ciblée casse la chaîne.
+-- Journal chaîné : chaque événement porte un numéro de séquence et le hash
+-- du précédent ; la tentative garde le dernier numéro et le dernier hash
+-- (ancre). Modification, suppression ou troncature : chaîne cassée.
 ------------------------------------------------------------
 create or replace function public._event_hash(e proctor_events) returns text
 language sql immutable as $$
   select _sha256(
-    coalesce(e.prev_hash, 'GENESIS') || '|' || e.attempt_id::text || '|' || e.kind || '|' ||
-    e.severity || '|' || coalesce(e.detail::text, '') || '|' || coalesce(e.ip, '') || '|' ||
+    coalesce(e.prev_hash, 'GENESIS') || '|' || e.seq::text || '|' || e.attempt_id::text || '|' ||
+    e.kind || '|' || e.severity || '|' || coalesce(e.detail::text, '') || '|' || coalesce(e.ip, '') || '|' ||
     to_char(e.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US')
   );
 $$;
 
 create or replace function public._proctor_events_chain() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare v_seq int; v_prev text;
 begin
-  perform pg_advisory_xact_lock(hashtext(new.attempt_id::text));
+  -- Verrou sur la tentative : sérialise les insertions d'une même tentative.
+  select event_seq, last_event_hash into v_seq, v_prev from attempts where id = new.attempt_id for update;
   new.created_at := clock_timestamp();
-  select hash into new.prev_hash from proctor_events
-    where attempt_id = new.attempt_id order by id desc limit 1;
+  new.seq := v_seq + 1;
+  new.prev_hash := v_prev;
   new.hash := _event_hash(new);
+  update attempts set event_seq = new.seq, last_event_hash = new.hash where id = new.attempt_id;
   return new;
 end; $$;
 
@@ -321,12 +330,17 @@ create trigger proctor_events_chain before insert on proctor_events
   for each row execute function _proctor_events_chain();
 
 create or replace function public._proctor_events_immutable() returns trigger
-language plpgsql as $$
+language plpgsql security definer set search_path = public as $$
 begin
-  raise exception 'proctor_events est en ajout seul';
+  if tg_op = 'UPDATE' then raise exception 'proctor_events est en ajout seul'; end if;
+  -- Suppression autorisée uniquement en cascade (tentative supprimée).
+  if exists(select 1 from attempts where id = old.attempt_id) then
+    raise exception 'proctor_events est en ajout seul';
+  end if;
+  return old;
 end; $$;
 
-create trigger proctor_events_no_update before update on proctor_events
+create trigger proctor_events_no_update before update or delete on proctor_events
   for each row execute function _proctor_events_immutable();
 
 create or replace function public.verify_event_chain(p_attempt uuid)
@@ -336,14 +350,19 @@ declare
   r proctor_events;
   prev text := null;
   n int := 0;
+  a attempts;
 begin
-  for r in select * from proctor_events where attempt_id = p_attempt order by id loop
+  select * into a from attempts where id = p_attempt;
+  for r in select * from proctor_events where attempt_id = p_attempt order by seq loop
     n := n + 1;
-    if r.prev_hash is distinct from prev or r.hash is distinct from _event_hash(r) then
+    if r.seq <> n or r.prev_hash is distinct from prev or r.hash is distinct from _event_hash(r) then
       return query select false, n, r.id; return;
     end if;
     prev := r.hash;
   end loop;
+  if a.id is not null and (a.event_seq <> n or a.last_event_hash is distinct from prev) then
+    return query select false, n, null::bigint; return;  -- fin du journal tronquée
+  end if;
   return query select true, n, null::bigint;
 end; $$;
 
@@ -456,14 +475,32 @@ begin
     'attempt_id', p_attempt, 'test_id', a.test_id, 'candidate_id', a.candidate_id,
     'candidate_email', (select email from profiles where id = a.candidate_id),
     'status', p_status, 'reason', p_reason, 'score', v_total, 'max_score', v_max,
-    'violation_count', a.violation_count, 'submitted_at', now()));
+    'violation_count', a.violation_count, 'submitted_at', now(),
+    'journal_last_hash', (select last_event_hash from attempts where id = p_attempt),
+    'journal_events', (select event_seq from attempts where id = p_attempt)));
 end; $$;
 
--- Charge la tentative et vérifie la session (jeton httpOnly haché).
--- Si le délai est dépassé, la tentative est close et renvoyée avec son
--- nouveau statut : l'appelant doit alors RETOURNER (pas lever d'erreur,
--- sinon la clôture serait annulée par le rollback).
-create or replace function public._load_session(p_user uuid, p_attempt uuid, p_token_hash text)
+-- Compte une infraction ; arrête l'épreuve au seuil. Renvoie la tentative à jour.
+create or replace function public._add_violation(p_attempt uuid, p_kind text, p_detail jsonb, p_ip text)
+returns attempts language plpgsql security definer set search_path = public as $$
+declare a attempts; v_max int;
+begin
+  perform _log(p_attempt, p_kind, 'violation', p_detail, p_ip);
+  update attempts set violation_count = violation_count + 1 where id = p_attempt returning * into a;
+  select max_violations into v_max from tests where id = a.test_id;
+  if a.violation_count >= v_max then
+    perform _finalize_attempt(a.id, 'terminated', 'max_violations');
+    select * into a from attempts where id = p_attempt;
+  end if;
+  return a;
+end; $$;
+
+-- Charge la tentative et vérifie la session (jeton httpOnly haché), puis
+-- la liaison au poste : navigateur différent = infraction, IP différente =
+-- avertissement journalisé. Si le délai est dépassé ou l'épreuve arrêtée,
+-- renvoie la tentative avec son nouveau statut : l'appelant doit alors
+-- RETOURNER (pas lever d'erreur, sinon la clôture serait annulée).
+create or replace function public._load_session(p_user uuid, p_attempt uuid, p_token_hash text, p_ip text, p_ua text)
 returns attempts language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
@@ -479,6 +516,18 @@ begin
   if now() > a.deadline_at + make_interval(secs => t.grace_seconds) then
     perform _finalize_attempt(a.id, 'expired', 'deadline');
     select * into a from attempts where id = p_attempt;
+    return a;
+  end if;
+  if a.user_agent is distinct from left(coalesce(p_ua, ''), 500) then
+    update attempts set user_agent = left(coalesce(p_ua, ''), 500) where id = a.id;
+    a := _add_violation(a.id, 'device_changed',
+      jsonb_build_object('from_ua', left(a.user_agent, 200), 'to_ua', left(p_ua, 200)), p_ip);
+    if a.status <> 'in_progress' then return a; end if;
+  end if;
+  if a.client_ip is distinct from p_ip then
+    perform _log(a.id, 'ip_changed', 'warning', jsonb_build_object('from', a.client_ip, 'to', p_ip), p_ip);
+    update attempts set client_ip = p_ip where id = a.id;
+    a.client_ip := p_ip;
   end if;
   return a;
 end; $$;
@@ -525,7 +574,8 @@ begin
     'state', a.status, 'attempt_id', a.id, 'unlocked', a.unlocked,
     'identity_status', a.identity_status, 'title', t.title, 'description', t.description,
     'duration_minutes', t.duration_minutes + a.extra_minutes, 'max_violations', t.max_violations,
-    'require_seb', t.require_seb, 'require_webcam', t.require_webcam, 'session_active', a.session_token_hash is not null,
+    'require_seb', t.require_seb, 'require_webcam', t.require_webcam,
+    'id_verify_before_start', t.id_verify_before_start, 'session_active', a.session_token_hash is not null,
     'allow_resume', t.allow_resume, 'closes_at', t.closes_at);
 end; $$;
 
@@ -550,6 +600,13 @@ begin
   select count(*) into v_fails from proctor_events
    where attempt_id = a.id and kind = 'unlock_failed' and created_at > now() - interval '10 minutes';
   if v_fails >= 5 then raise exception 'too_many_attempts' using errcode = 'P0001'; end if;
+  -- Limite globale par test et par IP (force brute avec plusieurs comptes)
+  if p_ip is not null then
+    select count(*) into v_fails from proctor_events e join attempts x on x.id = e.attempt_id
+     where x.test_id = p_test and e.kind = 'unlock_failed' and e.ip = p_ip
+       and e.created_at > now() - interval '10 minutes';
+    if v_fails >= 20 then raise exception 'too_many_attempts' using errcode = 'P0001'; end if;
+  end if;
 
   select email into v_email from profiles where id = p_user;
   select * into inv from invites where test_id = p_test and email = lower(v_email) for update;
@@ -593,7 +650,8 @@ end; $$;
 
 -- Démarrage (ou reprise autorisée) : tirage des questions, chrono serveur,
 -- jeton de session unique.
-create or replace function public.exam_begin(p_user uuid, p_attempt uuid, p_token_hash text, p_ip text, p_ua text)
+create or replace function public.exam_begin(p_user uuid, p_attempt uuid, p_new_token_hash text,
+                                             p_prev_token_hash text, p_ip text, p_ua text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
@@ -603,14 +661,18 @@ declare
   q record;
   v_questions jsonb;
   v_answers jsonb;
+  v_token text;
 begin
   select * into a from attempts where id = p_attempt and candidate_id = p_user for update;
   if a.id is null then raise exception 'attempt_not_found' using errcode = 'P0002'; end if;
   select * into t from tests where id = a.test_id;
   if not t.is_published then raise exception 'test_not_found' using errcode = 'P0002'; end if;
   if not a.unlocked then raise exception 'locked' using errcode = 'P0001'; end if;
-  if a.identity_status in ('pending', 'rejected') then raise exception 'identity_required' using errcode = 'P0001'; end if;
-  if p_token_hash is null or length(p_token_hash) <> 64 then raise exception 'bad_token' using errcode = 'P0001'; end if;
+  if a.identity_status in ('pending', 'rejected')
+     or (t.id_verify_before_start and a.identity_status = 'submitted' and a.status = 'pending') then
+    raise exception 'identity_required' using errcode = 'P0001';
+  end if;
+  if p_new_token_hash is null or length(p_new_token_hash) <> 64 then raise exception 'bad_token' using errcode = 'P0001'; end if;
 
   if a.status = 'pending' then
     if t.closes_at is not null and now() > t.closes_at then raise exception 'test_closed' using errcode = 'P0001'; end if;
@@ -640,9 +702,10 @@ begin
                          then now() + make_interval(mins => t.duration_minutes + a.extra_minutes)
                          else least(now() + make_interval(mins => t.duration_minutes + a.extra_minutes), t.closes_at) end,
       question_order = v_order, option_orders = v_opts,
-      session_token_hash = p_token_hash, session_started_at = now(), last_seen_at = now(),
-      client_ip = p_ip, user_agent = left(p_ua, 500)
+      session_token_hash = p_new_token_hash, session_started_at = now(), last_seen_at = now(),
+      client_ip = p_ip, user_agent = left(coalesce(p_ua, ''), 500)
     where id = a.id returning * into a;
+    v_token := 'new';
     perform _log(a.id, 'exam_started', 'info', jsonb_build_object('ua', left(p_ua, 300)), p_ip);
 
   elsif a.status = 'in_progress' then
@@ -650,12 +713,17 @@ begin
       perform _finalize_attempt(a.id, 'expired', 'deadline');
       return jsonb_build_object('status', 'expired');
     end if;
-    if a.session_token_hash = p_token_hash then
-      null; -- même navigateur qui recharge la page : on continue
+    if p_prev_token_hash is not null and a.session_token_hash = p_prev_token_hash then
+      -- Même navigateur qui recharge la page : on garde la session, avec les
+      -- mêmes contrôles de poste que pour toute autre action.
+      a := _load_session(p_user, p_attempt, p_prev_token_hash, p_ip, p_ua);
+      if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+      v_token := 'keep';
     elsif a.session_token_hash is null or t.allow_resume then
-      update attempts set session_token_hash = p_token_hash, session_started_at = now(),
-        last_seen_at = now(), client_ip = p_ip, user_agent = left(p_ua, 500)
+      update attempts set session_token_hash = p_new_token_hash, session_started_at = now(),
+        last_seen_at = now(), client_ip = p_ip, user_agent = left(coalesce(p_ua, ''), 500)
       where id = a.id returning * into a;
+      v_token := 'new';
       perform _log(a.id, 'session_resumed', 'warning',
                    jsonb_build_object('ua', left(p_ua, 300)), p_ip);
     else
@@ -678,7 +746,7 @@ begin
   select coalesce(jsonb_object_agg(question_id::text, response), '{}'::jsonb)
   into v_answers from answers where attempt_id = a.id;
 
-  return jsonb_build_object('status', 'in_progress', 'attempt_id', a.id, 'deadline_at', a.deadline_at, 'server_now', now(),
+  return jsonb_build_object('status', 'in_progress', 'token', v_token, 'attempt_id', a.id, 'deadline_at', a.deadline_at, 'server_now', now(),
     'questions', v_questions, 'answers', v_answers,
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
@@ -690,32 +758,33 @@ declare
   a attempts;
   t tests;
   v_gap numeric;
+  v_last_snap timestamptz;
 begin
-  a := _load_session(p_user, p_attempt, p_token_hash);
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   select * into t from tests where id = a.test_id;
   v_gap := extract(epoch from now() - a.last_seen_at);
   if v_gap > 45 then
     perform _log(a.id, 'connection_gap', 'warning', jsonb_build_object('seconds', round(v_gap)), p_ip);
   end if;
-  if a.client_ip is distinct from p_ip then
-    perform _log(a.id, 'ip_changed', 'warning', jsonb_build_object('from', a.client_ip, 'to', p_ip), p_ip);
-  end if;
-  if a.user_agent is distinct from left(p_ua, 500) then
-    perform exam_log_event(p_user, p_attempt, p_token_hash, 'user_agent_changed', null, p_ip);
-    select * into a from attempts where id = a.id;
-    if a.status <> 'in_progress' then
-      return jsonb_build_object('status', a.status);
+  -- Webcam imposée côté serveur : pas de photo reçue depuis 75 s = infraction
+  -- (au plus une toutes les 75 s).
+  if t.require_webcam and now() - a.session_started_at > interval '75 seconds' then
+    select max(created_at) into v_last_snap from proctor_events
+      where attempt_id = a.id and kind in ('snapshot', 'snapshots_missing');
+    if now() - coalesce(v_last_snap, a.session_started_at) > interval '75 seconds' then
+      a := _add_violation(a.id, 'snapshots_missing', null, p_ip);
+      if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
     end if;
   end if;
-  update attempts set last_seen_at = now(), client_ip = p_ip where id = a.id;
+  update attempts set last_seen_at = now() where id = a.id;
   return jsonb_build_object('status', a.status, 'deadline_at', a.deadline_at, 'server_now', now(),
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
 
 -- Enregistrement d'une réponse (forme validée, hors délai refusé).
 create or replace function public.exam_save_answer(p_user uuid, p_attempt uuid, p_token_hash text,
-                                                   p_question uuid, p_response jsonb)
+                                                   p_question uuid, p_response jsonb, p_ip text, p_ua text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
@@ -723,7 +792,7 @@ declare
   v_sel jsonb;
   v_allowed text[];
 begin
-  a := _load_session(p_user, p_attempt, p_token_hash);
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   if now() > a.deadline_at then raise exception 'time_over' using errcode = 'P0001'; end if;
   if not (p_question = any(a.question_order)) then raise exception 'bad_question' using errcode = 'P0001'; end if;
@@ -758,14 +827,14 @@ end; $$;
 -- Signalement d'un événement par le client. La gravité et le compteur
 -- d'infractions sont décidés ICI, pas par le navigateur.
 create or replace function public.exam_log_event(p_user uuid, p_attempt uuid, p_token_hash text,
-                                                 p_kind text, p_detail jsonb, p_ip text)
+                                                 p_kind text, p_detail jsonb, p_ip text, p_ua text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
   t tests;
   v_sev text;
 begin
-  a := _load_session(p_user, p_attempt, p_token_hash);
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   select * into t from tests where id = a.test_id;
   v_sev := case p_kind
@@ -776,7 +845,6 @@ begin
     when 'devtools_open' then 'violation'
     when 'camera_off' then 'violation'
     when 'no_face' then 'warning'
-    when 'user_agent_changed' then 'violation'
     when 'copy_blocked' then 'warning'
     when 'paste_blocked' then 'warning'
     when 'cut_blocked' then 'warning'
@@ -788,37 +856,32 @@ begin
   if v_sev is null then raise exception 'unknown_event' using errcode = 'P0001'; end if;
   if p_detail is not null and length(p_detail::text) > 2000 then p_detail := '{"truncated":true}'; end if;
 
-  perform _log(a.id, p_kind, v_sev, p_detail, p_ip);
   if v_sev = 'violation' then
-    update attempts set violation_count = violation_count + 1 where id = a.id
-      returning * into a;
-    if a.violation_count >= t.max_violations then
-      perform _finalize_attempt(a.id, 'terminated', 'max_violations');
-      return jsonb_build_object('status', 'terminated', 'violation_count', a.violation_count,
-                                'max_violations', t.max_violations);
-    end if;
+    a := _add_violation(a.id, p_kind, p_detail, p_ip);
+  else
+    perform _log(a.id, p_kind, v_sev, p_detail, p_ip);
   end if;
-  return jsonb_build_object('status', 'in_progress', 'violation_count', a.violation_count,
+  return jsonb_build_object('status', a.status, 'violation_count', a.violation_count,
                             'max_violations', t.max_violations);
 end; $$;
 
 create or replace function public.exam_add_snapshot(p_user uuid, p_attempt uuid, p_token_hash text,
-                                                    p_path text, p_ip text)
+                                                    p_path text, p_ip text, p_ua text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare a attempts;
 begin
-  a := _load_session(p_user, p_attempt, p_token_hash);
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   if p_path not like a.id::text || '/%' then raise exception 'bad_path' using errcode = 'P0001'; end if;
   perform _log(a.id, 'snapshot', 'info', jsonb_build_object('path', p_path), p_ip);
   return jsonb_build_object('status', 'in_progress');
 end; $$;
 
-create or replace function public.exam_submit(p_user uuid, p_attempt uuid, p_token_hash text)
+create or replace function public.exam_submit(p_user uuid, p_attempt uuid, p_token_hash text, p_ip text, p_ua text)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare a attempts;
 begin
-  a := _load_session(p_user, p_attempt, p_token_hash);
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   perform _finalize_attempt(a.id, 'submitted', 'candidate');
   return jsonb_build_object('status', 'submitted');
@@ -874,6 +937,9 @@ begin
       identity_note = left(p_arg->>'note', 500) where id = a.id;
     perform _log(a.id, 'staff_identity_review', 'info',
                  jsonb_build_object('by', p_actor, 'ok', (p_arg->>'ok')::boolean), null);
+    if not (p_arg->>'ok')::boolean and a.status = 'in_progress' then
+      perform _finalize_attempt(a.id, 'terminated', 'identity_rejected');
+    end if;
   elsif p_action = 'reset_attempt' then
     if not _is_admin_user(p_actor) then raise exception 'forbidden' using errcode = '42501'; end if;
     delete from attempts where id = a.id;
@@ -895,6 +961,10 @@ begin
   select * into an from answers where id = p_answer for update;
   if an.id is null then raise exception 'answer_not_found' using errcode = 'P0002'; end if;
   select * into q from questions where id = an.question_id;
+  if q.type <> 'long_text' then raise exception 'auto_graded' using errcode = 'P0001'; end if;
+  if not exists(select 1 from attempts where id = an.attempt_id and status in ('submitted', 'terminated', 'expired')) then
+    raise exception 'attempt_not_finished' using errcode = 'P0001';
+  end if;
   if p_score is not null and (p_score < 0 or p_score > q.points) then
     raise exception 'score_out_of_range' using errcode = 'P0001';
   end if;

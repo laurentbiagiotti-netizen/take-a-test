@@ -2,15 +2,15 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { safeNextPath } from "@/lib/security/redirect";
 import { createClient } from "@/lib/supabase/client";
 
 function LoginInner() {
   const supabase = createClient();
   const router = useRouter();
   const params = useSearchParams();
-  const rawNext = params.get("next");
-  // Anti open-redirect : uniquement un chemin interne
-  const next = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : "/dashboard";
+  // Anti open-redirect : chemin interne uniquement
+  const next = safeNextPath(params.get("next"));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);

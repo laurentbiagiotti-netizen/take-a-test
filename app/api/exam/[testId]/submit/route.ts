@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tes
   const { ctx } = g;
   if (!ctx.attemptId) return examError("attempt_not_found");
   const { data, error } = await ctx.admin.rpc("exam_submit", {
-    p_user: ctx.userId, p_attempt: ctx.attemptId, p_token_hash: ctx.tokenHash,
+    p_user: ctx.userId, p_attempt: ctx.attemptId, p_token_hash: ctx.tokenHash, p_ip: ctx.ip, p_ua: ctx.ua,
   });
   if (error) return rpcError(error);
   kickWebhooks();

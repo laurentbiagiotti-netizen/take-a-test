@@ -39,8 +39,4 @@ export function sameOrigin(req: Request | NextRequest): boolean {
   return !!referer && (referer === expected || referer.startsWith(expected + "/"));
 }
 
-/** Chemin de redirection interne sûr (anti open-redirect). */
-export function safeNextPath(next: string | null | undefined, fallback = "/dashboard"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next;
-}
+export { safeNextPath } from "./redirect";

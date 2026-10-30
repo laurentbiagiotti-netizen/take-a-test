@@ -31,7 +31,7 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
   if (!user) redirect(`/login?next=/test/${id}`);
 
   const admin = adminClient();
-  const { data: test } = await admin.from("tests").select("id, require_seb, is_published").eq("id", id).maybeSingle();
+  const { data: test } = await admin.from("tests").select("id, require_seb, is_published, seb_accept_config_key").eq("id", id).maybeSingle();
   if (!test?.is_published) return <Panel title="Examen introuvable" />;
 
   // Safe Exam Browser : vérifié sur la requête de la page elle-même, puis
@@ -41,17 +41,16 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
     const path = h.get("x-cx-path") || `/test/${id}`;
     const { data: sec } = await admin.from("test_secrets")
       .select("seb_browser_exam_keys, seb_config_keys").eq("test_id", id).maybeSingle();
-    const keys = mergeKeys({ bek: sec?.seb_browser_exam_keys, ck: sec?.seb_config_keys });
+    const keys = mergeKeys({ bek: sec?.seb_browser_exam_keys, ck: sec?.seb_config_keys }, test.seb_accept_config_key);
     const r = await verifySeb(appUrl() + path, h, keys);
     if (!r.ok) {
       return (
         <Panel title="Ouvrez cet examen dans Safe Exam Browser">
           <p>Cet examen se passe uniquement dans Safe Exam Browser (SEB), qui verrouille votre ordinateur pendant l&apos;épreuve.</p>
-          <p>Installez SEB, puis ouvrez le fichier de configuration ci-dessous : l&apos;examen se lancera automatiquement.</p>
+          <p>Installez SEB, puis ouvrez le fichier de configuration <code>.seb</code> transmis par l&apos;école : l&apos;examen se lancera automatiquement.</p>
           {r.reason === "no_keys_configured" && <p className="text-red-600 text-sm">Configuration SEB incomplète côté école : prévenez le surveillant.</p>}
           <div className="flex gap-3 justify-center pt-3">
             <a href="https://safeexambrowser.org/download_en.html" className="btn" target="_blank" rel="noreferrer">Télécharger SEB</a>
-            <a href={`/api/seb/${id}`} className="btn-secondary">Fichier .seb</a>
           </div>
         </Panel>
       );
@@ -99,6 +98,14 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
 
   if (st.identity_status === "pending" || st.identity_status === "rejected") {
     return <IdentityCheck testId={id} title={st.title} rejected={st.identity_status === "rejected"} />;
+  }
+  if (st.state === "pending" && st.identity_status === "submitted" && st.id_verify_before_start) {
+    return (
+      <Panel title="Identité en cours de vérification">
+        <p>Un surveillant vérifie votre pièce d&apos;identité. Rechargez cette page dans quelques instants.</p>
+        <p><a className="underline" href={`/test/${id}`}>Recharger</a></p>
+      </Panel>
+    );
   }
 
   // Reprise : le navigateur d'origine garde son cookie de session et reprend ;
