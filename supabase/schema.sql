@@ -1185,6 +1185,7 @@ begin
     when 'multiple_faces' then 'violation'
     when 'camera_covered' then 'violation'
     when 'camera_frozen' then 'violation'
+    when 'other_person' then 'violation'
     when 'fullscreen_return' then 'info'
     when 'copy_blocked' then 'warning'
     when 'paste_blocked' then 'warning'

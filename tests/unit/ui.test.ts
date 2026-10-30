@@ -53,3 +53,15 @@ describe("fusion des détections caméra", () => {
     expect(mergeBoxes([b(100, 100, 300), b(900, 80, 8, 0.4)])).toHaveLength(1);
   });
 });
+
+import { bodiesWithoutFace } from "@/lib/proctor/camera-monitor";
+describe("corps sans visage", () => {
+  const b = (x: number, y: number, w: number, h: number) => ({ x, y, w, h, score: 0.8 });
+  const face = b(300, 150, 200, 220);
+  it("le corps du candidat (qui contient son visage) n'est pas signalé", () => {
+    expect(bodiesWithoutFace([b(150, 100, 550, 620)], [face])).toHaveLength(0);
+  });
+  it("un corps au fond sans tête visible est signalé", () => {
+    expect(bodiesWithoutFace([b(150, 100, 550, 620), b(865, 0, 290, 420)], [face])).toHaveLength(1);
+  });
+});

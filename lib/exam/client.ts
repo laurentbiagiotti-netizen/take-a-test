@@ -17,6 +17,7 @@ export const EVENT_LABEL: Record<string, string> = {
   multiple_faces: "plusieurs visages",
   camera_covered: "caméra masquée",
   camera_frozen: "image figée",
+  other_person: "autre personne (corps visible)",
   fullscreen_exit: "sortie du plein écran",
   tab_hidden: "changement d'onglet",
   window_blur: "changement de fenêtre",

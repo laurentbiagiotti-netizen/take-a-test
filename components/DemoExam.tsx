@@ -111,7 +111,9 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
         if (stage === "checks" && s.ready && s.faces === null && !s.anomaly) {
           set("camera", "ok", "Caméra active (la détection de visage n'est pas disponible sur ce navigateur).");
         }
-        if (stage === "checks" && s.faces !== null) {
+        if (stage === "checks" && s.anomaly === "other_person") {
+          set("camera", "fix", "Une autre personne est visible derrière vous (corps dans le champ) : vous devez être seul(e).");
+        } else if (stage === "checks" && s.faces !== null) {
           set("camera", s.faces === 1 ? "ok" : "fix",
             s.faces === 1 ? "Un visage détecté : parfait." : s.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra, bien éclairé." : `${s.faces} visages détectés : vous devez être seul(e) dans le champ.`);
         }

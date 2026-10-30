@@ -9,7 +9,7 @@ const KIND: Record<string, string> = {
   fullscreen_exit: "sortie du plein écran", tab_hidden: "changement d'onglet", window_blur: "changement de fenêtre",
   multiple_screens: "écran secondaire", devtools_open: "outils de développement", camera_off: "caméra coupée",
   camera_refused: "caméra refusée", no_face: "aucun visage", multiple_faces: "plusieurs visages",
-  camera_covered: "caméra masquée", camera_frozen: "image figée", snapshots_missing: "photos absentes",
+  camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps)", snapshots_missing: "photos absentes",
   connection_gap: "coupure réseau", ip_changed: "changement d'IP", device_changed: "changement d'appareil",
   print_attempt: "impression", copy_blocked: "copie bloquée", paste_blocked: "collage bloqué", shortcut_blocked: "raccourci bloqué",
   attempt_terminated: "épreuve interrompue", attempt_expired: "temps écoulé",
