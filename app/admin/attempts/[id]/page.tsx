@@ -5,7 +5,7 @@ import StaffActions from "@/components/StaffActions";
 
 export const dynamic = "force-dynamic";
 
-const ANOM: Record<string, string> = { no_face: "aucun visage", multiple_faces: "plusieurs visages", camera_covered: "caméra masquée", camera_frozen: "image figée" };
+const ANOM: Record<string, string> = { no_face: "aucun visage", multiple_faces: "plusieurs visages", camera_covered: "caméra masquée", camera_frozen: "image figée", camera_refused: "caméra refusée", camera_off: "caméra coupée" };
 const SEV: Record<string, string> = { info: "text-muted", warning: "text-warn", violation: "text-danger font-semibold", critical: "text-danger font-bold" };
 const STATUS: Record<string, string> = { pending: "pas commencé", in_progress: "en cours", submitted: "rendu", terminated: "interrompu", expired: "temps écoulé" };
 
@@ -24,7 +24,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const { data: events } = await supabase.from("proctor_events").select("*").eq("attempt_id", id).order("id");
 
   const snaps = (events || []).filter((e: any) => e.kind === "snapshot" && e.detail?.path);
-  const CAM = new Set(["no_face", "multiple_faces", "camera_covered", "camera_frozen"]);
+  const CAM = new Set(["no_face", "multiple_faces", "camera_covered", "camera_frozen", "camera_refused", "camera_off"]);
   const camEvents = (events || []).filter((e: any) => CAM.has(e.kind));
   const signedSnapshots: { url: string; ts: string; anomaly?: string }[] = [];
   if (snaps.length) {

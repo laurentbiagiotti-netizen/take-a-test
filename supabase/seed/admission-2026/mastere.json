@@ -1,0 +1,1462 @@
+{
+ "title": "Admission Mastère Cybersécurité (M1) 2026",
+ "description": "QCM d'admission Mastère Cyber, entrée M1 (proposition de Dylan, v2). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de Bac+3 (Licence ou BUT informatique, TP AIS, Bachelor cyber). Seuil d'admissibilité proposé : 25/50.",
+ "duration_minutes": 50,
+ "pass_mark": 25,
+ "questions": [
+  {
+   "position": 1,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quelle est l'adresse de broadcast du réseau 172.16.0.0/22 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "172.16.3.255"
+    },
+    {
+     "id": "b",
+     "text": "172.16.4.255"
+    },
+    {
+     "id": "c",
+     "text": "172.16.0.255"
+    },
+    {
+     "id": "d",
+     "text": "172.16.255.255"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un /22 couvre 4 blocs de 256 adresses : de 172.16.0.0 à 172.16.3.255. La dernière adresse est le broadcast."
+  },
+  {
+   "position": 2,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Vous devez créer un sous-réseau pour 50 hôtes en gaspillant le moins d'adresses possible. Quel préfixe choisissez-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "/28"
+    },
+    {
+     "id": "b",
+     "text": "/27"
+    },
+    {
+     "id": "c",
+     "text": "/26"
+    },
+    {
+     "id": "d",
+     "text": "/25"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "/26 = 62 hôtes utilisables (suffisant) ; /27 = 30 hôtes (insuffisant) ; /25 = 126 hôtes (gaspillage)."
+  },
+  {
+   "position": 3,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un routeur possède ces routes :\n10.0.0.0/8 via R1\n10.1.0.0/16 via R2\n10.1.2.0/24 via R3\n0.0.0.0/0 via R4\nPar où part un paquet à destination de 10.1.2.45 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "R2"
+    },
+    {
+     "id": "b",
+     "text": "R1"
+    },
+    {
+     "id": "c",
+     "text": "R4"
+    },
+    {
+     "id": "d",
+     "text": "R3"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le routeur choisit la route la plus précise (préfixe le plus long) qui contient la destination : 10.1.2.0/24."
+  },
+  {
+   "position": 4,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quel mécanisme remplace ARP en IPv6 pour trouver l'adresse MAC d'un voisin ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "IGMP"
+    },
+    {
+     "id": "b",
+     "text": "NDP (Neighbor Discovery Protocol, via ICMPv6)"
+    },
+    {
+     "id": "c",
+     "text": "DHCPv6"
+    },
+    {
+     "id": "d",
+     "text": "ARPv6"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "IPv6 n'utilise pas ARP : la découverte des voisins passe par NDP, qui s'appuie sur des messages ICMPv6."
+  },
+  {
+   "position": 5,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quel est l'ordre des messages lors de l'ouverture d'une connexion TCP ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "SYN, ACK, RST"
+    },
+    {
+     "id": "b",
+     "text": "ACK, SYN, SYN-ACK"
+    },
+    {
+     "id": "c",
+     "text": "SYN, ACK, FIN"
+    },
+    {
+     "id": "d",
+     "text": "SYN, SYN-ACK, ACK"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Poignée de main en trois temps : le client envoie SYN, le serveur répond SYN-ACK, le client confirme par ACK."
+  },
+  {
+   "position": 6,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un serveur web répond sur le port 443 depuis le réseau interne, mais pas depuis Internet via l'adresse IP publique. Le service fonctionne. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le serveur DNS interne est en panne"
+    },
+    {
+     "id": "b",
+     "text": "Le service web est arrêté"
+    },
+    {
+     "id": "c",
+     "text": "Le certificat TLS du serveur a expiré"
+    },
+    {
+     "id": "d",
+     "text": "Il manque la redirection de port (NAT) ou la règle d'autorisation sur le pare-feu périmétrique"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le service fonctionne en interne : le blocage se situe entre Internet et le serveur. Un certificat expiré provoquerait une alerte, pas une absence de connexion."
+  },
+  {
+   "position": 7,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Qu'apporte la segmentation en VLAN du point de vue de la sécurité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle remplace le pare-feu"
+    },
+    {
+     "id": "b",
+     "text": "Elle empêche l'usurpation ARP entre deux machines d'un même VLAN"
+    },
+    {
+     "id": "c",
+     "text": "Elle chiffre le trafic entre les postes"
+    },
+    {
+     "id": "d",
+     "text": "Elle sépare les domaines de diffusion : les flux entre VLAN passent par un équipement de niveau 3 où ils peuvent être filtrés"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le VLAN isole des segments ; le filtrage se fait au point de routage entre VLAN. Il ne chiffre rien et ne protège pas contre les attaques au sein d'un même VLAN."
+  },
+  {
+   "position": 8,
+   "type": "mcq_multi",
+   "domain": "Réseaux",
+   "prompt": "Cochez les protocoles applicatifs qui s'appuient sur TCP (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "SMTP"
+    },
+    {
+     "id": "b",
+     "text": "SSH"
+    },
+    {
+     "id": "c",
+     "text": "TFTP"
+    },
+    {
+     "id": "d",
+     "text": "SNMP"
+    }
+   ],
+   "correct": [
+    "a",
+    "b"
+   ],
+   "points": 1,
+   "explanation": "SSH (TCP 22) et SMTP (TCP 25) utilisent TCP. SNMP (UDP 161) et TFTP (UDP 69) utilisent UDP."
+  },
+  {
+   "position": 9,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Les postes résolvent correctement les noms internes de l'entreprise, mais aucun nom Internet. Où cherchez-vous en priorité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Dans les enregistrements PTR"
+    },
+    {
+     "id": "b",
+     "text": "Dans la zone DNS interne"
+    },
+    {
+     "id": "c",
+     "text": "Dans la configuration de la résolution récursive ou des redirecteurs du serveur DNS interne"
+    },
+    {
+     "id": "d",
+     "text": "Dans la configuration du serveur DHCP"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La zone interne fonctionne : c'est la transmission des requêtes externes (redirecteurs, récursion, accès sortant du DNS) qui échoue."
+  },
+  {
+   "position": 10,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Dans quel ordre se déroulent les échanges DHCP quand un poste obtient une adresse ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Discover, Request, Offer, Acknowledge"
+    },
+    {
+     "id": "b",
+     "text": "Discover, Offer, Request, Acknowledge"
+    },
+    {
+     "id": "c",
+     "text": "Request, Offer, Discover, Acknowledge"
+    },
+    {
+     "id": "d",
+     "text": "Offer, Discover, Acknowledge, Request"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Processus DORA : le client cherche un serveur (Discover), reçoit une offre (Offer), la demande (Request), le serveur confirme (Acknowledge)."
+  },
+  {
+   "position": 11,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, un fichier exécutable a les droits -rwsr-xr-x. Que signifie le « s » ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le fichier est un socket"
+    },
+    {
+     "id": "b",
+     "text": "Le sticky bit : seul le propriétaire peut supprimer le fichier"
+    },
+    {
+     "id": "c",
+     "text": "Le fichier est un lien symbolique"
+    },
+    {
+     "id": "d",
+     "text": "Le bit SUID : le programme s'exécute avec les droits de son propriétaire"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le SUID sur un binaire appartenant à root lui donne les droits root à l'exécution : c'est une cible classique d'élévation de privilèges."
+  },
+  {
+   "position": 12,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Que fait la commande ss -tulpn sous Linux ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle teste la connectivité vers un hôte"
+    },
+    {
+     "id": "b",
+     "text": "Elle affiche la table de routage"
+    },
+    {
+     "id": "c",
+     "text": "Elle liste les ports TCP et UDP en écoute, avec les processus associés"
+    },
+    {
+     "id": "d",
+     "text": "Elle capture le trafic réseau"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "t = TCP, u = UDP, l = en écoute, p = processus, n = affichage numérique. ss remplace netstat."
+  },
+  {
+   "position": 13,
+   "type": "mcq_multi",
+   "domain": "Systèmes",
+   "prompt": "Cochez les mesures qui renforcent la sécurité d'un serveur SSH (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Utiliser l'authentification par clé et désactiver l'authentification par mot de passe"
+    },
+    {
+     "id": "b",
+     "text": "Autoriser les mots de passe vides pour les comptes de service"
+    },
+    {
+     "id": "c",
+     "text": "Limiter les tentatives de connexion (fail2ban) et les adresses autorisées"
+    },
+    {
+     "id": "d",
+     "text": "Interdire la connexion directe en root (PermitRootLogin no)"
+    }
+   ],
+   "correct": [
+    "a",
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les mots de passe vides ouvrent l'accès sans authentification. Les trois autres mesures réduisent la surface d'attaque."
+  },
+  {
+   "position": 14,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Quel protocole d'authentification est utilisé par défaut dans un domaine Active Directory ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "LDAP"
+    },
+    {
+     "id": "b",
+     "text": "RADIUS"
+    },
+    {
+     "id": "c",
+     "text": "Kerberos"
+    },
+    {
+     "id": "d",
+     "text": "NTLM"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Kerberos est le protocole par défaut ; NTLM reste un mécanisme de repli. LDAP sert à interroger l'annuaire, pas à authentifier par défaut."
+  },
+  {
+   "position": 15,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Windows, quelle commande affiche les privilèges (droits) de l'utilisateur courant ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "whoami /priv"
+    },
+    {
+     "id": "b",
+     "text": "net user"
+    },
+    {
+     "id": "c",
+     "text": "gpresult /r"
+    },
+    {
+     "id": "d",
+     "text": "Get-Process"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "whoami /priv affiche les privilèges du jeton de l'utilisateur, par exemple SeDebugPrivilege, utile en audit comme en élévation de privilèges."
+  },
+  {
+   "position": 16,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Lequel de ces produits est un hyperviseur de type 1 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "VirtualBox"
+    },
+    {
+     "id": "b",
+     "text": "VMware ESXi"
+    },
+    {
+     "id": "c",
+     "text": "VMware Workstation"
+    },
+    {
+     "id": "d",
+     "text": "Docker"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un hyperviseur de type 1 s'exécute directement sur le matériel (ESXi, Proxmox/KVM, Hyper-V). VirtualBox et Workstation sont de type 2 ; Docker n'est pas un hyperviseur."
+  },
+  {
+   "position": 17,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Quelle est la principale différence entre un conteneur et une machine virtuelle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le conteneur est mieux isolé, car il est séparé au niveau matériel"
+    },
+    {
+     "id": "b",
+     "text": "Une VM ne peut pas fonctionner sur un hôte Linux"
+    },
+    {
+     "id": "c",
+     "text": "Le conteneur partage le noyau du système hôte, alors que la VM embarque son propre système d'exploitation"
+    },
+    {
+     "id": "d",
+     "text": "Il n'y a aucune différence d'isolation"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Le partage du noyau rend le conteneur léger, mais son isolation est plus faible que celle d'une VM : une faille du noyau touche tous les conteneurs."
+  },
+  {
+   "position": 18,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Dans un plan de continuité, que désigne le RPO ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La durée maximale d'interruption admissible"
+    },
+    {
+     "id": "b",
+     "text": "Le délai de notification d'un incident"
+    },
+    {
+     "id": "c",
+     "text": "La perte de données maximale admissible, mesurée en temps depuis la dernière sauvegarde"
+    },
+    {
+     "id": "d",
+     "text": "Le nombre de copies de sauvegarde"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "RPO (Recovery Point Objective) = données qu'on accepte de perdre. RTO (Recovery Time Objective) = durée d'interruption acceptable."
+  },
+  {
+   "position": 19,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Que fait la commande journalctl -u nginx --since \"1 hour ago\" ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle affiche les journaux du service nginx de la dernière heure"
+    },
+    {
+     "id": "b",
+     "text": "Elle affiche les connexions en cours vers nginx"
+    },
+    {
+     "id": "c",
+     "text": "Elle supprime les journaux de nginx de plus d'une heure"
+    },
+    {
+     "id": "d",
+     "text": "Elle redémarre nginx dans une heure"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "-u filtre par unité systemd, --since limite la période affichée."
+  },
+  {
+   "position": 20,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Votre entreprise utilise une messagerie en SaaS (par exemple Microsoft 365). Qui est responsable de la gestion des comptes, du MFA et des droits d'accès des utilisateurs ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Personne : c'est automatique en SaaS"
+    },
+    {
+     "id": "b",
+     "text": "Le fournisseur SaaS"
+    },
+    {
+     "id": "c",
+     "text": "Les deux, à parts égales"
+    },
+    {
+     "id": "d",
+     "text": "Le client"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Même en SaaS, le client reste responsable de ses identités, de ses accès et de ses données. Le fournisseur gère l'infrastructure et l'application. Beaucoup de compromissions de messagerie viennent de comptes sans MFA."
+  },
+  {
+   "position": 21,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Bob veut envoyer à Alice un message que seule Alice pourra lire. Avec quelle clé le chiffre-t-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La clé privée d'Alice"
+    },
+    {
+     "id": "b",
+     "text": "La clé publique de Bob"
+    },
+    {
+     "id": "c",
+     "text": "La clé privée de Bob"
+    },
+    {
+     "id": "d",
+     "text": "La clé publique d'Alice"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "On chiffre avec la clé publique du destinataire ; seule sa clé privée permet de déchiffrer. Bob n'a d'ailleurs pas accès à la clé privée d'Alice."
+  },
+  {
+   "position": 22,
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez ce que garantit une signature numérique (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "La disponibilité du service"
+    },
+    {
+     "id": "b",
+     "text": "L'intégrité du message"
+    },
+    {
+     "id": "c",
+     "text": "La confidentialité du message"
+    },
+    {
+     "id": "d",
+     "text": "L'authenticité de l'émetteur"
+    }
+   ],
+   "correct": [
+    "b",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La signature prouve que le message n'a pas été modifié et qui l'a signé (non-répudiation). Elle ne chiffre pas le contenu."
+  },
+  {
+   "position": 23,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Pourquoi MD5 n'est-il plus utilisé pour garantir l'intégrité en sécurité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il est trop lent"
+    },
+    {
+     "id": "b",
+     "text": "Il nécessite une clé secrète"
+    },
+    {
+     "id": "c",
+     "text": "On sait fabriquer des collisions : deux contenus différents avec la même empreinte"
+    },
+    {
+     "id": "d",
+     "text": "Il est réversible"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Les collisions MD5 (et SHA-1) sont réalisables en pratique. On utilise SHA-256 ou plus."
+  },
+  {
+   "position": 24,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Dans une connexion HTTPS, à quoi sert principalement le certificat du serveur ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "À prouver l'identité du serveur au client, grâce à la signature d'une autorité de certification"
+    },
+    {
+     "id": "b",
+     "text": "À compresser les échanges"
+    },
+    {
+     "id": "c",
+     "text": "À chiffrer directement toutes les données échangées"
+    },
+    {
+     "id": "d",
+     "text": "À authentifier l'utilisateur auprès du serveur"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le certificat authentifie le serveur. Les données sont chiffrées avec des clés de session symétriques (AES, ChaCha20) négociées par échange de clés (ECDHE en TLS 1.3)."
+  },
+  {
+   "position": 25,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Quelle est la protection la plus efficace contre l'injection SQL ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Passer le site en HTTPS"
+    },
+    {
+     "id": "b",
+     "text": "Chiffrer la base de données"
+    },
+    {
+     "id": "c",
+     "text": "Filtrer les caractères spéciaux en JavaScript dans le navigateur"
+    },
+    {
+     "id": "d",
+     "text": "Utiliser des requêtes préparées (paramétrées)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les requêtes préparées séparent le code SQL des données. Un filtrage côté navigateur se contourne en envoyant la requête directement."
+  },
+  {
+   "position": 26,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "En quoi consiste une attaque XSS stockée ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un script malveillant est enregistré sur le site, puis exécuté dans le navigateur des visiteurs qui consultent la page"
+    },
+    {
+     "id": "b",
+     "text": "L'attaquant force un utilisateur authentifié à exécuter une action à son insu"
+    },
+    {
+     "id": "c",
+     "text": "L'attaquant injecte une requête SQL dans un formulaire"
+    },
+    {
+     "id": "d",
+     "text": "L'attaquant sature le serveur de requêtes"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "XSS = exécution de script dans le navigateur de la victime. Forcer une action à l'insu de l'utilisateur correspond au CSRF."
+  },
+  {
+   "position": 27,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "En analyse de risques (EBIOS RM, ISO 27005), le niveau d'un risque s'évalue en croisant :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le nombre de vulnérabilités et le nombre de serveurs"
+    },
+    {
+     "id": "b",
+     "text": "La vraisemblance et la gravité (impact)"
+    },
+    {
+     "id": "c",
+     "text": "Le score CVSS et le RGPD"
+    },
+    {
+     "id": "d",
+     "text": "Le coût et le délai de correction"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Risque = vraisemblance de survenue × gravité des conséquences pour l'organisation."
+  },
+  {
+   "position": 28,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Quel organisme est l'autorité nationale de cybersécurité en France ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'ANSSI"
+    },
+    {
+     "id": "b",
+     "text": "La CNIL"
+    },
+    {
+     "id": "c",
+     "text": "L'ARCOM"
+    },
+    {
+     "id": "d",
+     "text": "L'ENISA"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "L'ANSSI (dont dépend le CERT-FR) est l'autorité nationale. La CNIL protège les données personnelles ; l'ENISA est l'agence européenne."
+  },
+  {
+   "position": 29,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Pour les comptes utilisateurs standards, que recommandent aujourd'hui l'ANSSI et le NIST sur le changement périodique obligatoire des mots de passe ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Ne jamais changer un mot de passe, même compromis"
+    },
+    {
+     "id": "b",
+     "text": "L'imposer tous les 30 jours"
+    },
+    {
+     "id": "c",
+     "text": "Ne plus l'imposer systématiquement, mais forcer le changement en cas de suspicion de compromission"
+    },
+    {
+     "id": "d",
+     "text": "L'imposer tous les 6 mois avec des règles de complexité renforcées"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Les changements forcés poussent à des mots de passe prévisibles (Été2026!, Automne2026!). On privilégie longueur, MFA et changement sur incident."
+  },
+  {
+   "position": 30,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Que signifie l'approche Zero Trust ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Aucun utilisateur n'a accès au système d'information"
+    },
+    {
+     "id": "b",
+     "text": "Les pare-feu deviennent inutiles"
+    },
+    {
+     "id": "c",
+     "text": "Tous les disques doivent être chiffrés"
+    },
+    {
+     "id": "d",
+     "text": "Aucun accès n'est accordé par défaut, même depuis le réseau interne : chaque accès est authentifié et autorisé selon l'identité et le contexte"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le Zero Trust abandonne l'idée d'un réseau interne de confiance : on vérifie chaque demande d'accès."
+  },
+  {
+   "position": 31,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Qu'affiche ce code Python ?\nports = {\"ssh\": 22, \"http\": 80}\nports[\"https\"] = 443\nprint(len(ports), ports.get(\"ftp\", 21))",
+   "options": [
+    {
+     "id": "a",
+     "text": "3 21"
+    },
+    {
+     "id": "b",
+     "text": "Une erreur KeyError"
+    },
+    {
+     "id": "c",
+     "text": "3 None"
+    },
+    {
+     "id": "d",
+     "text": "2 21"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le dictionnaire contient 3 clés. get() renvoie la valeur par défaut (21) si la clé est absente, sans lever d'erreur."
+  },
+  {
+   "position": 32,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Qu'affiche ce code Python ?\nip = \"192.168.1.25\"\noctets = ip.split(\".\")\nprint(octets[-1], len(octets))",
+   "options": [
+    {
+     "id": "a",
+     "text": "25 4"
+    },
+    {
+     "id": "b",
+     "text": "192 4"
+    },
+    {
+     "id": "c",
+     "text": "1 4"
+    },
+    {
+     "id": "d",
+     "text": "25 3"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "split(\".\") donne ['192', '168', '1', '25'] ; l'index -1 désigne le dernier élément."
+  },
+  {
+   "position": 33,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Qu'affiche ce code Python ?\nlogs = [\"OK\", \"FAIL\", \"OK\", \"FAIL\", \"FAIL\"]\nechecs = [l for l in logs if l == \"FAIL\"]\nprint(len(echecs))",
+   "options": [
+    {
+     "id": "a",
+     "text": "2"
+    },
+    {
+     "id": "b",
+     "text": "[\"FAIL\", \"FAIL\", \"FAIL\"]"
+    },
+    {
+     "id": "c",
+     "text": "3"
+    },
+    {
+     "id": "d",
+     "text": "5"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La liste en compréhension ne garde que les éléments égaux à \"FAIL\" ; len() en compte 3."
+  },
+  {
+   "position": 34,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Qu'affiche ce code Python ?\ntry:\n    x = int(\"abc\")\n    print(\"A\")\nexcept ValueError:\n    print(\"B\")\nfinally:\n    print(\"C\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "C"
+    },
+    {
+     "id": "b",
+     "text": "B puis C"
+    },
+    {
+     "id": "c",
+     "text": "B"
+    },
+    {
+     "id": "d",
+     "text": "A puis C"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "int(\"abc\") lève une ValueError : print(\"A\") n'est pas atteint, le bloc except s'exécute, puis finally s'exécute toujours."
+  },
+  {
+   "position": 35,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Dans un script Bash, que contient la variable $? juste après l'exécution d'une commande ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le nombre d'arguments du script"
+    },
+    {
+     "id": "b",
+     "text": "Le code de retour de cette commande (0 en cas de succès)"
+    },
+    {
+     "id": "c",
+     "text": "Le PID du script"
+    },
+    {
+     "id": "d",
+     "text": "Le nom du script"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "$? = code de retour ; $$ = PID ; $# = nombre d'arguments ; $0 = nom du script."
+  },
+  {
+   "position": 36,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Que fait cette commande ?\ncut -d: -f1 /etc/passwd | sort | head -3",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle affiche les 3 premiers noms de comptes du système, par ordre alphabétique"
+    },
+    {
+     "id": "b",
+     "text": "Elle supprime les 3 premiers comptes"
+    },
+    {
+     "id": "c",
+     "text": "Elle affiche les 3 premières lignes complètes de /etc/passwd"
+    },
+    {
+     "id": "d",
+     "text": "Elle affiche les 3 premiers mots de passe"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "cut extrait le 1er champ (séparateur « : »), c'est-à-dire le nom du compte ; sort trie ; head -3 garde les 3 premières lignes."
+  },
+  {
+   "position": 37,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "On filtre des adresses avec l'expression régulière\n^[0-9]{1,3}(\\.[0-9]{1,3}){3}$\nLaquelle de ces chaînes n'est PAS reconnue ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "999.999.999.999"
+    },
+    {
+     "id": "b",
+     "text": "192.168.1.1"
+    },
+    {
+     "id": "c",
+     "text": "192.168.1"
+    },
+    {
+     "id": "d",
+     "text": "10.0.0.255"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "L'expression exige 4 groupes de 1 à 3 chiffres. Elle vérifie le format, pas les valeurs : 999.999.999.999 est reconnue alors que ce n'est pas une adresse valide."
+  },
+  {
+   "position": 38,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Quel est le problème de ce code Python, si host est saisi par l'utilisateur ?\nsubprocess.run(\"ping -c 1 \" + host, shell=True)",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il n'y a aucun problème"
+    },
+    {
+     "id": "b",
+     "text": "Il permet une injection de commandes (par exemple host = \"8.8.8.8; rm -rf ~\")"
+    },
+    {
+     "id": "c",
+     "text": "Il est vulnérable au XSS"
+    },
+    {
+     "id": "d",
+     "text": "Il provoque un dépassement de tampon"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Avec shell=True, l'entrée est interprétée par le shell. Il faut passer une liste d'arguments sans shell et valider l'entrée."
+  },
+  {
+   "position": 39,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Quel est le risque de ce code C ?\nchar buf[8];\nstrcpy(buf, entree_utilisateur);",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une fuite mémoire"
+    },
+    {
+     "id": "b",
+     "text": "Un dépassement de tampon si l'entrée dépasse 7 caractères"
+    },
+    {
+     "id": "c",
+     "text": "Une injection SQL"
+    },
+    {
+     "id": "d",
+     "text": "Aucun, strcpy vérifie la taille de la destination"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "strcpy ne vérifie pas la taille : une entrée trop longue écrase la mémoire voisine (pile), ce qui peut permettre de détourner l'exécution."
+  },
+  {
+   "position": 40,
+   "type": "mcq_single",
+   "domain": "Programmation & scripting",
+   "prompt": "Un développeur a poussé une clé d'API dans un dépôt Git public, puis l'a supprimée dans le commit suivant. Que faut-il faire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Rien, puisqu'elle a été supprimée"
+    },
+    {
+     "id": "b",
+     "text": "Renommer le fichier qui la contenait"
+    },
+    {
+     "id": "c",
+     "text": "Considérer la clé comme compromise : la révoquer et en générer une nouvelle"
+    },
+    {
+     "id": "d",
+     "text": "Rendre le dépôt privé, cela suffit"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La clé reste dans l'historique Git et a pu être récupérée par des robots qui surveillent les dépôts publics. Seule la révocation la neutralise."
+  },
+  {
+   "position": 41,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Le journal /var/log/auth.log contient des centaines de lignes en quelques minutes :\nFailed password for invalid user admin from 203.0.113.45 port 51122 ssh2\nFailed password for invalid user test from 203.0.113.45 port 51130 ssh2\nFailed password for root from 203.0.113.45 port 51138 ssh2\nDe quoi s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une injection SQL"
+    },
+    {
+     "id": "b",
+     "text": "Une attaque par déni de service"
+    },
+    {
+     "id": "c",
+     "text": "Un scan de ports"
+    },
+    {
+     "id": "d",
+     "text": "Une attaque par force brute (dictionnaire) sur SSH"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Une même source teste en rafale des couples identifiant / mot de passe : c'est une force brute. Réponse : bannir l'IP, interdire root, imposer l'authentification par clé."
+  },
+  {
+   "position": 42,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Un journal du serveur web contient la requête suivante :\nGET /produits.php?id=1%27%20OR%20%271%27=%271 HTTP/1.1\" 200\nDe quel type d'attaque s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une tentative d'injection SQL"
+    },
+    {
+     "id": "b",
+     "text": "Une attaque par force brute"
+    },
+    {
+     "id": "c",
+     "text": "Une attaque XSS"
+    },
+    {
+     "id": "d",
+     "text": "Une traversée de répertoire"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Décodée, la requête donne id=1' OR '1'='1 : une condition toujours vraie injectée dans la requête SQL. Le code 200 impose de vérifier si elle a abouti."
+  },
+  {
+   "position": 43,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Un journal du serveur web contient la requête suivante :\nGET /download.php?file=../../../../etc/passwd\nDe quel type d'attaque s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une injection SQL"
+    },
+    {
+     "id": "b",
+     "text": "Une attaque XSS"
+    },
+    {
+     "id": "c",
+     "text": "Une attaque CSRF"
+    },
+    {
+     "id": "d",
+     "text": "Une traversée de répertoire (path traversal)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les « ../ » servent à remonter l'arborescence pour lire un fichier hors du dossier prévu."
+  },
+  {
+   "position": 44,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Dans le cycle classique de réponse à incident, quelle phase suit la détection et l'analyse ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le retour d'expérience"
+    },
+    {
+     "id": "b",
+     "text": "Le confinement, l'éradication et la remise en service"
+    },
+    {
+     "id": "c",
+     "text": "La notification à la CNIL"
+    },
+    {
+     "id": "d",
+     "text": "La préparation"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Cycle décrit dans le NIST SP 800-61 (rév. 2) et repris par la plupart des méthodes : préparation, détection et analyse, confinement, éradication et remise en service, retour d'expérience. La rév. 3 (2025) réorganise ces étapes selon les fonctions du NIST CSF 2.0."
+  },
+  {
+   "position": 45,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Une machine compromise est encore allumée. Que collectez-vous en premier pour l'investigation ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La mémoire vive et les connexions réseau en cours"
+    },
+    {
+     "id": "b",
+     "text": "Les journaux archivés sur le serveur central"
+    },
+    {
+     "id": "c",
+     "text": "Une image du disque dur"
+    },
+    {
+     "id": "d",
+     "text": "Les sauvegardes de la veille"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "On collecte de la donnée la plus volatile à la moins volatile (RFC 3227). La mémoire vive disparaît à l'extinction."
+  },
+  {
+   "position": 46,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Un poste affiche une demande de rançon et chiffre des fichiers sur un partage réseau. Quelle est votre première action ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Restaurer tout de suite le partage depuis la sauvegarde"
+    },
+    {
+     "id": "b",
+     "text": "Isoler le poste du réseau, sans l'éteindre"
+    },
+    {
+     "id": "c",
+     "text": "Payer la rançon pour récupérer les fichiers"
+    },
+    {
+     "id": "d",
+     "text": "L'éteindre immédiatement"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Isoler stoppe la propagation ; ne pas éteindre préserve la mémoire pour l'analyse (recommandation ANSSI). Restaurer avant d'avoir stoppé l'attaque fait chiffrer à nouveau."
+  },
+  {
+   "position": 47,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Un scan nmap d'un serveur web exposé à Internet donne :\n22/tcp   open      ssh\n80/tcp   open      http\n3306/tcp open      mysql\n3389/tcp filtered  ms-wbt-server\nQuel point est le plus préoccupant ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La base MySQL est accessible depuis Internet"
+    },
+    {
+     "id": "b",
+     "text": "Le service SSH est actif"
+    },
+    {
+     "id": "c",
+     "text": "Le port 3389 est filtré"
+    },
+    {
+     "id": "d",
+     "text": "Le port 80 est ouvert"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Une base de données ne doit jamais être exposée directement : elle doit n'être joignable que par l'application. SSH exposé mérite aussi d'être restreint, mais le risque est moindre."
+  },
+  {
+   "position": 48,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Trois vulnérabilités sont signalées :\n1. CVSS 9.8 sur un serveur interne isolé, sans données sensibles\n2. CVSS 7.5 activement exploitée, sur le VPN exposé à Internet\n3. CVSS 5.3 sur un poste de test\nLaquelle corrigez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Les trois en même temps, dans l'ordre des scores"
+    },
+    {
+     "id": "b",
+     "text": "La n° 2"
+    },
+    {
+     "id": "c",
+     "text": "La n° 1"
+    },
+    {
+     "id": "d",
+     "text": "La n° 3"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le score CVSS seul ne suffit pas : l'exposition et l'exploitation active rendent la n° 2 la plus urgente."
+  },
+  {
+   "position": 49,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Depuis ce matin, les utilisateurs reçoivent une alerte de certificat en ouvrant l'intranet. Aucune configuration n'a été modifiée. Que vérifiez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Les règles du pare-feu"
+    },
+    {
+     "id": "b",
+     "text": "La date d'expiration du certificat"
+    },
+    {
+     "id": "c",
+     "text": "La configuration DHCP"
+    },
+    {
+     "id": "d",
+     "text": "Une attaque par déni de service"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Sans changement de configuration, l'expiration est la cause la plus fréquente. Si le certificat est valide, on envisage une interception (homme du milieu)."
+  },
+  {
+   "position": 50,
+   "type": "mcq_single",
+   "domain": "Analyse & diagnostic",
+   "prompt": "Le SIEM signale qu'un même compte s'est connecté à 9 h 02 depuis Paris, puis à 9 h 10 depuis Singapour. Comment l'interprétez-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une panne du SIEM"
+    },
+    {
+     "id": "b",
+     "text": "Un simple décalage horaire"
+    },
+    {
+     "id": "c",
+     "text": "Un « voyage impossible » : on vérifie l'usage d'un VPN, sinon on considère le compte compromis (suspension, réinitialisation, analyse)"
+    },
+    {
+     "id": "d",
+     "text": "Un comportement normal"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Huit minutes ne permettent pas de changer de continent : soit un VPN explique la localisation, soit les identifiants sont utilisés par un tiers."
+  }
+ ]
+}

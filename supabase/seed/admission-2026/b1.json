@@ -1,0 +1,1462 @@
+{
+ "title": "Admission Bachelor 1 Cybersécurité 2026",
+ "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Seuil d'admissibilité proposé : 25/50.",
+ "duration_minutes": 50,
+ "pass_mark": 25,
+ "questions": [
+  {
+   "position": 1,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Quel nombre complète la suite : 2, 6, 12, 20, 30, … ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "42"
+    },
+    {
+     "id": "b",
+     "text": "40"
+    },
+    {
+     "id": "c",
+     "text": "44"
+    },
+    {
+     "id": "d",
+     "text": "36"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Les écarts augmentent de 2 à chaque fois : +4, +6, +8, +10, puis +12. 30 + 12 = 42."
+  },
+  {
+   "position": 2,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Quel nombre complète la suite : 3, 9, 27, 81, … ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "243"
+    },
+    {
+     "id": "b",
+     "text": "324"
+    },
+    {
+     "id": "c",
+     "text": "162"
+    },
+    {
+     "id": "d",
+     "text": "108"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Chaque nombre est multiplié par 3 : 81 × 3 = 243."
+  },
+  {
+   "position": 3,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Quel nombre complète la suite : 5, 10, 20, 40, … ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "50"
+    },
+    {
+     "id": "b",
+     "text": "80"
+    },
+    {
+     "id": "c",
+     "text": "45"
+    },
+    {
+     "id": "d",
+     "text": "60"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Chaque nombre est le double du précédent : 40 × 2 = 80."
+  },
+  {
+   "position": 4,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Quel nombre complète la suite : 1, 1, 2, 3, 5, 8, … ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "16"
+    },
+    {
+     "id": "b",
+     "text": "13"
+    },
+    {
+     "id": "c",
+     "text": "12"
+    },
+    {
+     "id": "d",
+     "text": "11"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Chaque nombre est la somme des deux précédents : 5 + 8 = 13 (suite de Fibonacci)."
+  },
+  {
+   "position": 5,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Tous les serveurs de la salle B sont sauvegardés. Le serveur X n'est pas sauvegardé. Que peut-on en conclure ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "On ne peut rien conclure"
+    },
+    {
+     "id": "b",
+     "text": "Le serveur X est dans la salle B"
+    },
+    {
+     "id": "c",
+     "text": "Le serveur X n'est pas dans la salle B"
+    },
+    {
+     "id": "d",
+     "text": "Tous les serveurs non sauvegardés sont dans la salle B"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Si X était dans la salle B, il serait sauvegardé. Comme il ne l'est pas, il n'est pas dans la salle B."
+  },
+  {
+   "position": 6,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "« Si l'alarme sonne, alors la porte est ouverte. » La porte est ouverte. Que peut-on en conclure ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "On ne peut pas savoir si l'alarme sonne"
+    },
+    {
+     "id": "b",
+     "text": "L'alarme ne sonne pas"
+    },
+    {
+     "id": "c",
+     "text": "L'alarme sonne"
+    },
+    {
+     "id": "d",
+     "text": "La porte est fermée"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La règle dit seulement ce qui se passe quand l'alarme sonne. La porte peut être ouverte pour une autre raison."
+  },
+  {
+   "position": 7,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Le serveur A est plus rapide que le serveur B. Le serveur C est plus lent que le serveur A. Lequel est le plus lent ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "On ne peut pas savoir"
+    },
+    {
+     "id": "b",
+     "text": "Le serveur C"
+    },
+    {
+     "id": "c",
+     "text": "Le serveur B"
+    },
+    {
+     "id": "d",
+     "text": "Le serveur A"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "B et C sont tous les deux plus lents que A, mais rien ne permet de les comparer entre eux."
+  },
+  {
+   "position": 8,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Combien de codes différents peut-on former avec 4 chiffres (de 0 à 9) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1 000"
+    },
+    {
+     "id": "b",
+     "text": "10 000"
+    },
+    {
+     "id": "c",
+     "text": "40"
+    },
+    {
+     "id": "d",
+     "text": "9 999"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "10 possibilités par position, 4 positions : 10 × 10 × 10 × 10 = 10 000 (de 0000 à 9999)."
+  },
+  {
+   "position": 9,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Il est 22 h 45. Une sauvegarde dure 2 h 30. À quelle heure se termine-t-elle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "0 h 15"
+    },
+    {
+     "id": "b",
+     "text": "1 h 45"
+    },
+    {
+     "id": "c",
+     "text": "1 h 15"
+    },
+    {
+     "id": "d",
+     "text": "24 h 75"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "22 h 45 + 2 h = 0 h 45 ; + 30 min = 1 h 15."
+  },
+  {
+   "position": 10,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Un programme teste 1 000 codes par seconde. Combien de temps lui faut-il, au maximum, pour tester tous les codes à 4 chiffres ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1 seconde"
+    },
+    {
+     "id": "b",
+     "text": "100 secondes"
+    },
+    {
+     "id": "c",
+     "text": "1 000 secondes"
+    },
+    {
+     "id": "d",
+     "text": "10 secondes"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Il y a 10 000 codes : 10 000 ÷ 1 000 = 10 secondes. Un code à 4 chiffres ne résiste pas à une attaque automatisée."
+  },
+  {
+   "position": 11,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Une sauvegarde de 120 Go est copiée à la vitesse de 2 Go par minute. Combien de temps dure la copie ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1 heure"
+    },
+    {
+     "id": "b",
+     "text": "30 minutes"
+    },
+    {
+     "id": "c",
+     "text": "4 heures"
+    },
+    {
+     "id": "d",
+     "text": "2 heures"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "120 ÷ 2 = 60 minutes, soit 1 heure."
+  },
+  {
+   "position": 12,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Sur 200 mails reçus, 15 % sont des spams. Combien de spams avez-vous reçus ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "30"
+    },
+    {
+     "id": "b",
+     "text": "45"
+    },
+    {
+     "id": "c",
+     "text": "20"
+    },
+    {
+     "id": "d",
+     "text": "15"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "15 % de 200 = 0,15 × 200 = 30."
+  },
+  {
+   "position": 13,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Un technicien installe un poste en 15 minutes. Combien de postes trois techniciens installent-ils en 1 heure, au même rythme ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "12"
+    },
+    {
+     "id": "b",
+     "text": "9"
+    },
+    {
+     "id": "c",
+     "text": "4"
+    },
+    {
+     "id": "d",
+     "text": "45"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un technicien installe 4 postes par heure (60 ÷ 15) ; trois techniciens en installent 3 × 4 = 12."
+  },
+  {
+   "position": 14,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Avec le chiffrement de César à décalage de 3, chaque lettre est remplacée par celle située 3 rangs plus loin (A devient D, B devient E…). Comment s'écrit le mot CHAT ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "DIBU"
+    },
+    {
+     "id": "b",
+     "text": "ZEXQ"
+    },
+    {
+     "id": "c",
+     "text": "FKDW"
+    },
+    {
+     "id": "d",
+     "text": "FKDV"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "C → F, H → K, A → D, T → W. DIBU correspond à un décalage de 1, ZEXQ à un décalage de 3 vers l'arrière."
+  },
+  {
+   "position": 15,
+   "type": "mcq_single",
+   "domain": "Logique & raisonnement",
+   "prompt": "Avec le même chiffrement de César (décalage de 3), quel mot se cache derrière le message chiffré FOH ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "BKD"
+    },
+    {
+     "id": "b",
+     "text": "CMF"
+    },
+    {
+     "id": "c",
+     "text": "CLE"
+    },
+    {
+     "id": "d",
+     "text": "ILK"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Pour déchiffrer, on recule de 3 rangs : F → C, O → L, H → E."
+  },
+  {
+   "position": 16,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche cet algorithme ?\nx ← 4\ny ← x × 2\nx ← y + 1\nAfficher x",
+   "options": [
+    {
+     "id": "a",
+     "text": "8"
+    },
+    {
+     "id": "b",
+     "text": "9"
+    },
+    {
+     "id": "c",
+     "text": "4"
+    },
+    {
+     "id": "d",
+     "text": "5"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "y vaut 8, puis x prend la valeur y + 1 = 9. L'ancienne valeur de x est remplacée."
+  },
+  {
+   "position": 17,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche cet algorithme ?\ntotal ← 0\nPour i allant de 1 à 4 :\n    total ← total + i\nAfficher total",
+   "options": [
+    {
+     "id": "a",
+     "text": "9"
+    },
+    {
+     "id": "b",
+     "text": "4"
+    },
+    {
+     "id": "c",
+     "text": "5"
+    },
+    {
+     "id": "d",
+     "text": "10"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La boucle additionne 1 + 2 + 3 + 4 = 10."
+  },
+  {
+   "position": 18,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche cet algorithme ?\nprix ← 20\nSi prix > 15 alors\n    prix ← prix - 5\nAfficher prix",
+   "options": [
+    {
+     "id": "a",
+     "text": "5"
+    },
+    {
+     "id": "b",
+     "text": "20"
+    },
+    {
+     "id": "c",
+     "text": "15"
+    },
+    {
+     "id": "d",
+     "text": "25"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "20 est supérieur à 15 : la condition est vraie, on retire 5. prix vaut 15."
+  },
+  {
+   "position": 19,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche cet algorithme ?\nâge ← 17\nSi âge ≥ 18 alors\n    Afficher \"majeur\"\nSinon\n    Afficher \"mineur\"",
+   "options": [
+    {
+     "id": "a",
+     "text": "Rien"
+    },
+    {
+     "id": "b",
+     "text": "majeur"
+    },
+    {
+     "id": "c",
+     "text": "mineur"
+    },
+    {
+     "id": "d",
+     "text": "majeur puis mineur"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "17 n'est pas supérieur ou égal à 18 : c'est la branche Sinon qui s'exécute."
+  },
+  {
+   "position": 20,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche ce code Python ?\nmot = \"cyber\"\nprint(len(mot))",
+   "options": [
+    {
+     "id": "a",
+     "text": "cyber"
+    },
+    {
+     "id": "b",
+     "text": "5"
+    },
+    {
+     "id": "c",
+     "text": "4"
+    },
+    {
+     "id": "d",
+     "text": "1"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "len() renvoie le nombre de caractères de la chaîne : c, y, b, e, r, soit 5."
+  },
+  {
+   "position": 21,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche cet algorithme ?\na ← 3\nb ← a + 2\nAfficher a + b",
+   "options": [
+    {
+     "id": "a",
+     "text": "32"
+    },
+    {
+     "id": "b",
+     "text": "8"
+    },
+    {
+     "id": "c",
+     "text": "5"
+    },
+    {
+     "id": "d",
+     "text": "3"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "b vaut 3 + 2 = 5, donc a + b = 3 + 5 = 8."
+  },
+  {
+   "position": 22,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche ce code Python ?\nmdp = \"soleil\"\nif len(mdp) >= 8:\n    print(\"accepté\")\nelse:\n    print(\"trop court\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "accepté puis trop court"
+    },
+    {
+     "id": "b",
+     "text": "trop court"
+    },
+    {
+     "id": "c",
+     "text": "Une erreur"
+    },
+    {
+     "id": "d",
+     "text": "accepté"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "« soleil » contient 6 caractères, moins que 8 : c'est la branche else qui s'exécute."
+  },
+  {
+   "position": 23,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Qu'affiche ce code Python ?\nnom = \"Alice\"\nprint(\"Bonjour \" + nom)",
+   "options": [
+    {
+     "id": "a",
+     "text": "Bonjour nom"
+    },
+    {
+     "id": "b",
+     "text": "Une erreur"
+    },
+    {
+     "id": "c",
+     "text": "nom Alice"
+    },
+    {
+     "id": "d",
+     "text": "Bonjour Alice"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La variable nom contient « Alice » ; le + colle les deux textes. Sans guillemets, nom désigne la variable, pas le mot."
+  },
+  {
+   "position": 24,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Dans un programme, à quoi sert une boucle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "À afficher une image"
+    },
+    {
+     "id": "b",
+     "text": "À répéter plusieurs fois des instructions"
+    },
+    {
+     "id": "c",
+     "text": "À connecter l'ordinateur à Internet"
+    },
+    {
+     "id": "d",
+     "text": "À stocker un mot de passe"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Une boucle (Pour, Tant que) répète un bloc d'instructions un nombre donné de fois ou tant qu'une condition est vraie."
+  },
+  {
+   "position": 25,
+   "type": "mcq_single",
+   "domain": "Algorithmique",
+   "prompt": "Un accès est accordé si (badge valide ET code correct) OU si la personne est administrateur. Paul a un badge valide, un code faux, et n'est pas administrateur. Que se passe-t-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'accès est refusé"
+    },
+    {
+     "id": "b",
+     "text": "L'accès est accordé"
+    },
+    {
+     "id": "c",
+     "text": "L'accès est accordé seulement en journée"
+    },
+    {
+     "id": "d",
+     "text": "On ne peut pas savoir"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La parenthèse est fausse (le code est faux) et Paul n'est pas administrateur : les deux côtés du OU sont faux."
+  },
+  {
+   "position": 26,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Que vaut le nombre binaire 1010 en décimal ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "10"
+    },
+    {
+     "id": "b",
+     "text": "1010"
+    },
+    {
+     "id": "c",
+     "text": "8"
+    },
+    {
+     "id": "d",
+     "text": "12"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "1010 = 1×8 + 0×4 + 1×2 + 0×1 = 10."
+  },
+  {
+   "position": 27,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Quels sont les seuls chiffres utilisés en binaire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "0 à 9"
+    },
+    {
+     "id": "b",
+     "text": "0, 1 et 2"
+    },
+    {
+     "id": "c",
+     "text": "0 et 1"
+    },
+    {
+     "id": "d",
+     "text": "1 et 2"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Le binaire est la base 2 : toute information y est codée avec des 0 et des 1, ce qui correspond au courant qui passe ou ne passe pas."
+  },
+  {
+   "position": 28,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Combien de bits contient un octet ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "2"
+    },
+    {
+     "id": "b",
+     "text": "1 000"
+    },
+    {
+     "id": "c",
+     "text": "10"
+    },
+    {
+     "id": "d",
+     "text": "8"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un octet est un groupe de 8 bits. C'est l'unité de base des tailles de fichiers (Ko, Mo, Go)."
+  },
+  {
+   "position": 29,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "À combien correspond 1 Go (gigaoctet) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1 000 Ko"
+    },
+    {
+     "id": "b",
+     "text": "1 000 Mo"
+    },
+    {
+     "id": "c",
+     "text": "1 000 To"
+    },
+    {
+     "id": "d",
+     "text": "100 Mo"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Ko, Mo, Go, To : chaque unité vaut 1 000 fois la précédente (1 024 si l'on parle de Gio, de Mio…)."
+  },
+  {
+   "position": 30,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Quel composant perd son contenu lorsqu'on éteint l'ordinateur ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La clé USB"
+    },
+    {
+     "id": "b",
+     "text": "Le disque dur"
+    },
+    {
+     "id": "c",
+     "text": "La mémoire vive (RAM)"
+    },
+    {
+     "id": "d",
+     "text": "Le SSD"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La RAM est une mémoire de travail temporaire ; le SSD, le disque dur et la clé USB conservent les données hors tension."
+  },
+  {
+   "position": 31,
+   "type": "mcq_multi",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Cochez les éléments qui font partie du matériel (hardware) d'un ordinateur (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le système d'exploitation"
+    },
+    {
+     "id": "b",
+     "text": "La mémoire vive"
+    },
+    {
+     "id": "c",
+     "text": "La carte graphique"
+    },
+    {
+     "id": "d",
+     "text": "Le processeur"
+    }
+   ],
+   "correct": [
+    "b",
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le système d'exploitation est un logiciel (software). Les trois autres sont des composants physiques."
+  },
+  {
+   "position": 32,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "À quoi sert une adresse IP ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "À chiffrer les communications"
+    },
+    {
+     "id": "b",
+     "text": "À stocker les mots de passe"
+    },
+    {
+     "id": "c",
+     "text": "À identifier un appareil sur un réseau pour pouvoir lui envoyer des données"
+    },
+    {
+     "id": "d",
+     "text": "À mesurer la vitesse de la connexion"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Comme une adresse postale, l'adresse IP permet d'acheminer les données vers le bon appareil."
+  },
+  {
+   "position": 33,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Quel est le rôle principal d'une box Internet à la maison ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Protéger l'ordinateur contre tous les virus"
+    },
+    {
+     "id": "b",
+     "text": "Remplacer le système d'exploitation"
+    },
+    {
+     "id": "c",
+     "text": "Relier les appareils du domicile à Internet"
+    },
+    {
+     "id": "d",
+     "text": "Stocker les photos de la famille"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La box fait le lien entre le réseau de la maison (Wi-Fi, câble) et le réseau de l'opérateur. Elle ne remplace pas un antivirus."
+  },
+  {
+   "position": 34,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Que signifie le cadenas affiché à côté de l'adresse d'un site web ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le site est officiel et sans danger"
+    },
+    {
+     "id": "b",
+     "text": "Le site a été vérifié par l'État"
+    },
+    {
+     "id": "c",
+     "text": "Le site ne contient pas de publicité"
+    },
+    {
+     "id": "d",
+     "text": "La connexion est chiffrée, mais le site peut quand même être frauduleux"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le cadenas indique une connexion HTTPS chiffrée. Les sites d'hameçonnage en ont aussi : il ne prouve pas que le site est honnête."
+  },
+  {
+   "position": 35,
+   "type": "mcq_single",
+   "domain": "Fonctionnement du numérique",
+   "prompt": "Que signifie « open source » pour un logiciel ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il est forcément gratuit"
+    },
+    {
+     "id": "b",
+     "text": "Il ne contient aucun virus"
+    },
+    {
+     "id": "c",
+     "text": "Il fonctionne sans connexion Internet"
+    },
+    {
+     "id": "d",
+     "text": "Son code source est accessible publiquement"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Open source signifie que le code est consultable (et, selon la licence, modifiable). Cela ne garantit ni la gratuité ni l'absence de faille."
+  },
+  {
+   "position": 36,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Vous recevez un SMS : « Votre colis est bloqué, réglez 1,99 € de frais ici » avec un lien vers laposte-livraison.info. Que faites-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Répondre pour demander plus d'informations"
+    },
+    {
+     "id": "b",
+     "text": "Payer, la somme est faible"
+    },
+    {
+     "id": "c",
+     "text": "Transférer le message à vos proches pour savoir s'ils l'ont aussi reçu"
+    },
+    {
+     "id": "d",
+     "text": "Ne pas cliquer et vérifier le suivi sur le site ou l'application officielle du transporteur"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "C'est une arnaque classique : la petite somme sert à récupérer votre numéro de carte bancaire. Le nom de domaine n'est pas celui de La Poste."
+  },
+  {
+   "position": 37,
+   "type": "mcq_multi",
+   "domain": "Réflexes cyber",
+   "prompt": "Cochez les indices qui doivent faire penser à une arnaque dans un mail (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une adresse d'expéditeur qui ne correspond pas au site officiel"
+    },
+    {
+     "id": "b",
+     "text": "Une demande de coordonnées bancaires ou de mot de passe"
+    },
+    {
+     "id": "c",
+     "text": "Une urgence (« sous 24 h, sinon votre compte sera bloqué »)"
+    },
+    {
+     "id": "d",
+     "text": "La présence du logo de l'entreprise"
+    }
+   ],
+   "correct": [
+    "a",
+    "b",
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Un logo se copie en quelques secondes : sa présence ne prouve rien. L'urgence, l'expéditeur suspect et la demande d'informations sensibles sont des signaux d'alerte."
+  },
+  {
+   "position": 38,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Lequel de ces mots de passe est le plus robuste ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "P@ssw0rd"
+    },
+    {
+     "id": "b",
+     "text": "cheval-lampe-orage-violon"
+    },
+    {
+     "id": "c",
+     "text": "Marie2008"
+    },
+    {
+     "id": "d",
+     "text": "Azerty123!"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "La longueur compte plus que les symboles : une phrase de passe de plusieurs mots au hasard est longue et difficile à deviner. Les autres sont des modèles très courants, testés en premier par les attaquants."
+  },
+  {
+   "position": 39,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Vous utilisez le même mot de passe sur tous vos sites. L'un d'eux se fait voler sa base de données. Quel est le risque ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Votre mot de passe est changé automatiquement partout"
+    },
+    {
+     "id": "b",
+     "text": "Aucun, seul ce site est concerné"
+    },
+    {
+     "id": "c",
+     "text": "Votre ordinateur est automatiquement infecté"
+    },
+    {
+     "id": "d",
+     "text": "Les attaquants essaient ce mot de passe sur vos autres comptes (messagerie, réseaux sociaux…)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La réutilisation des mots de passe permet de prendre le contrôle de tous vos comptes à partir d'une seule fuite."
+  },
+  {
+   "position": 40,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "À quoi sert la double authentification (code reçu par SMS ou dans une application) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "À accélérer la connexion"
+    },
+    {
+     "id": "b",
+     "text": "À sauvegarder vos données"
+    },
+    {
+     "id": "c",
+     "text": "À remplacer l'antivirus"
+    },
+    {
+     "id": "d",
+     "text": "À empêcher la connexion de quelqu'un qui ne connaît que votre mot de passe"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Même si votre mot de passe fuit, l'attaquant doit aussi disposer de votre téléphone ou de votre application."
+  },
+  {
+   "position": 41,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Dans un café, deux réseaux Wi-Fi apparaissent : « Cafe_Gratuit » et « Cafe-Gratuit-Free ». Quel est le risque ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'un des deux peut être un faux réseau créé par un pirate : il faut demander le nom exact au personnel"
+    },
+    {
+     "id": "b",
+     "text": "Le Wi-Fi va ralentir votre téléphone"
+    },
+    {
+     "id": "c",
+     "text": "Aucun, tous les Wi-Fi publics sont contrôlés"
+    },
+    {
+     "id": "d",
+     "text": "Les deux réseaux vont se brouiller"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un pirate peut créer un point d'accès au nom proche pour piéger les connexions ou afficher de fausses pages de connexion."
+  },
+  {
+   "position": 42,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Vous trouvez une clé USB dans un couloir de l'école. Que faites-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La remettre à l'accueil ou au service informatique, sans la brancher"
+    },
+    {
+     "id": "b",
+     "text": "La brancher pour retrouver son propriétaire"
+    },
+    {
+     "id": "c",
+     "text": "La formater sur votre ordinateur avant de la garder"
+    },
+    {
+     "id": "d",
+     "text": "La brancher sur un ordinateur de l'école plutôt que sur le vôtre"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Une clé piégée peut infecter l'ordinateur dès qu'elle est branchée. C'est une technique d'attaque connue."
+  },
+  {
+   "position": 43,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Pourquoi faut-il installer rapidement les mises à jour de son téléphone ou de son ordinateur ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elles suppriment les publicités"
+    },
+    {
+     "id": "b",
+     "text": "Elles libèrent de l'espace de stockage"
+    },
+    {
+     "id": "c",
+     "text": "Elles corrigent des failles de sécurité que des pirates peuvent exploiter"
+    },
+    {
+     "id": "d",
+     "text": "Elles sont obligatoires par la loi"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Une fois une faille rendue publique, les attaquants l'exploitent vite sur les appareils non mis à jour."
+  },
+  {
+   "position": 44,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Qu'est-ce qu'un rançongiciel (ransomware) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un programme qui chiffre vos fichiers et exige un paiement pour les rendre"
+    },
+    {
+     "id": "b",
+     "text": "Un logiciel de sauvegarde payant"
+    },
+    {
+     "id": "c",
+     "text": "Un antivirus gratuit"
+    },
+    {
+     "id": "d",
+     "text": "Un programme qui affiche des publicités"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le rançongiciel rend les fichiers illisibles et réclame une rançon. Les sauvegardes déconnectées sont la meilleure protection."
+  },
+  {
+   "position": 45,
+   "type": "mcq_single",
+   "domain": "Réflexes cyber",
+   "prompt": "Laquelle de ces informations est une donnée personnelle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le nombre d'habitants en France"
+    },
+    {
+     "id": "b",
+     "text": "La température à Paris aujourd'hui"
+    },
+    {
+     "id": "c",
+     "text": "Le prix d'un forfait mobile"
+    },
+    {
+     "id": "d",
+     "text": "Votre adresse e-mail"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Une donnée personnelle permet d'identifier une personne, directement ou indirectement. Les autres informations ne concernent personne en particulier."
+  },
+  {
+   "position": 46,
+   "type": "mcq_single",
+   "domain": "Anglais",
+   "prompt": "Un site affiche : « Your password must contain at least 12 characters. » Que signifie ce message ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le mot de passe doit contenir au maximum 12 caractères"
+    },
+    {
+     "id": "b",
+     "text": "Le mot de passe doit contenir exactement 12 caractères"
+    },
+    {
+     "id": "c",
+     "text": "Le mot de passe doit contenir 12 chiffres"
+    },
+    {
+     "id": "d",
+     "text": "Le mot de passe doit contenir au moins 12 caractères"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "« At least » signifie « au moins ». « At most » signifierait « au maximum »."
+  },
+  {
+   "position": 47,
+   "type": "mcq_single",
+   "domain": "Anglais",
+   "prompt": "Un message affiche : « Access denied. Please contact your administrator. » Que signifie-t-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il faut redémarrer l'ordinateur"
+    },
+    {
+     "id": "b",
+     "text": "L'accès est refusé ; il faut contacter l'administrateur"
+    },
+    {
+     "id": "c",
+     "text": "L'accès est accordé par l'administrateur"
+    },
+    {
+     "id": "d",
+     "text": "Le compte administrateur a été supprimé"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "« Access denied » = accès refusé ; « contact your administrator » = contactez votre administrateur."
+  },
+  {
+   "position": 48,
+   "type": "mcq_single",
+   "domain": "Anglais",
+   "prompt": "Un SMS indique : « Do not share your verification code with anyone, including our staff. » Que faut-il comprendre ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le personnel va vous demander ce code"
+    },
+    {
+     "id": "b",
+     "text": "Ne partager le code avec personne, pas même avec le personnel de l'entreprise"
+    },
+    {
+     "id": "c",
+     "text": "Partager le code uniquement avec le personnel de l'entreprise"
+    },
+    {
+     "id": "d",
+     "text": "Le code peut être partagé avec sa famille"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "« Including our staff » = y compris notre personnel. Un faux conseiller qui demande ce code est un signal d'arnaque."
+  },
+  {
+   "position": 49,
+   "type": "mcq_single",
+   "domain": "Anglais",
+   "prompt": "Un message affiche : « The update will be installed when you restart your device. » Que signifie-t-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La mise à jour a échoué"
+    },
+    {
+     "id": "b",
+     "text": "La mise à jour est déjà installée"
+    },
+    {
+     "id": "c",
+     "text": "L'appareil va redémarrer immédiatement"
+    },
+    {
+     "id": "d",
+     "text": "La mise à jour sera installée au redémarrage de l'appareil"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "« Will be installed » = sera installée ; « when you restart » = quand vous redémarrerez."
+  },
+  {
+   "position": 50,
+   "type": "mcq_single",
+   "domain": "Anglais",
+   "prompt": "Le navigateur affiche : « Warning: this file may harm your computer. Keep anyway? » Que signifie ce message ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le fichier a été supprimé ; voulez-vous le restaurer ?"
+    },
+    {
+     "id": "b",
+     "text": "Le fichier est trop volumineux ; voulez-vous le compresser ?"
+    },
+    {
+     "id": "c",
+     "text": "Le fichier pourrait endommager votre ordinateur ; voulez-vous quand même le conserver ?"
+    },
+    {
+     "id": "d",
+     "text": "Le fichier a été réparé ; voulez-vous l'ouvrir ?"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "« May harm » = pourrait nuire ; « keep anyway » = conserver quand même. Dans le doute, on ne le conserve pas."
+  }
+ ]
+}

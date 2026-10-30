@@ -20,7 +20,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
 
   const ids = (attempts || []).map((a: any) => a.id);
   const { data: camEv } = ids.length
-    ? await supabase.from("proctor_events").select("attempt_id").in("attempt_id", ids).in("kind", ["no_face", "multiple_faces", "camera_covered", "camera_frozen", "snapshots_missing"])
+    ? await supabase.from("proctor_events").select("attempt_id").in("attempt_id", ids).in("kind", ["no_face", "multiple_faces", "camera_covered", "camera_frozen", "snapshots_missing", "camera_refused", "camera_off"])
     : { data: [] as any[] };
   const camCount = new Map<string, number>();
   for (const e of camEv || []) camCount.set(e.attempt_id, (camCount.get(e.attempt_id) || 0) + 1);

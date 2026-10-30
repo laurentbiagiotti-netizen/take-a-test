@@ -1,0 +1,1465 @@
+{
+ "title": "Admission Bachelor 3 Cybersécurité 2026",
+ "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50.",
+ "duration_minutes": 50,
+ "pass_mark": 25,
+ "questions": [
+  {
+   "position": 1,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Combien d'adresses d'hôtes utilisables contient le réseau 192.168.10.0/26 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "64"
+    },
+    {
+     "id": "b",
+     "text": "62"
+    },
+    {
+     "id": "c",
+     "text": "30"
+    },
+    {
+     "id": "d",
+     "text": "126"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un /26 laisse 6 bits d'hôte : 2^6 = 64 adresses, moins l'adresse réseau et l'adresse de broadcast = 62 hôtes."
+  },
+  {
+   "position": 2,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un poste a l'adresse 192.168.1.130/25. Quelle est l'adresse de son réseau ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "192.168.1.255"
+    },
+    {
+     "id": "b",
+     "text": "192.168.1.127"
+    },
+    {
+     "id": "c",
+     "text": "192.168.1.0"
+    },
+    {
+     "id": "d",
+     "text": "192.168.1.128"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Masque /25 = 255.255.255.128. Les réseaux sont .0 à .127 et .128 à .255 ; .130 appartient au réseau 192.168.1.128."
+  },
+  {
+   "position": 3,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Deux postes, 10.0.1.10/24 et 10.0.2.10/24, sont branchés sur le même switch, dans le même VLAN, sans routeur. Peuvent-ils communiquer ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Oui, car ils sont sur le même switch"
+    },
+    {
+     "id": "b",
+     "text": "Non, car ils sont dans deux réseaux IP différents : il faut un routage"
+    },
+    {
+     "id": "c",
+     "text": "Non, car les adresses en 10.x sont privées"
+    },
+    {
+     "id": "d",
+     "text": "Oui, car ils sont dans le même VLAN"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Chaque poste considère l'autre comme hors de son réseau (/24) et envoie le trafic à sa passerelle. Sans routeur, pas de communication, même sur le même switch."
+  },
+  {
+   "position": 4,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un port de switch qui relie deux switchs et transporte plusieurs VLAN doit être configuré en mode :",
+   "options": [
+    {
+     "id": "a",
+     "text": "trunk"
+    },
+    {
+     "id": "b",
+     "text": "shutdown"
+    },
+    {
+     "id": "c",
+     "text": "access"
+    },
+    {
+     "id": "d",
+     "text": "mirror"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un port trunk (802.1Q) transporte plusieurs VLAN en étiquetant les trames ; un port access n'appartient qu'à un seul VLAN."
+  },
+  {
+   "position": 5,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un poste se retrouve avec l'adresse 169.254.23.4. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le serveur DNS est en panne"
+    },
+    {
+     "id": "b",
+     "text": "Aucun serveur DHCP n'a répondu"
+    },
+    {
+     "id": "c",
+     "text": "La passerelle est mal configurée"
+    },
+    {
+     "id": "d",
+     "text": "Il y a un conflit d'adresse IP"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "169.254.x.x est une adresse APIPA, attribuée automatiquement par Windows quand aucun serveur DHCP ne répond."
+  },
+  {
+   "position": 6,
+   "type": "mcq_multi",
+   "domain": "Réseaux",
+   "prompt": "Cochez les protocoles qui utilisent principalement UDP (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "SMTP"
+    },
+    {
+     "id": "b",
+     "text": "SSH"
+    },
+    {
+     "id": "c",
+     "text": "DHCP"
+    },
+    {
+     "id": "d",
+     "text": "DNS (requêtes)"
+    }
+   ],
+   "correct": [
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "DNS (UDP 53 pour les requêtes) et DHCP (UDP 67/68) utilisent UDP. SSH (TCP 22) et SMTP (TCP 25) utilisent TCP."
+  },
+  {
+   "position": 7,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un poste en 192.168.1.20 accède à Internet alors que cette adresse n'est pas routable sur Internet. Quel mécanisme le permet ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le DNS"
+    },
+    {
+     "id": "b",
+     "text": "La traduction d'adresses (NAT/PAT) sur le routeur"
+    },
+    {
+     "id": "c",
+     "text": "Le DHCP"
+    },
+    {
+     "id": "d",
+     "text": "Le VLAN"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le routeur ou la box remplace l'adresse privée par son adresse publique (NAT/PAT) pour sortir sur Internet."
+  },
+  {
+   "position": 8,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quel est le rôle de la passerelle par défaut configurée sur un poste ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Permettre de joindre les réseaux autres que le réseau local"
+    },
+    {
+     "id": "b",
+     "text": "Traduire les noms de domaine en adresses IP"
+    },
+    {
+     "id": "c",
+     "text": "Séparer les VLAN entre eux"
+    },
+    {
+     "id": "d",
+     "text": "Attribuer les adresses IP aux postes"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Tout paquet destiné à une adresse hors du réseau local est envoyé à la passerelle, qui se charge de le router."
+  },
+  {
+   "position": 9,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Combien de sous-réseaux en /26 peut-on créer à partir d'un réseau en /24 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "8"
+    },
+    {
+     "id": "b",
+     "text": "2"
+    },
+    {
+     "id": "c",
+     "text": "64"
+    },
+    {
+     "id": "d",
+     "text": "4"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "On emprunte 2 bits d'hôte (26 - 24 = 2) : 2^2 = 4 sous-réseaux de 64 adresses chacun."
+  },
+  {
+   "position": 10,
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quel protocole permet à un poste de trouver l'adresse MAC correspondant à une adresse IP de son réseau local ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "DHCP"
+    },
+    {
+     "id": "b",
+     "text": "ARP"
+    },
+    {
+     "id": "c",
+     "text": "DNS"
+    },
+    {
+     "id": "d",
+     "text": "ICMP"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "ARP (Address Resolution Protocol) associe une adresse IP à une adresse MAC sur le réseau local. Le résultat est conservé dans la table ARP."
+  },
+  {
+   "position": 11,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Dans un domaine Active Directory, 15 comptables doivent accéder à un dossier partagé. Quelle est la bonne pratique ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Donner les droits au groupe « Tout le monde »"
+    },
+    {
+     "id": "b",
+     "text": "Créer un groupe « Comptabilité », y placer les utilisateurs et donner les droits au groupe"
+    },
+    {
+     "id": "c",
+     "text": "Donner le compte administrateur à la responsable comptable"
+    },
+    {
+     "id": "d",
+     "text": "Ajouter chaque utilisateur individuellement sur le dossier"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Les droits s'attribuent à des groupes, pas à des utilisateurs : plus simple à gérer (arrivées, départs) et plus lisible."
+  },
+  {
+   "position": 12,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un dossier est partagé avec le droit de partage « Contrôle total » pour « Utilisateurs du domaine ». Paul, membre de ce groupe, a uniquement le droit NTFS « Lecture ». Quel accès Paul a-t-il en passant par le réseau ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Lecture"
+    },
+    {
+     "id": "b",
+     "text": "Aucun accès"
+    },
+    {
+     "id": "c",
+     "text": "Contrôle total"
+    },
+    {
+     "id": "d",
+     "text": "Modification"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Par le réseau, c'est la permission la plus restrictive entre droits de partage et droits NTFS qui s'applique : ici, Lecture."
+  },
+  {
+   "position": 13,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Une GPO liée à une unité d'organisation (OU) s'applique :",
+   "options": [
+    {
+     "id": "a",
+     "text": "À tous les objets du domaine"
+    },
+    {
+     "id": "b",
+     "text": "Aux comptes utilisateurs et ordinateurs contenus dans cette OU et ses sous-OU"
+    },
+    {
+     "id": "c",
+     "text": "Uniquement aux contrôleurs de domaine"
+    },
+    {
+     "id": "d",
+     "text": "Uniquement aux groupes contenus dans cette OU"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Une GPO s'applique aux objets utilisateurs et ordinateurs de l'OU (et des sous-OU par héritage). Elle ne s'applique pas aux groupes en tant que tels."
+  },
+  {
+   "position": 14,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, que donne la commande chmod 750 sur un fichier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Propriétaire : r-x / Groupe : rwx / Autres : aucun droit"
+    },
+    {
+     "id": "b",
+     "text": "Propriétaire : rwx / Groupe : rw- / Autres : aucun droit"
+    },
+    {
+     "id": "c",
+     "text": "Propriétaire : rwx / Groupe : r-x / Autres : aucun droit"
+    },
+    {
+     "id": "d",
+     "text": "Propriétaire : rw- / Groupe : r-- / Autres : aucun droit"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "7 = 4+2+1 (rwx), 5 = 4+1 (r-x), 0 = aucun droit."
+  },
+  {
+   "position": 15,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, quelle commande affiche l'état du service apache2 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "apt status apache2"
+    },
+    {
+     "id": "b",
+     "text": "service list apache2"
+    },
+    {
+     "id": "c",
+     "text": "systemctl status apache2"
+    },
+    {
+     "id": "d",
+     "text": "ps status apache2"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "systemctl status affiche si le service est actif, depuis quand, et ses derniers messages de log."
+  },
+  {
+   "position": 16,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un technicien doit exécuter des commandes d'administration sur un serveur Linux sans connaître le mot de passe root. Quelle est la bonne solution ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Créer un deuxième compte avec l'UID 0"
+    },
+    {
+     "id": "b",
+     "text": "Faire un chmod 777 sur /etc"
+    },
+    {
+     "id": "c",
+     "text": "L'autoriser à utiliser sudo (groupe sudo ou fichier sudoers)"
+    },
+    {
+     "id": "d",
+     "text": "Lui communiquer le mot de passe root"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "sudo permet de déléguer des droits d'administration de façon nominative et journalisée, sans partager le mot de passe root."
+  },
+  {
+   "position": 17,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Que signifie la règle de sauvegarde 3-2-1 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "3 copies des données, sur 2 supports différents, dont 1 hors site"
+    },
+    {
+     "id": "b",
+     "text": "3 sauvegardes par jour, 2 par semaine, 1 par mois"
+    },
+    {
+     "id": "c",
+     "text": "3 serveurs, 2 disques, 1 cloud"
+    },
+    {
+     "id": "d",
+     "text": "3 jours de rétention, 2 restaurations testées, 1 archive"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La règle 3-2-1 limite le risque de tout perdre en même temps (panne, sinistre, rançongiciel)."
+  },
+  {
+   "position": 18,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Quel type d'enregistrement DNS associe un nom à une adresse IPv4 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "MX"
+    },
+    {
+     "id": "b",
+     "text": "CNAME"
+    },
+    {
+     "id": "c",
+     "text": "PTR"
+    },
+    {
+     "id": "d",
+     "text": "A"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "A = nom vers IPv4 ; AAAA = IPv6 ; MX = serveur de messagerie ; CNAME = alias ; PTR = résolution inverse."
+  },
+  {
+   "position": 19,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un collaborateur a quitté l'entreprise. Que faites-vous en priorité de son compte Active Directory ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le désactiver, puis le supprimer à l'issue de la durée de conservation prévue"
+    },
+    {
+     "id": "b",
+     "text": "Le supprimer immédiatement"
+    },
+    {
+     "id": "c",
+     "text": "Le laisser actif pour son successeur"
+    },
+    {
+     "id": "d",
+     "text": "Le renommer au nom de son successeur"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La désactivation coupe l'accès tout de suite, tout en conservant le compte (groupes, données, traces) pour la récupération des fichiers et un éventuel audit."
+  },
+  {
+   "position": 20,
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, quel fichier contient la liste des comptes utilisateurs du système ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "/etc/passwd"
+    },
+    {
+     "id": "b",
+     "text": "/etc/shadow"
+    },
+    {
+     "id": "c",
+     "text": "/etc/group"
+    },
+    {
+     "id": "d",
+     "text": "/etc/hosts"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "/etc/passwd liste les comptes. Les empreintes des mots de passe sont dans /etc/shadow, lisible uniquement par root ; /etc/group liste les groupes."
+  },
+  {
+   "position": 21,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Un utilisateur a saisi son mot de passe sur un faux site reçu par mail. Quelle est l'action prioritaire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Réinitialiser son mot de passe et fermer les sessions ouvertes du compte"
+    },
+    {
+     "id": "b",
+     "text": "Supprimer le mail de sa boîte"
+    },
+    {
+     "id": "c",
+     "text": "Formater son poste"
+    },
+    {
+     "id": "d",
+     "text": "Attendre de constater une activité suspecte"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le mot de passe est compromis : il faut couper l'accès de l'attaquant au plus vite. L'analyse et la suppression du mail viennent ensuite."
+  },
+  {
+   "position": 22,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "L'authentification multifacteur (MFA) protège principalement contre :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un rançongiciel déjà présent sur le poste"
+    },
+    {
+     "id": "b",
+     "text": "Une injection SQL"
+    },
+    {
+     "id": "c",
+     "text": "L'utilisation d'un mot de passe volé"
+    },
+    {
+     "id": "d",
+     "text": "Une attaque par déni de service (DDoS)"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Avec le MFA, connaître le mot de passe ne suffit plus : il faut aussi le second facteur."
+  },
+  {
+   "position": 23,
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez les mesures efficaces pour se protéger d'un rançongiciel ou en limiter l'impact (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Des sauvegardes hors ligne ou non modifiables"
+    },
+    {
+     "id": "b",
+     "text": "Un disque de sauvegarde réseau monté en permanence sur le serveur"
+    },
+    {
+     "id": "c",
+     "text": "Limiter les droits administrateur des utilisateurs"
+    },
+    {
+     "id": "d",
+     "text": "L'application régulière des mises à jour"
+    }
+   ],
+   "correct": [
+    "a",
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les mises à jour ferment les failles utilisées pour entrer, la limitation des droits freine la propagation, et des sauvegardes isolées permettent de restaurer. Un disque de sauvegarde monté en permanence sera chiffré en même temps que le reste."
+  },
+  {
+   "position": 24,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Qu'est-ce que le principe du moindre privilège ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Seul le DSI a des droits administrateur"
+    },
+    {
+     "id": "b",
+     "text": "On bloque l'accès à Internet par défaut"
+    },
+    {
+     "id": "c",
+     "text": "Chaque utilisateur ou service n'a que les droits nécessaires à sa mission"
+    },
+    {
+     "id": "d",
+     "text": "Les utilisateurs ont le moins de mots de passe possible"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Limiter les droits limite ce qu'un attaquant (ou une erreur) peut faire avec un compte compromis."
+  },
+  {
+   "position": 25,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Selon le RGPD, dans quel délai une violation de données personnelles présentant un risque doit-elle être notifiée à la CNIL ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1 mois"
+    },
+    {
+     "id": "b",
+     "text": "72 heures"
+    },
+    {
+     "id": "c",
+     "text": "7 jours"
+    },
+    {
+     "id": "d",
+     "text": "24 heures"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Article 33 du RGPD : 72 heures au plus tard après en avoir pris connaissance."
+  },
+  {
+   "position": 26,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Quelle est la différence entre un IDS et un IPS ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'IDS bloque, l'IPS se contente d'alerter"
+    },
+    {
+     "id": "b",
+     "text": "L'IDS est un antivirus, l'IPS un pare-feu"
+    },
+    {
+     "id": "c",
+     "text": "L'IDS détecte et alerte, l'IPS peut en plus bloquer le trafic malveillant"
+    },
+    {
+     "id": "d",
+     "text": "Il n'y a aucune différence"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "IDS = Intrusion Detection System (détection) ; IPS = Intrusion Prevention System (détection et blocage)."
+  },
+  {
+   "position": 27,
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez les protocoles qui transmettent les données en clair et doivent être remplacés par une version chiffrée (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "HTTP"
+    },
+    {
+     "id": "b",
+     "text": "FTP"
+    },
+    {
+     "id": "c",
+     "text": "Telnet"
+    },
+    {
+     "id": "d",
+     "text": "SSH"
+    }
+   ],
+   "correct": [
+    "a",
+    "b",
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Telnet → SSH ; FTP → SFTP ou FTPS ; HTTP → HTTPS. SSH est déjà chiffré."
+  },
+  {
+   "position": 28,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Comment une application doit-elle stocker les mots de passe de ses utilisateurs ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Chiffrés avec une clé stockée sur le serveur"
+    },
+    {
+     "id": "b",
+     "text": "En clair dans une base de données protégée"
+    },
+    {
+     "id": "c",
+     "text": "Encodés en Base64"
+    },
+    {
+     "id": "d",
+     "text": "Hachés avec un sel, avec un algorithme adapté (bcrypt, Argon2…)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un hachage salé n'est pas réversible : même en cas de fuite de la base, les mots de passe ne sont pas directement lisibles. Base64 n'est qu'un encodage."
+  },
+  {
+   "position": 29,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Un collaborateur reçoit l'appel d'un « technicien Microsoft » qui lui demande d'installer un logiciel de prise en main à distance pour « corriger un problème ». De quoi s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "D'une procédure normale de support"
+    },
+    {
+     "id": "b",
+     "text": "D'une tentative d'ingénierie sociale (arnaque au faux support technique)"
+    },
+    {
+     "id": "c",
+     "text": "D'un audit de sécurité mené par le RSSI"
+    },
+    {
+     "id": "d",
+     "text": "D'une mise à jour automatique de Windows"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Microsoft ne contacte jamais spontanément les utilisateurs par téléphone pour du support. Le but est d'obtenir un accès à distance au poste. Il faut raccrocher et prévenir le service informatique."
+  },
+  {
+   "position": 30,
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Une mise à jour de sécurité critique est publiée pour le pare-feu de l'entreprise. Quelle est la bonne démarche ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Évaluer l'exposition, tester si possible, planifier rapidement l'installation et prévoir un retour arrière"
+    },
+    {
+     "id": "b",
+     "text": "Ne rien faire tant qu'aucun incident n'est constaté"
+    },
+    {
+     "id": "c",
+     "text": "L'installer immédiatement en production, sans prévenir personne"
+    },
+    {
+     "id": "d",
+     "text": "Attendre la prochaine maintenance annuelle"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Une faille critique doit être corrigée vite, mais de façon maîtrisée : on informe, on planifie et on sait revenir en arrière si la mise à jour pose problème."
+  },
+  {
+   "position": 31,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Que produit ce script Bash ?\nfor i in 1 2 3; do\n    echo \"Serveur$i\"\ndone",
+   "options": [
+    {
+     "id": "a",
+     "text": "Serveur$i, trois fois"
+    },
+    {
+     "id": "b",
+     "text": "Serveur1, Serveur2 et Serveur3, sur trois lignes"
+    },
+    {
+     "id": "c",
+     "text": "Une erreur de syntaxe"
+    },
+    {
+     "id": "d",
+     "text": "Serveur123 sur une seule ligne"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "La variable i prend successivement les valeurs 1, 2 et 3 ; echo affiche une ligne à chaque tour."
+  },
+  {
+   "position": 32,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Qu'affiche ce code Python ?\nx = 5\nif x > 3:\n    print(\"A\")\nelif x > 1:\n    print(\"B\")\nelse:\n    print(\"C\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "C"
+    },
+    {
+     "id": "b",
+     "text": "A puis B"
+    },
+    {
+     "id": "c",
+     "text": "B"
+    },
+    {
+     "id": "d",
+     "text": "A"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La première condition vraie est exécutée ; les suivantes (elif, else) sont ignorées."
+  },
+  {
+   "position": 33,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Qu'affiche ce code Python ?\nserveurs = [\"web\", \"dns\", \"mail\"]\nprint(len(serveurs), serveurs[1])",
+   "options": [
+    {
+     "id": "a",
+     "text": "3 web"
+    },
+    {
+     "id": "b",
+     "text": "3 mail"
+    },
+    {
+     "id": "c",
+     "text": "3 dns"
+    },
+    {
+     "id": "d",
+     "text": "2 dns"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "len() renvoie 3 éléments ; les index commencent à 0, donc serveurs[1] vaut \"dns\"."
+  },
+  {
+   "position": 34,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Que fait cette commande PowerShell ?\nGet-ADUser -Filter * | Where-Object { $_.Enabled -eq $false }",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle liste les comptes Active Directory actifs"
+    },
+    {
+     "id": "b",
+     "text": "Elle désactive tous les comptes Active Directory"
+    },
+    {
+     "id": "c",
+     "text": "Elle supprime les comptes désactivés"
+    },
+    {
+     "id": "d",
+     "text": "Elle liste les comptes Active Directory désactivés"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Get-ADUser récupère tous les comptes, Where-Object ne garde que ceux dont la propriété Enabled est fausse. Rien n'est modifié."
+  },
+  {
+   "position": 35,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "À quoi sert la ligne #!/bin/bash au début d'un script ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle indique l'interpréteur à utiliser pour exécuter le script"
+    },
+    {
+     "id": "b",
+     "text": "C'est un simple commentaire, sans effet"
+    },
+    {
+     "id": "c",
+     "text": "Elle rend le script exécutable"
+    },
+    {
+     "id": "d",
+     "text": "Elle importe les commandes de Bash"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le shebang indique au système quel interpréteur lancer. Le droit d'exécution, lui, se donne avec chmod +x."
+  },
+  {
+   "position": 36,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Que fait cette commande ?\ngrep \"Failed password\" /var/log/auth.log | wc -l",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle compte le nombre d'utilisateurs du système"
+    },
+    {
+     "id": "b",
+     "text": "Elle affiche les mots de passe saisis"
+    },
+    {
+     "id": "c",
+     "text": "Elle supprime les tentatives échouées du journal"
+    },
+    {
+     "id": "d",
+     "text": "Elle compte les lignes du journal contenant « Failed password » (échecs de connexion)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "grep filtre les lignes contenant le motif ; wc -l compte les lignes reçues. Utile pour repérer une attaque par force brute sur SSH."
+  },
+  {
+   "position": 37,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Qu'affiche ce code Python ?\ntentatives = 0\nwhile tentatives < 3:\n    tentatives += 1\nprint(tentatives)",
+   "options": [
+    {
+     "id": "a",
+     "text": "3"
+    },
+    {
+     "id": "b",
+     "text": "2"
+    },
+    {
+     "id": "c",
+     "text": "Rien : la boucle est infinie"
+    },
+    {
+     "id": "d",
+     "text": "4"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La boucle s'exécute tant que tentatives < 3 : elle s'arrête quand tentatives vaut 3, valeur ensuite affichée."
+  },
+  {
+   "position": 38,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Un script de création de comptes contient en clair le mot de passe d'un administrateur du domaine. Quel est le problème ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le script sera plus lent à s'exécuter"
+    },
+    {
+     "id": "b",
+     "text": "Le mot de passe expirera plus vite"
+    },
+    {
+     "id": "c",
+     "text": "Aucun, si le script est stocké sur un serveur"
+    },
+    {
+     "id": "d",
+     "text": "Toute personne pouvant lire le script obtient ce mot de passe : il faut un compte de service aux droits limités et un stockage sécurisé du secret"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un secret en clair dans un script finit toujours par fuiter (partage, sauvegarde, dépôt Git). On limite les droits du compte utilisé et on protège le secret."
+  },
+  {
+   "position": 39,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Que fait ce script Bash ?\nif [ -f /etc/backup.conf ]; then\n    echo \"OK\"\nfi",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il crée le fichier /etc/backup.conf"
+    },
+    {
+     "id": "b",
+     "text": "Il affiche OK si le fichier /etc/backup.conf existe"
+    },
+    {
+     "id": "c",
+     "text": "Il supprime le fichier /etc/backup.conf"
+    },
+    {
+     "id": "d",
+     "text": "Il affiche le contenu du fichier /etc/backup.conf"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le test -f vérifie qu'un fichier ordinaire existe. Si c'est le cas, la commande entre then et fi est exécutée."
+  },
+  {
+   "position": 40,
+   "type": "mcq_single",
+   "domain": "Scripting & programmation",
+   "prompt": "Qu'affiche ce code Python ?\nports = [22, 80, 443]\nfor p in ports:\n    if p != 80:\n        print(p)",
+   "options": [
+    {
+     "id": "a",
+     "text": "Rien"
+    },
+    {
+     "id": "b",
+     "text": "80"
+    },
+    {
+     "id": "c",
+     "text": "22 et 443"
+    },
+    {
+     "id": "d",
+     "text": "22, 80 et 443"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La boucle parcourt la liste et n'affiche que les ports différents de 80 (!= signifie « différent de »)."
+  },
+  {
+   "position": 41,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Sur un poste, ping 8.8.8.8 fonctionne, mais ping www.google.fr renvoie « hôte inconnu ». Où se situe le problème ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La passerelle par défaut"
+    },
+    {
+     "id": "b",
+     "text": "La carte réseau"
+    },
+    {
+     "id": "c",
+     "text": "Le câble réseau"
+    },
+    {
+     "id": "d",
+     "text": "La résolution DNS"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Internet est joignable par adresse IP, donc le câble, la carte et la passerelle fonctionnent : seule la traduction du nom échoue."
+  },
+  {
+   "position": 42,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Un poste ne parvient pas à joindre sa passerelle, alors que les autres postes branchés sur le même switch fonctionnent. Où cherchez-vous en priorité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Sur le pare-feu Internet"
+    },
+    {
+     "id": "b",
+     "text": "Sur le serveur DNS"
+    },
+    {
+     "id": "c",
+     "text": "Sur le poste lui-même : câble, port du switch, configuration IP, VLAN du port"
+    },
+    {
+     "id": "d",
+     "text": "Chez le fournisseur d'accès à Internet"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Le problème ne concerne qu'un poste : l'infrastructure commune fonctionne, on cherche donc ce qui est propre à ce poste."
+  },
+  {
+   "position": 43,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Tous les utilisateurs d'un étage perdent le réseau, alors que le reste du bâtiment fonctionne. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une panne du serveur DNS"
+    },
+    {
+     "id": "b",
+     "text": "Une panne du fournisseur d'accès à Internet"
+    },
+    {
+     "id": "c",
+     "text": "Un problème sur le switch de l'étage ou sur sa liaison montante"
+    },
+    {
+     "id": "d",
+     "text": "Des mots de passe expirés"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La panne est localisée à une zone : on cherche l'équipement commun à cette zone et à elle seule."
+  },
+  {
+   "position": 44,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Une GPO ne semble pas s'appliquer sur un poste. Quelle commande permet de voir les GPO effectivement appliquées ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "ipconfig /all"
+    },
+    {
+     "id": "b",
+     "text": "gpupdate /force"
+    },
+    {
+     "id": "c",
+     "text": "gpresult /r"
+    },
+    {
+     "id": "d",
+     "text": "netstat -an"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "gpresult /r affiche les GPO appliquées (et filtrées). gpupdate /force relance l'application, mais ne permet pas de vérifier."
+  },
+  {
+   "position": 45,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Vous recevez ces demandes en même temps. Laquelle traitez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un utilisateur demande un second écran"
+    },
+    {
+     "id": "b",
+     "text": "La messagerie est en panne pour toute l'entreprise"
+    },
+    {
+     "id": "c",
+     "text": "La souris d'un utilisateur fonctionne mal"
+    },
+    {
+     "id": "d",
+     "text": "Une imprimante de service en panne, une autre imprimante est disponible à côté"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "La priorité dépend de l'impact (nombre d'utilisateurs, service critique) et de l'urgence ; la messagerie bloque toute l'entreprise."
+  },
+  {
+   "position": 46,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Au démarrage de session, un poste affiche : « The trust relationship between this workstation and the primary domain failed. » Que signifie ce message ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le serveur DNS est injoignable"
+    },
+    {
+     "id": "b",
+     "text": "Le mot de passe de l'utilisateur a expiré"
+    },
+    {
+     "id": "c",
+     "text": "La licence Windows a expiré"
+    },
+    {
+     "id": "d",
+     "text": "La relation d'approbation entre le poste et le domaine est rompue (problème de compte ordinateur)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le poste n'arrive plus à s'authentifier auprès du domaine (compte ordinateur désynchronisé). Il faut généralement le réintégrer au domaine."
+  },
+  {
+   "position": 47,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Une connexion SSH vers un serveur échoue avec le message « Connection refused ». Que peut-on en déduire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le serveur est joignable, mais aucun service n'écoute sur ce port ou un pare-feu rejette la connexion"
+    },
+    {
+     "id": "b",
+     "text": "Le serveur n'existe pas"
+    },
+    {
+     "id": "c",
+     "text": "Le mot de passe est incorrect"
+    },
+    {
+     "id": "d",
+     "text": "Le nom du serveur n'est pas résolu par le DNS"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "« Refused » signifie que la machine a répondu en refusant. Un serveur injoignable donnerait plutôt « timed out », un mauvais mot de passe « Permission denied »."
+  },
+  {
+   "position": 48,
+   "type": "mcq_multi",
+   "domain": "Logique & diagnostic",
+   "prompt": "Avant de modifier la configuration d'un switch en production, quelles précautions prenez-vous (plusieurs réponses possibles) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Planifier un créneau et prévenir les utilisateurs concernés"
+    },
+    {
+     "id": "b",
+     "text": "Appliquer directement la modification pour gagner du temps"
+    },
+    {
+     "id": "c",
+     "text": "Sauvegarder la configuration actuelle"
+    },
+    {
+     "id": "d",
+     "text": "Prévoir une procédure de retour arrière"
+    }
+   ],
+   "correct": [
+    "a",
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Toute modification en production doit pouvoir être annulée rapidement et être communiquée en amont."
+  },
+  {
+   "position": 49,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Les utilisateurs signalent que le serveur de fichiers est très lent tous les jours entre 12 h et 13 h, et seulement sur ce créneau. Quelle hypothèse vérifiez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une sauvegarde ou une tâche planifiée qui s'exécute sur ce créneau"
+    },
+    {
+     "id": "b",
+     "text": "Une infection par un virus"
+    },
+    {
+     "id": "c",
+     "text": "Une panne du serveur DNS"
+    },
+    {
+     "id": "d",
+     "text": "Un câble réseau défectueux"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un problème qui revient chaque jour à heure fixe oriente vers une tâche planifiée (sauvegarde, analyse antivirus, synchronisation), pas vers une panne matérielle."
+  },
+  {
+   "position": 50,
+   "type": "mcq_single",
+   "domain": "Logique & diagnostic",
+   "prompt": "Un utilisateur ne peut plus ouvrir sa session : « Votre compte a été verrouillé ». Que faites-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Supprimer et recréer son compte"
+    },
+    {
+     "id": "b",
+     "text": "Le déverrouiller immédiatement, sans autre vérification"
+    },
+    {
+     "id": "c",
+     "text": "Désactiver le verrouillage des comptes pour tout le monde"
+    },
+    {
+     "id": "d",
+     "text": "Vérifier son identité, déverrouiller le compte, puis chercher l'origine des échecs (ancien mot de passe enregistré sur un autre appareil, tentative d'attaque)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le verrouillage peut cacher une attaque par force brute : on vérifie qu'on parle bien à l'utilisateur et on identifie la cause pour éviter que cela se reproduise."
+  }
+ ]
+}

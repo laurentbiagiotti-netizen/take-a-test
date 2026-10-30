@@ -59,6 +59,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const [camOn, setCamOn] = useState(false);
   const [camDenied, setCamDenied] = useState(false);
   const [confirmNext, setConfirmNext] = useState(false);
+  const [camAlerts, setCamAlerts] = useState<string[]>([]);
   const [anomalies, setAnomalies] = useState<{ kind: CameraAnomaly; at: string }[]>([]);
   const [isFull, setIsFull] = useState(true);
   const [fullExits, setFullExits] = useState(0);
@@ -146,8 +147,9 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
       const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
       streamRef.current = s;
       s.getVideoTracks().forEach((t) => t.addEventListener("ended", () => {
-        setCamOn(false); setCam(null);
+        setCamOn(false); setCam(null); setCamDenied(true);
         set("camera", "ko", "La caméra a été coupée.");
+        setCamAlerts((a) => [...a, `${new Date().toLocaleTimeString("fr-FR")} · caméra coupée`]);
       }));
       if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play().catch(() => {}); }
       set("camera", "info", "Caméra active : analyse du visage en cours…");
@@ -170,12 +172,16 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
 
   const begin = async () => {
     setBanner(null);
-    if (!faceOk) { setBanner("La caméra est obligatoire et un seul visage doit être détecté pour commencer."); return; }
+    if (!faceOk && !camDenied) { setBanner("Patientez : la caméra doit détecter un seul visage avant de commencer."); return; }
     if (!(await goFull()) || (!inSeb && !document.fullscreenElement)) {
       setBanner("Le plein écran est obligatoire : l'épreuve ne peut pas commencer sans lui.");
       return;
     }
-    setStage("exam"); setStep(0); setBanner(null); window.scrollTo({ top: 0 });
+    setStage("exam"); setStep(0); window.scrollTo({ top: 0 });
+    if (camDenied) {
+      setCamAlerts((a) => [...a, `${new Date().toLocaleTimeString("fr-FR")} · caméra refusée`]);
+      setBanner("Caméra non autorisée : l'épreuve continue. Dans un vrai examen, c'est signalé au surveillant.");
+    } else setBanner(null);
   };
 
   const validate = () => {
@@ -214,19 +220,18 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
 
   return (
     <div className="min-h-screen relative">
-      {stage === "exam" && ((!isFull && !inSeb) || !camOn) && (
+      {stage === "exam" && !isFull && !inSeb && (
         <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
           <div className="card max-w-md text-center">
-            {!camOn ? <>
-              <h2 className="h1 text-danger">Caméra requise</h2>
-              <p className="text-muted mt-3">La caméra a été coupée. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant qu&apos;elle n&apos;est pas rétablie.</p>
-              <button className="btn mt-6" onClick={openCamera} autoFocus>Réactiver la caméra</button>
-            </> : <>
-              <h2 className="h1 text-danger">Plein écran obligatoire</h2>
-              <p className="text-muted mt-3">Vous avez quitté le plein écran. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas.</p>
-              <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
-            </>}
+            <h2 className="h1 text-danger">Plein écran obligatoire</h2>
+            <p className="text-muted mt-3">Vous avez quitté le plein écran. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas.</p>
+            <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
           </div>
+        </div>
+      )}
+      {stage === "exam" && !camOn && (
+        <div className="bg-warn/15 border-b border-warn/40 text-warn text-center py-2 text-sm px-4">
+          Caméra désactivée : signalé au surveillant dans un vrai examen. <button className="underline ml-2" onClick={openCamera}>Réactiver la caméra</button>
         </div>
       )}
 
@@ -287,13 +292,14 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             </section>
             <div className="card text-sm text-muted space-y-1">
               <div className="h2 text-fg mb-2">Le jour de l&apos;épreuve</div>
-              <p>Plein écran obligatoire : l&apos;épreuve ne démarre pas sans lui et reste masquée si vous en sortez. Caméra obligatoire, ouverte automatiquement et analysée en continu. Un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
+              <p>Plein écran obligatoire : l&apos;épreuve ne démarre pas sans lui et reste masquée si vous en sortez. Caméra ouverte automatiquement et analysée en continu ; la refuser ou la couper n&apos;arrête pas l&apos;épreuve mais c&apos;est signalé au surveillant. Un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
               <p>Une question à la fois, sans retour en arrière : une réponse validée est définitive. Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
             </div>
             {banner && <p className="text-danger text-sm">{banner}</p>}
             <div className="flex items-center gap-4">
-              <button className="btn" onClick={begin} disabled={!faceOk}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
-              {!faceOk && <span className="text-xs text-muted">Disponible dès que la caméra détecte votre visage.</span>}
+              <button className="btn" onClick={begin} disabled={!faceOk && !camDenied}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
+              {!faceOk && !camDenied && <span className="text-xs text-muted">Disponible dès que la caméra détecte votre visage.</span>}
+              {camDenied && <span className="text-xs text-warn">Sans caméra, vous pouvez commencer, mais ce sera signalé au surveillant.</span>}
             </div>
           </>
         )}
@@ -360,7 +366,8 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             <div className="card text-sm space-y-1">
               <div className="h2 mb-2">Ce que le surveillant aurait vu</div>
               <div className="flex justify-between"><span>Sorties du plein écran</span><span className={fullExits ? "text-danger" : "text-ok"}>{fullExits}</span></div>
-              <div className="flex justify-between"><span>Anomalies caméra</span><span className={anomalies.length ? "text-danger" : "text-ok"}>{camOn ? anomalies.length : "caméra non activée"}</span></div>
+              <div className="flex justify-between"><span>Anomalies caméra</span><span className={anomalies.length + camAlerts.length ? "text-danger" : "text-ok"}>{anomalies.length + camAlerts.length}</span></div>
+              {camAlerts.map((a, i) => <div key={"c" + i} className="text-xs text-muted">{a}</div>)}
               {anomalies.map((a, i) => <div key={i} className="text-xs text-muted">{a.at} · {ANOMALY_LABEL[a.kind]}</div>)}
             </div>
             <div className="flex gap-3">

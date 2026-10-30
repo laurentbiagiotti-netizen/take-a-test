@@ -114,11 +114,6 @@ export default function ExamRoom(props: {
       setBanner("Plusieurs écrans sont détectés. Débranchez les écrans supplémentaires puis réessayez.");
       return;
     }
-    if (!streamLive()) {
-      setBanner("La caméra est obligatoire : autorisez l'accès à la caméra pour pouvoir commencer.");
-      openCamera();
-      return;
-    }
     if (!inSeb) {
       try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); }
       catch { /* vérifié juste en dessous */ }
@@ -142,6 +137,11 @@ export default function ExamRoom(props: {
     setAnswers(data.answers || {});
     setViolations(data.violation_count || 0);
     setPhase("active");
+    // Caméra refusée : le candidat passe quand même, le surveillant est alerté
+    if (!streamLive()) {
+      post("event", { kind: "camera_refused" });
+      setBanner("Caméra non autorisée : l'épreuve continue, mais c'est signalé au surveillant.");
+    }
   };
 
   // ---------- Caméra : ouverte automatiquement dès l'arrivée sur la page ----------
@@ -183,7 +183,10 @@ export default function ExamRoom(props: {
 
   // Caméra coupée en cours d'épreuve : infraction et épreuve masquée
   useEffect(() => {
-    if (phase === "active" && camState === "denied") report("camera_off", undefined, true);
+    if (phase === "active" && camState === "denied" && streamRef.current) {
+      report("camera_off");
+      setBanner("Caméra coupée : l'épreuve continue, mais c'est signalé au surveillant.");
+    }
   }, [phase, camState, report]);
 
   useEffect(() => {
@@ -279,7 +282,7 @@ export default function ExamRoom(props: {
     if (phase !== "active" || !requireWebcam) return;
     const i = setInterval(async () => {
       const track = streamRef.current?.getVideoTracks?.()[0];
-      if (!track || track.readyState !== "live" || track.muted) { report("camera_off", undefined, true); return; }
+      if (!track || track.readyState !== "live" || track.muted) return; // déjà signalé une fois
       const v = videoRef.current; if (!v || !v.videoWidth) return;
       const canvas = document.createElement("canvas");
       canvas.width = 320; canvas.height = Math.round(320 * v.videoHeight / v.videoWidth);
@@ -394,7 +397,8 @@ export default function ExamRoom(props: {
   if (phase === "prep" || phase === "starting") {
     const faceOk = camState === "live" && !!cam && !cam.anomaly
       && (cam.faces === 1 || (cam.ready && cam.faces === null && cam.brightness >= 18));
-    const camMsg = camState === "denied" ? "Caméra refusée ou absente : autorisez-la dans le navigateur (icône dans la barre d'adresse) puis cliquez sur Réessayer."
+    const canStart = faceOk || camState === "denied";
+    const camMsg = camState === "denied" ? "Caméra refusée ou absente. Vous pouvez l'autoriser (icône dans la barre d'adresse) puis cliquer sur Réessayer, ou commencer sans : ce sera signalé au surveillant."
       : camState === "pending" ? "Ouverture de la caméra… autorisez l'accès quand le navigateur le demande."
       : !cam ? "Analyse de l'image…"
       : cam.anomaly ? `${ANOMALY_LABEL[cam.anomaly]} : placez-vous seul, face à la caméra, dans un endroit éclairé.`
@@ -409,7 +413,7 @@ export default function ExamRoom(props: {
           <ul className="list-disc pl-5 space-y-1">
             <li>Durée : <b>{durationMinutes} minutes</b>, chronométrées par le serveur (le chrono continue si vous fermez la page).</li>
             <li>Le <b>plein écran est obligatoire</b> : l&apos;épreuve ne démarre pas sans lui, et en sortir est une infraction qui masque l&apos;épreuve jusqu&apos;à votre retour.</li>
-            <li>La <b>caméra est obligatoire</b> et reste allumée ; des photos sont prises régulièrement et conservées de façon sécurisée pendant la durée fixée par l&apos;école.</li>
+            <li>La <b>caméra s&apos;active automatiquement</b> et reste allumée ; des photos sont prises régulièrement et conservées de façon sécurisée pendant la durée fixée par l&apos;école. Si vous la refusez ou la coupez, l&apos;épreuve continue mais c&apos;est signalé au surveillant.</li>
             <li>Copier, coller, clic droit, raccourcis et changement d&apos;onglet ou de fenêtre sont bloqués et journalisés.</li>
             <li>Un seul écran : débranchez tout écran secondaire.</li>
             <li><b>Une question à la fois</b> : une réponse validée ne peut plus être modifiée, aucun retour en arrière.</li>
@@ -427,7 +431,7 @@ export default function ExamRoom(props: {
           </div>
         </div>
         {banner && <p className="text-danger text-sm mt-4">{banner}</p>}
-        <button className="btn mt-6" onClick={start} disabled={phase === "starting" || !faceOk}>
+        <button className="btn mt-6" onClick={start} disabled={phase === "starting" || !canStart}>
           {phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"}
         </button>
       </main>
@@ -448,19 +452,18 @@ export default function ExamRoom(props: {
         </div>
       </div>
 
-      {((!isFull && !inSeb) || camState !== "live") && (
+      {!isFull && !inSeb && (
         <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
           <div className="card max-w-md text-center">
-            {camState !== "live" ? <>
-              <h2 className="h1 text-danger">Caméra requise</h2>
-              <p className="text-muted mt-3">La caméra a été coupée : c&apos;est une infraction, et l&apos;épreuve reste masquée tant qu&apos;elle n&apos;est pas rétablie. Le chrono continue.</p>
-              <button className="btn mt-6" onClick={openCamera} autoFocus>Réactiver la caméra</button>
-            </> : <>
-              <h2 className="h1 text-danger">Plein écran obligatoire</h2>
-              <p className="text-muted mt-3">Vous avez quitté le plein écran : c&apos;est une infraction, et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas. Le chrono continue.</p>
-              <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
-            </>}
+            <h2 className="h1 text-danger">Plein écran obligatoire</h2>
+            <p className="text-muted mt-3">Vous avez quitté le plein écran : c&apos;est une infraction, et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas. Le chrono continue.</p>
+            <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
           </div>
+        </div>
+      )}
+      {camState !== "live" && (
+        <div className="bg-warn/15 border-b border-warn/40 text-warn text-center py-2 text-sm relative z-50">
+          Caméra désactivée : c&apos;est signalé au surveillant. <button className="underline ml-2" onClick={openCamera}>Réactiver la caméra</button>
         </div>
       )}
       {banner && <div className="bg-danger text-white text-center py-2 text-sm relative z-50">{banner}</div>}

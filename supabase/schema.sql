@@ -1007,8 +1007,17 @@ begin
     select max(created_at) into v_last_snap from proctor_events
       where attempt_id = a.id and kind in ('snapshot', 'snapshots_missing');
     if now() - coalesce(v_last_snap, a.session_started_at) > interval '75 seconds' then
-      a := _add_violation(a.id, 'snapshots_missing', null, p_ip);
-      if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+      -- Caméra refusée ou coupée et déjà signalée : on journalise sans sanctionner
+      -- (le candidat a le droit de continuer, le surveillant voit l'alerte).
+      if exists (select 1 from proctor_events where attempt_id = a.id
+                 and kind in ('camera_refused', 'camera_off')
+                 and created_at > coalesce((select max(created_at) from proctor_events
+                                            where attempt_id = a.id and kind = 'snapshot'), a.session_started_at - interval '1 hour')) then
+        perform _log(a.id, 'snapshots_missing', 'warning', jsonb_build_object('camera', 'indisponible'), p_ip);
+      else
+        a := _add_violation(a.id, 'snapshots_missing', null, p_ip);
+        if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+      end if;
     end if;
   end if;
   update attempts set last_seen_at = now() where id = a.id;
@@ -1146,7 +1155,9 @@ begin
     when 'window_blur' then 'violation'
     when 'multiple_screens' then 'violation'
     when 'devtools_open' then 'violation'
-    when 'camera_off' then 'violation'
+    -- Caméra refusée ou coupée : le candidat continue, le surveillant est alerté
+    when 'camera_off' then 'warning'
+    when 'camera_refused' then 'warning'
     when 'no_face' then 'warning'
     when 'multiple_faces' then 'violation'
     when 'camera_covered' then 'violation'

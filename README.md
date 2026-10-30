@@ -56,7 +56,7 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **Analyse caméra** dans le navigateur (détecteur de visages embarqué, aucun service externe) : absence de visage (avertissement), plusieurs visages, caméra masquée ou image figée (infractions). Chaque anomalie déclenche une photo immédiate, encadrée en orange dans la fiche du candidat. La détection peut se tromper : elle signale, le surveillant juge.
 - **Plein écran automatique** au clic de démarrage (un navigateur ne permet pas de l'ouvrir sans clic) ; si le candidat en sort, l'épreuve est masquée par un écran de blocage jusqu'à son retour. Sous Safe Exam Browser, déjà en mode kiosque, ce contrôle est inutile et désactivé.
 - **Une question à la fois, toujours** (non désactivable) : pas de retour en arrière, réponse verrouillée en passant à la suivante, vérifié par le serveur.
-- **Caméra obligatoire et automatique** : ouverte dès l'arrivée sur la page, départ impossible sans caméra et sans visage détecté ; caméra coupée en cours d'épreuve = infraction et épreuve masquée.
+- **Caméra automatique** : ouverte dès l'arrivée sur la page ; si elle marche, le départ attend qu'un visage soit détecté. Si le candidat la refuse ou la coupe, l'épreuve continue mais le surveillant reçoit une alerte (« caméra refusée » ou « caméra coupée »), sans infraction comptée.
 - **Plein écran obligatoire** : l'épreuve ne démarre pas sans lui ; en sortir est une infraction, l'épreuve est masquée et le moindre clic le redemande.
 - **Rôle surveillant** (`proctor`) : suit les tentatives, valide les identités, ajoute du temps (tiers-temps), arrête une épreuve et note les réponses rédigées, sans voir les codes d'accès ni modifier les examens ou les notes de QCM.
 - **Fenêtre d'ouverture** (date d'ouverture et de fermeture).
@@ -128,6 +128,18 @@ Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `ab
 - Documentation OpenAPI : [`public/openapi.yaml`](./public/openapi.yaml), servie sur `/openapi.yaml`.
 
 ---
+
+## Épreuves d'admission 2026
+
+Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 ») sont prêts à charger :
+
+| Épreuve | Questions | Domaines (10 points chacun, sauf mention) |
+|---|---|---|
+| Bachelor 1 Cybersécurité | 50 | Logique et raisonnement (15), algorithmique, fonctionnement du numérique, réflexes cyber, anglais (5) |
+| Bachelor 3 Cybersécurité | 50 | Réseaux, systèmes, cybersécurité, scripting et programmation, logique et diagnostic |
+| Mastère Cybersécurité (M1) | 50 | Réseaux, systèmes, cybersécurité, programmation et scripting, analyse et diagnostic |
+
+Barème repris tel quel : 50 minutes, 1 point par question, tout ou rien sur les questions à plusieurs réponses, seuil d'admissibilité proposé à 25/50. Après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql` : les épreuves sont créées non publiées et sur invitation. Les explications de chaque réponse sont dans `supabase/seed/admission-2026/*.json`. Les grilles d'entretien oral restent dans le dossier Drive.
 
 ## Démo en ligne (GitHub Pages)
 
