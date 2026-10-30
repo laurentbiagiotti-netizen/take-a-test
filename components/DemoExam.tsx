@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Terminal from "@/components/Terminal";
+import Terminal, { type Objective } from "@/components/Terminal";
+import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
 
 /**
  * Épreuve d'essai publique : vérifie le poste du candidat (caméra, plein
@@ -9,15 +10,9 @@ import Terminal from "@/components/Terminal";
  */
 type Check = { id: string; label: string; state: "todo" | "ok" | "ko" | "info"; detail?: string };
 
-const QCM = [
-  { id: "q1", prompt: "Quelle commande affiche aussi les fichiers cachés d'un dossier ?", options: ["ls -l", "ls -a", "ls -h", "ls -r"], good: 1 },
-  { id: "q2", prompt: "Que fait la commande « grep » ?", options: ["Elle compresse un fichier", "Elle cherche un motif dans du texte", "Elle change les droits d'un fichier", "Elle affiche l'espace disque"], good: 1 },
-  { id: "q3", prompt: "Le base64 est-il un chiffrement ?", options: ["Oui, il protège les données", "Non, c'est un simple encodage réversible"], good: 1 },
-];
-
-export default function DemoExam({ challenges, terminal }: {
-  challenges: { id: string; title: string; hint: string }[];
-  terminal: { cwd: string; prompt: string; motd: string | null };
+export default function DemoExam({ questions, terminal }: {
+  questions: PublicQ[];
+  terminal: { prompt: string; motd: string | null; objectives: Objective[] };
 }) {
   const [checks, setChecks] = useState<Check[]>([
     { id: "camera", label: "Caméra", state: "todo" },
@@ -26,10 +21,11 @@ export default function DemoExam({ challenges, terminal }: {
     { id: "seb", label: "Safe Exam Browser", state: "todo" },
   ]);
   const [stage, setStage] = useState<"checks" | "exam" | "done">("checks");
-  const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [flags, setFlags] = useState<Record<string, string>>({});
-  const [found, setFound] = useState<Record<string, boolean | null>>({});
-  const [left, setLeft] = useState(15 * 60);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [flag, setFlag] = useState("");
+  const [objectives, setObjectives] = useState<Objective[]>(terminal.objectives);
+  const [result, setResult] = useState<{ results: { id: string; score: number; points: number }[]; flag: boolean } | null>(null);
+  const [left, setLeft] = useState(25 * 60);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -68,20 +64,23 @@ export default function DemoExam({ challenges, terminal }: {
     } catch { set("fullscreen", "ko", "Le plein écran est bloqué par ce navigateur."); }
   };
 
-  const checkFlag = async (id: string) => {
-    const r = await fetch("/api/demo/check", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ challenge: id, flag: flags[id] || "" }) });
+  const run = async (command: string) => {
+    const r = await fetch("/api/demo/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
     const j = await r.json().catch(() => ({}));
-    setFound((f) => ({ ...f, [id]: !!j.ok }));
-  };
-
-  const run = async (command: string, cwd: string) => {
-    const r = await fetch("/api/demo/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command, cwd }) });
-    const j = await r.json().catch(() => ({}));
+    if (j.objectives) setObjectives(j.objectives);
     return r.ok ? j : { error: j.output || "Commande refusée." };
   };
 
-  const score = QCM.filter((q) => answers[q.id] === q.good).length + Object.values(found).filter(Boolean).length;
-  const total = QCM.length + challenges.length;
+  const finish = async () => {
+    const r = await fetch("/api/demo/grade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, flag }) });
+    setResult(await r.json());
+    setStage("done");
+    window.scrollTo({ top: 0 });
+  };
+
+  const termDone = objectives.filter((o) => o.done).length;
+  const score = result ? result.results.reduce((s, r) => s + r.score, 0) + termDone + (result.flag ? 1 : 0) : 0;
+  const total = result ? result.results.reduce((s, r) => s + r.points, 0) + objectives.length + 1 : 0;
   const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
 
   const Icon = ({ s }: { s: Check["state"] }) => (
@@ -107,7 +106,7 @@ export default function DemoExam({ challenges, terminal }: {
           <>
             <div>
               <h1 className="h1"><span className="text-accent">Démo</span> de l&apos;épreuve</h1>
-              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous sur une mini-épreuve : QCM et défis en terminal Linux. Rien n&apos;est enregistré.</p>
+              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
             </div>
             <section className="grid md:grid-cols-2 gap-4">
               <div className="card space-y-3">
@@ -143,56 +142,49 @@ export default function DemoExam({ challenges, terminal }: {
         {stage === "exam" && (
           <>
             <section className="space-y-4">
-              <h2 className="h2">QCM</h2>
-              {QCM.map((q, i) => (
-                <div key={q.id} className="card">
-                  <div className="text-xs text-muted">Question {i + 1} · une seule réponse</div>
-                  <div className="font-medium mt-1">{q.prompt}</div>
-                  <div className="mt-3 space-y-2">
-                    {q.options.map((o, k) => (
-                      <label key={k} className={`flex gap-2 items-center p-2 rounded-md border cursor-pointer ${answers[q.id] === k ? "border-accent bg-surface-2" : "border-line"}`}>
-                        <input type="radio" name={q.id} checked={answers[q.id] === k} onChange={() => setAnswers((a) => ({ ...a, [q.id]: k }))} />
-                        <span>{o}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <h2 className="h2">Mission terminal : serveur compromis</h2>
+              <p className="text-sm text-muted max-w-3xl">Une vraie machine (simulée) : lisez <code className="text-fg">~/MISSION.txt</code>, enquêtez et réparez. Les missions se cochent toutes seules quand l&apos;état de la machine est correct. Tapez <code className="text-fg">help</code> pour les commandes.</p>
+              <Terminal run={run} initialPrompt={terminal.prompt} motd={terminal.motd} initialObjectives={terminal.objectives} height={380} />
+              <label className="block text-sm text-muted max-w-md">Bonus : flag caché sur la machine
+                <input className="input mt-1 font-mono" placeholder="CYBER{...}" value={flag} maxLength={200} onChange={(e) => setFlag(e.target.value)} />
+              </label>
             </section>
 
-            <section className="space-y-4">
-              <h2 className="h2">Défis terminal</h2>
-              <p className="text-sm text-muted">Un intrus est passé sur ce serveur. Explorez-le avec les commandes Linux (tapez <code className="text-fg">help</code>) et retrouvez les flags au format <code className="text-fg">CYBER{"{...}"}</code>.</p>
-              <Terminal run={run} initialCwd={terminal.cwd} initialPrompt={terminal.prompt} motd={terminal.motd} height={340} />
-              <div className="grid md:grid-cols-3 gap-3">
-                {challenges.map((c) => (
-                  <div key={c.id} className="card space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium text-sm">{c.title}</div>
-                      {found[c.id] === true && <span className="badge-ok">Trouvé</span>}
-                      {found[c.id] === false && <span className="badge-danger">Raté</span>}
-                    </div>
-                    <details className="text-xs text-muted"><summary className="cursor-pointer">Indice</summary><p className="mt-1">{c.hint}</p></details>
-                    <div className="flex gap-2">
-                      <input className="input font-mono text-xs" placeholder="CYBER{...}" value={flags[c.id] || ""} maxLength={200}
-                        onChange={(e) => setFlags((f) => ({ ...f, [c.id]: e.target.value }))} disabled={found[c.id] === true} />
-                      <button className="btn-secondary !px-3 text-xs" onClick={() => checkFlag(c.id)} disabled={found[c.id] === true}>Valider</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-            <button className="btn" onClick={() => setStage("done")}>Terminer l&apos;essai</button>
+            {questions.map((q, i) => (
+              <section key={q.id} className="card">
+                <div className="text-xs text-muted">Question {i + 1} · {HINT[q.type]} · {q.points} pt{q.points > 1 ? "s" : ""}</div>
+                <div className="font-medium mt-1 whitespace-pre-wrap">{q.prompt}</div>
+                <div className="mt-4">
+                  <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setAnswers((a) => ({ ...a, [q.id]: r }))} />
+                </div>
+              </section>
+            ))}
+            <button className="btn" onClick={finish}>Terminer et voir mon score</button>
           </>
         )}
 
-        {stage === "done" && (
-          <section className="card max-w-xl">
-            <h1 className="h1">Essai terminé</h1>
-            <div className="font-display text-5xl text-accent mt-4">{score}<span className="text-faint text-2xl"> / {total}</span></div>
-            <p className="text-muted mt-3">Le vrai examen fonctionne de la même façon, avec en plus la caméra, le plein écran verrouillé et le chrono serveur.</p>
-            <div className="mt-6 flex gap-3">
-              <button className="btn-secondary" onClick={() => { setStage("exam"); setLeft(15 * 60); }}>Recommencer</button>
+        {stage === "done" && result && (
+          <section className="space-y-4">
+            <div className="card">
+              <h1 className="h1">Essai terminé</h1>
+              <div className="font-display text-5xl text-accent mt-4">{Math.round(score * 100) / 100}<span className="text-faint text-2xl"> / {total}</span></div>
+              <p className="text-muted mt-3">Le vrai examen fonctionne de la même façon, avec en plus la caméra, le plein écran verrouillé et le chrono tenu par le serveur.</p>
+            </div>
+            <div className="card text-sm space-y-2">
+              <div className="flex justify-between"><span>Missions terminal</span><span className={termDone === objectives.length ? "text-ok" : "text-warn"}>{termDone} / {objectives.length}</span></div>
+              <div className="flex justify-between"><span>Flag bonus</span><span className={result.flag ? "text-ok" : "text-danger"}>{result.flag ? "trouvé" : "non trouvé"}</span></div>
+              {result.results.map((r) => {
+                const q = questions.find((x) => x.id === r.id)!;
+                return (
+                  <div key={r.id} className="flex justify-between border-t border-line pt-2">
+                    <span className="truncate pr-4">{q.prompt}</span>
+                    <span className={r.score === r.points ? "text-ok" : r.score > 0 ? "text-warn" : "text-danger"}>{r.score} / {r.points}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-3">
+              <button className="btn-secondary" onClick={() => { setStage("exam"); setResult(null); setLeft(25 * 60); }}>Revenir à l&apos;épreuve</button>
               <a className="btn" href="/login">Accéder à mes examens</a>
             </div>
           </section>
@@ -202,3 +194,8 @@ export default function DemoExam({ challenges, terminal }: {
     </div>
   );
 }
+
+const HINT: Record<string, string> = {
+  mcq_single: "QCM", mcq_multi: "QCM", ordering: "Remettre dans l'ordre", matching: "Associer",
+  hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée",
+};

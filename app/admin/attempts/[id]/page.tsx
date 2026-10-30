@@ -40,6 +40,8 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
   const mcqAnswers = sorted.filter((x: any) => x.question?.type === "mcq_single" || x.question?.type === "mcq_multi");
   const termAnswers = sorted.filter((x: any) => x.question?.type === "terminal");
+  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer"].includes(x.question?.type));
+  const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
   const { data: termHistory } = await supabase.from("terminal_history").select("question_id, cwd, command, created_at").eq("attempt_id", id).order("id");
   const t = (d?: string | null) => d ? new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "-";
 
@@ -114,7 +116,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
               const cmds = (termHistory || []).filter((h: any) => h.question_id === ans.question_id);
               return (
                 <div key={ans.id} className="card">
-                  <div className="text-xs text-muted">{ans.score ?? 0}/{ans.question?.points} pt · {cmds.length} commande(s)</div>
+                  <div className="text-xs text-muted">{ans.score ?? 0}/{ans.question?.points} pt · {cmds.length} commande(s) · missions {(termStates || []).find((t: any) => t.question_id === ans.question_id)?.done_ids?.length ?? 0}/{(termStates || []).find((t: any) => t.question_id === ans.question_id)?.total ?? "?"}</div>
                   <div className="font-medium mt-1 whitespace-pre-wrap">{ans.question?.prompt}</div>
                   <div className="text-sm mt-1">Flag saisi : <code className={ans.score ? "text-ok" : "text-danger"}>{ans.response?.flag || "(aucun)"}</code></div>
                   {cmds.length > 0 && (
@@ -122,6 +124,30 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
                       {cmds.map((h: any) => `${new Date(h.created_at).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" })}  ${h.cwd}$ ${h.command}`).join("\n")}
                     </pre>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {funAnswers.length > 0 && (
+        <section>
+          <h2 className="h2">Ordre, association, repérage, réponses courtes</h2>
+          <div className="mt-2 space-y-2">
+            {funAnswers.map((ans: any) => {
+              const q = ans.question, o = q?.options || {}, r = ans.response || {};
+              const txt = (list: any[], ids: string[]) => ids.map((i) => list?.find((x: any) => x.id === i)?.text ?? (list?.find((x: any) => x.id === i)?.cells || []).join(" ; ") ?? i);
+              let shown = "";
+              if (q.type === "ordering") shown = txt(o, r.order || []).map((t: string, k: number) => `${k + 1}. ${t}`).join("   ");
+              if (q.type === "matching") shown = Object.entries(r.pairs || {}).map(([l, rr]) => `${txt(o.left, [l])[0]} → ${txt(o.right, [rr as string])[0]}`).join("   ");
+              if (q.type === "hotspot") shown = txt(o.segments, r.selected || []).join("   |   ");
+              if (q.type === "short_answer") shown = r.text || "";
+              return (
+                <div key={ans.id} className="card">
+                  <div className="text-xs text-muted">{ans.score ?? 0}/{q?.points} pt</div>
+                  <div className="font-medium mt-1 whitespace-pre-wrap">{q?.prompt}</div>
+                  <div className="text-sm text-muted mt-1 break-words">Réponse : <span className="text-fg">{shown || "(aucune)"}</span></div>
                 </div>
               );
             })}

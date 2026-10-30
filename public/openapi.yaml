@@ -79,10 +79,17 @@ components:
       type: object
       required: [type, prompt]
       properties:
-        type: { type: string, enum: [mcq_single, mcq_multi, long_text, terminal] }
+        type: { type: string, enum: [mcq_single, mcq_multi, long_text, terminal, ordering, matching, hotspot, short_answer] }
+        key:
+          description: |
+            Bonne réponse des types ordering, matching, hotspot, short_answer (options dans `options`) :
+            ordering : options [{id,text}], key [ids dans l'ordre]
+            matching : options {left:[{id,text}], right:[{id,text}]}, key {idGauche: idDroite}
+            hotspot : options {layout: code|log|email|table, multi, header?, columns?, segments:[{id,text}|{id,cells}]}, key [ids]
+            short_answer : options {data?: {kind: table, columns, rows} | {kind: text, text}, placeholder?}, key {answers:[...], case_sensitive}
         terminal:
           type: object
-          description: "Pour type=terminal : scénario du système de fichiers simulé et flag attendu"
+          description: "Pour type=terminal : machine simulée (files, processes, objectives…, voir README) et flag facultatif"
           properties:
             scenario: { type: object }
             flag: { type: string, maxLength: 200 }

@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Terminal from "@/components/Terminal";
+import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
@@ -9,8 +9,7 @@ import Terminal from "@/components/Terminal";
  */
 
 type Opt = { id: string; text: string; image_url?: string | null };
-type Q = { id: string; type: "mcq_single" | "mcq_multi" | "long_text" | "terminal"; prompt: string; options: Opt[] | null; points: number; image_url?: string | null;
-  terminal?: { cwd: string; prompt: string; motd?: string | null } | null };
+type Q = PublicQ;
 type Phase = "prep" | "starting" | "active" | "ended" | "blocked";
 
 const HEARTBEAT_MS = 10_000;
@@ -255,20 +254,15 @@ export default function ExamRoom(props: {
     save(q, response);
   };
 
-  const setText = (q: Q, text: string) => {
-    setAnswers((a) => ({ ...a, [q.id]: { text } }));
+  // Saisie au clavier : enregistrement différé (texte, réponse courte, flag)
+  const setText = (q: Q, response: any) => {
+    setAnswers((a) => ({ ...a, [q.id]: response }));
     clearTimeout(textTimers.current[q.id]);
-    textTimers.current[q.id] = setTimeout(() => save(q, { text }), 800);
-  };
-
-  const setFlag = (q: Q, flag: string) => {
-    setAnswers((a) => ({ ...a, [q.id]: { flag } }));
-    clearTimeout(textTimers.current[q.id]);
-    textTimers.current[q.id] = setTimeout(() => save(q, { flag }), 600);
+    textTimers.current[q.id] = setTimeout(() => save(q, response), 700);
   };
 
   const submit = async () => {
-    const unanswered = questions.filter((q) => !answers[q.id] || (answers[q.id].selected?.length === 0) || answers[q.id].text === "" || answers[q.id].flag === "").length;
+    const unanswered = questions.filter((q) => q.type !== "terminal" && !isAnswered(answers[q.id])).length;
     if (!confirm(unanswered ? `${unanswered} question(s) sans réponse. Rendre la copie définitivement ?` : "Rendre la copie définitivement ?")) return;
     await Promise.all(Object.entries(textTimers.current).map(async ([qid, t]) => {
       clearTimeout(t);
@@ -348,7 +342,7 @@ export default function ExamRoom(props: {
       <nav className="max-w-3xl mx-auto px-6 pt-4 flex flex-wrap gap-1 relative z-30">
         {questions.map((qq, i) => {
           const a = answers[qq.id];
-          const done = a && ((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim()));
+          const done = isAnswered(a);
           return (
             <button key={qq.id} onClick={() => setIdx(i)}
               className={`w-8 h-8 text-xs rounded border ${i === idx ? "border-accent font-bold" : "border-line"} ${done ? "bg-surface-2" : "bg-surface"}`}>
@@ -362,54 +356,16 @@ export default function ExamRoom(props: {
         {q && (
           <div className="card">
             <div className="text-sm text-muted">
-              {q.type === "terminal" ? "Défi terminal" : q.type === "long_text" ? "Réponse rédigée" : q.type === "mcq_multi" ? "Plusieurs réponses possibles" : "Une seule réponse"} · {q.points} pt{q.points > 1 ? "s" : ""}
+              {TYPE_HINT[q.type] || ""} · {q.points} pt{q.points > 1 ? "s" : ""}
             </div>
             <h2 className="text-lg font-semibold mt-1 whitespace-pre-wrap">{q.prompt}</h2>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}
-            <div className="mt-4 space-y-2">
-              {q.type === "terminal" && q.terminal && (
-                <div className="space-y-3">
-                  <Terminal key={q.id} initialCwd={q.terminal.cwd} initialPrompt={q.terminal.prompt} motd={q.terminal.motd}
-                    run={async (command, cwd) => {
-                      const { ok, data } = await post("terminal", { question_id: q.id, command, cwd });
-                      return ok ? data : { error: data?.message || "Commande refusée." };
-                    }} />
-                  <label className="block text-sm text-muted">Flag trouvé
-                    <input className="input mt-1 font-mono" maxLength={200} placeholder="CYBER{...}" autoComplete="off" spellCheck={false}
-                      value={answers[q.id]?.flag || ""} onChange={(e) => setFlag(q, e.target.value)} />
-                  </label>
-                </div>
-              )}
-              {q.type === "long_text" && (
-                <textarea
-                  className="input min-h-[220px] font-mono" maxLength={20000} spellCheck={false}
-                  autoComplete="off" autoCorrect="off"
-                  value={answers[q.id]?.text || ""}
-                  onChange={(e) => setText(q, e.target.value)}
-                  onDrop={(e) => e.preventDefault()}
-                />
-              )}
-              {q.type !== "long_text" && q.options?.map((opt) => {
-                const sel: string[] = answers[q.id]?.selected || [];
-                const checked = sel.includes(opt.id);
-                return (
-                  <label key={opt.id} className={`flex gap-2 items-center p-2 rounded border cursor-pointer ${checked ? "border-accent bg-surface-2" : "border-line bg-surface"}`}>
-                    <input
-                      type={q.type === "mcq_single" ? "radio" : "checkbox"} name={`q-${q.id}`} checked={checked}
-                      onChange={(e) => {
-                        let next = sel.slice();
-                        if (q.type === "mcq_single") next = e.target.checked ? [opt.id] : [];
-                        else next = e.target.checked ? [...next, opt.id] : next.filter((x) => x !== opt.id);
-                        setChoice(q, { selected: next });
-                      }}
-                    />
-                    <div className="flex-1">
-                      <div>{opt.text}</div>
-                      {opt.image_url && <img src={opt.image_url} alt="" className="mt-1 max-h-32 rounded border" draggable={false} />}
-                    </div>
-                  </label>
-                );
-              })}
+            <div className="mt-4">
+              <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setChoice(q, r)} onText={(r) => setText(q, r)}
+                runTerminal={async (command) => {
+                  const { ok, data } = await post("terminal", { question_id: q.id, command });
+                  return ok ? data : { error: data?.message || "Commande refusée." };
+                }} />
             </div>
             <div className="mt-6 flex justify-between">
               <button className="btn-secondary" disabled={idx === 0} onClick={() => setIdx((i) => i - 1)}>← Précédente</button>
@@ -433,3 +389,15 @@ const LABELS: Record<string, string> = {
   camera_off: "caméra coupée",
   print_attempt: "tentative d'impression",
 };
+
+const TYPE_HINT: Record<string, string> = {
+  mcq_single: "Une seule réponse", mcq_multi: "Plusieurs réponses possibles", long_text: "Réponse rédigée",
+  terminal: "Défi terminal", ordering: "Remettre dans l'ordre", matching: "Associer",
+  hotspot: "Repérer dans le document", short_answer: "Réponse courte",
+};
+
+function isAnswered(a: any): boolean {
+  if (!a) return false;
+  return !!((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim())
+    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length));
+}

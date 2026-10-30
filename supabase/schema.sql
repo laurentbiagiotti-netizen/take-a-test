@@ -12,7 +12,8 @@
 -- Types
 ------------------------------------------------------------
 create type user_role as enum ('admin', 'proctor', 'candidate');
-create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal');
+create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal',
+                                   'ordering', 'matching', 'hotspot', 'short_answer');
 create type attempt_status as enum ('pending', 'in_progress', 'submitted', 'terminated', 'expired');
 create type identity_status as enum ('not_required', 'pending', 'submitted', 'verified', 'rejected');
 
@@ -70,7 +71,13 @@ create table questions (
   position int not null default 0,
   type question_type not null,
   prompt text not null,
-  options jsonb,            -- [{id, text, image_url?}] pour les QCM
+  -- Contenu public de la question, selon le type :
+  --   mcq_*        [{id, text, image_url?}]
+  --   ordering     [{id, text}]                     (servi toujours mélangé)
+  --   matching     {left: [{id, text}], right: [{id, text}]}  (droite mélangée)
+  --   hotspot      {layout: code|log|email|table, multi, header?, columns?, segments: [{id, text|cells}]}
+  --   short_answer {data?: {kind: table|text, ...}, placeholder?}
+  options jsonb,
   points numeric not null default 1 check (points >= 0),
   image_url text
 );
@@ -78,7 +85,9 @@ create index on questions(test_id);
 
 create table answer_keys (
   question_id uuid primary key references questions(id) on delete cascade,
-  correct jsonb               -- [option_id, ...]
+  -- mcq : [ids] · ordering : [ids dans l'ordre] · matching : {gauche: droite}
+  -- hotspot : [ids des segments à repérer] · short_answer : {answers: [...], case_sensitive}
+  correct jsonb
 );
 
 -- Questions « terminal » : système de fichiers simulé et flag attendu.
@@ -87,8 +96,9 @@ create table answer_keys (
 create table question_terminals (
   question_id uuid primary key references questions(id) on delete cascade,
   scenario jsonb not null,
-  flag text not null check (length(flag) between 1 and 200)
+  flag text check (flag is null or length(flag) between 1 and 200)
 );
+
 
 create table attempts (
   id uuid primary key default gen_random_uuid(),
@@ -211,6 +221,18 @@ create table terminal_history (
 );
 create index on terminal_history(attempt_id, id);
 
+-- État de la machine simulée de chaque candidat pour chaque question
+-- terminal (fichiers modifiés, processus tués…) et missions accomplies.
+create table terminal_states (
+  attempt_id uuid not null references attempts(id) on delete cascade,
+  question_id uuid not null references questions(id) on delete cascade,
+  state jsonb not null,
+  done_ids text[] not null default '{}',
+  total int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (attempt_id, question_id)
+);
+
 create table api_rate (
   key_id uuid not null references api_keys(id) on delete cascade,
   window_start timestamptz not null,
@@ -307,6 +329,7 @@ alter table question_terminals enable row level security;
 alter table api_nonces enable row level security;
 alter table admin_audit enable row level security;
 alter table terminal_history enable row level security;
+alter table terminal_states enable row level security;
 
 -- Aucun accès anonyme, et aucun droit d'écriture implicite sur les profils.
 revoke all on all tables in schema public from anon;
@@ -339,6 +362,8 @@ create policy "keys admin all" on answer_keys for all to authenticated
 create policy "terminals admin all" on question_terminals for all to authenticated
   using (is_admin()) with check (is_admin());
 create policy "terminal history staff read" on terminal_history for select to authenticated
+  using (is_staff());
+create policy "terminal states staff read" on terminal_states for select to authenticated
   using (is_staff());
 create policy "admin audit read" on admin_audit for select to authenticated using (is_admin());
 
@@ -534,6 +559,62 @@ returns void language sql security definer set search_path = public as $$
 $$;
 
 ------------------------------------------------------------
+-- Interne : barème d'une réponse (crédit partiel selon le type)
+------------------------------------------------------------
+create or replace function public._norm(t text, cs boolean) returns text
+language sql immutable as $$
+  select case when cs then x else lower(x) end from (select regexp_replace(trim(coalesce(t, '')), '\s+', ' ', 'g') as x) y;
+$$;
+
+create or replace function public._grade(p_type question_type, p_points numeric, p_resp jsonb, p_key jsonb,
+                                         p_flag text, p_n_obj int, p_done text[])
+returns numeric language plpgsql immutable as $$
+declare
+  n int; ok int; tp int; fp int; units int; done int;
+begin
+  if p_type in ('mcq_single', 'mcq_multi') then
+    if p_resp is null or jsonb_array_length(coalesce(p_key, '[]')) = 0 then return 0; end if;
+    if jsonb_array_length(coalesce(p_resp->'selected', '[]')) = jsonb_array_length(p_key)
+       and not exists (select 1 from jsonb_array_elements_text(coalesce(p_resp->'selected', '[]')) x
+                       where x not in (select jsonb_array_elements_text(p_key))) then return p_points; end if;
+    return 0;
+  elsif p_type = 'ordering' then
+    n := jsonb_array_length(coalesce(p_key, '[]'));
+    if n = 0 or p_resp is null then return 0; end if;
+    select count(*) into ok from jsonb_array_elements_text(p_key) with ordinality k(v, i)
+      where (p_resp->'order'->>(i::int - 1)) = k.v;
+    return round(p_points * ok / n, 2);
+  elsif p_type = 'matching' then
+    select count(*) into n from jsonb_object_keys(coalesce(p_key, '{}'));
+    if n = 0 or p_resp is null then return 0; end if;
+    select count(*) into ok from jsonb_each_text(p_key) k where p_resp->'pairs'->>k.key = k.value;
+    return round(p_points * ok / n, 2);
+  elsif p_type = 'hotspot' then
+    n := jsonb_array_length(coalesce(p_key, '[]'));
+    if n = 0 or p_resp is null then return 0; end if;
+    select count(*) filter (where x in (select jsonb_array_elements_text(p_key))),
+           count(*) filter (where x not in (select jsonb_array_elements_text(p_key)))
+      into tp, fp from jsonb_array_elements_text(coalesce(p_resp->'selected', '[]')) x;
+    return round(p_points * greatest(0, tp - fp) / n, 2);
+  elsif p_type = 'short_answer' then
+    if p_resp is null then return 0; end if;
+    if exists (select 1 from jsonb_array_elements_text(coalesce(p_key->'answers', '[]')) ans
+               where _norm(ans, coalesce((p_key->>'case_sensitive')::boolean, false))
+                   = _norm(p_resp->>'text', coalesce((p_key->>'case_sensitive')::boolean, false))) then
+      return p_points;
+    end if;
+    return 0;
+  elsif p_type = 'terminal' then
+    units := coalesce(p_n_obj, 0) + case when p_flag is not null then 1 else 0 end;
+    if units = 0 then return 0; end if;
+    done := coalesce(cardinality(p_done), 0)
+          + case when p_flag is not null and trim(coalesce(p_resp->>'flag', '')) = trim(p_flag) then 1 else 0 end;
+    return round(p_points * least(done, units) / units, 2);
+  end if;
+  return 0;
+end; $$;
+
+------------------------------------------------------------
 -- Interne : correction et clôture d'une tentative
 ------------------------------------------------------------
 create or replace function public._finalize_attempt(p_attempt uuid, p_status attempt_status, p_reason text)
@@ -551,31 +632,23 @@ begin
   if a.id is null or a.status not in ('pending', 'in_progress') then return; end if;
 
   for r in
-    select q.id as qid, q.type, q.points, an.id as aid, an.response, k.correct, qt.flag
+    select q.id as qid, q.type, q.points, q.options, an.id as aid, an.response, k.correct, qt.flag,
+           jsonb_array_length(coalesce(qt.scenario->'objectives', '[]'::jsonb)) as n_obj, ts.done_ids
     from questions q
     left join answers an on an.question_id = q.id and an.attempt_id = p_attempt
     left join answer_keys k on k.question_id = q.id
     left join question_terminals qt on qt.question_id = q.id
+    left join terminal_states ts on ts.attempt_id = p_attempt and ts.question_id = q.id
     where q.id = any(coalesce(a.question_order, '{}'))
   loop
     v_max := v_max + r.points;
-    continue when r.aid is null or r.type = 'long_text';
-    s := 0;
-    if r.type = 'terminal' then
-      if r.flag is not null and trim(coalesce(r.response->>'flag', '')) = trim(r.flag) then s := r.points; end if;
+    continue when r.type = 'long_text';
+    s := _grade(r.type, r.points, r.response, r.correct, r.flag, r.n_obj, coalesce(r.done_ids, '{}'));
+    if r.aid is null and r.type = 'terminal' and s > 0 then
+      insert into answers(attempt_id, question_id, response, score) values (p_attempt, r.qid, '{}'::jsonb, s);
+    elsif r.aid is not null then
       update answers set score = s where id = r.aid;
-      v_total := v_total + s;
-      continue;
     end if;
-    resp := coalesce(r.response->'selected', '[]'::jsonb);
-    correct := coalesce(r.correct, '[]'::jsonb);
-    if jsonb_array_length(correct) > 0
-       and jsonb_array_length(resp) = jsonb_array_length(correct)
-       and not exists (select 1 from jsonb_array_elements_text(resp) x
-                       where x not in (select jsonb_array_elements_text(correct))) then
-      s := r.points;
-    end if;
-    update answers set score = s where id = r.aid;
     v_total := v_total + s;
   end loop;
 
@@ -773,6 +846,7 @@ declare
   t tests;
   v_order uuid[];
   v_opts jsonb := '{}'::jsonb;
+  v_one jsonb;
   q record;
   v_questions jsonb;
   v_answers jsonb;
@@ -806,10 +880,23 @@ begin
     end if;
     if v_order is null then raise exception 'no_questions' using errcode = 'P0001'; end if;
 
-    for q in select id, options from questions where id = any(v_order) and options is not null loop
-      v_opts := v_opts || jsonb_build_object(q.id::text, (
-        select jsonb_agg(o->>'id' order by case when t.shuffle_options then random() else ord end)
-        from jsonb_array_elements(q.options) with ordinality as x(o, ord)));
+    for q in select q3.id, q3.type, q3.options, k3.correct from questions q3
+             left join answer_keys k3 on k3.question_id = q3.id
+             where q3.id = any(v_order) and q3.options is not null
+               and q3.type in ('mcq_single', 'mcq_multi', 'ordering', 'matching') loop
+      if q.type = 'ordering' then
+        -- Toujours mélangé, et jamais servi dans l'ordre correct.
+        for i in 1..6 loop
+          select jsonb_agg(o->>'id' order by random()) into v_one from jsonb_array_elements(q.options) o;
+          exit when v_one is distinct from q.correct or jsonb_array_length(q.options) < 2;
+        end loop;
+      elsif q.type = 'matching' then
+        select jsonb_agg(o->>'id' order by random()) into v_one from jsonb_array_elements(q.options->'right') o;
+      else
+        select jsonb_agg(o->>'id' order by case when t.shuffle_options then random() else ord end) into v_one
+        from jsonb_array_elements(q.options) with ordinality as x(o, ord);
+      end if;
+      v_opts := v_opts || jsonb_build_object(q.id::text, v_one);
     end loop;
 
     update attempts set status = 'in_progress', started_at = now(),
@@ -862,13 +949,28 @@ begin
   select jsonb_agg(jsonb_build_object(
       'id', q2.id, 'type', q2.type, 'prompt', q2.prompt, 'points', q2.points, 'image_url', q2.image_url,
       'terminal', (select jsonb_build_object(
-          'cwd', coalesce(qt.scenario->>'home', '/home/' || coalesce(qt.scenario->>'user', 'candidat')),
+          'cwd', coalesce(ts.state->>'cwd', qt.scenario->>'home', '/home/' || coalesce(qt.scenario->>'user', 'candidat')),
           'prompt', coalesce(qt.scenario->>'user', 'candidat') || '@' || coalesce(qt.scenario->>'hostname', 'lab') || ':~$',
-          'motd', qt.scenario->>'motd')
-        from question_terminals qt where qt.question_id = q2.id and q2.type = 'terminal'),
-      'options', (select jsonb_agg(o order by array_position(
-                     array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
-                  from jsonb_array_elements(q2.options) o))
+          'motd', qt.scenario->>'motd',
+          'has_flag', qt.flag is not null,
+          'objectives', (select coalesce(jsonb_agg(jsonb_build_object('id', o->>'id', 'title', o->>'title',
+                                 'done', (o->>'id') = any(coalesce(ts.done_ids, '{}')))), '[]'::jsonb)
+                         from jsonb_array_elements(coalesce(qt.scenario->'objectives', '[]'::jsonb)) o))
+        from question_terminals qt
+        left join terminal_states ts on ts.attempt_id = a.id and ts.question_id = qt.question_id
+        where qt.question_id = q2.id and q2.type = 'terminal'),
+      'options', case
+        when q2.type in ('mcq_single', 'mcq_multi', 'ordering') then
+          (select jsonb_agg(o order by array_position(
+             array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
+           from jsonb_array_elements(q2.options) o)
+        when q2.type = 'matching' then
+          jsonb_build_object('left', q2.options->'left', 'right',
+            (select jsonb_agg(o order by array_position(
+               array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
+             from jsonb_array_elements(q2.options->'right') o))
+        when q2.type in ('hotspot', 'short_answer') then q2.options
+        else null end)
     order by array_position(a.question_order, q2.id))
   into v_questions from questions q2 where q2.id = any(a.question_order);
 
@@ -937,7 +1039,42 @@ begin
       raise exception 'bad_response' using errcode = 'P0001';
     end if;
     p_response := jsonb_build_object('flag', p_response->>'flag');
-  else
+  elsif q.type = 'short_answer' then
+    if jsonb_typeof(p_response->'text') <> 'string' or length(p_response->>'text') > 500 then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('text', p_response->>'text');
+  elsif q.type = 'ordering' then
+    v_sel := p_response->'order';
+    if jsonb_typeof(v_sel) <> 'array'
+       or jsonb_array_length(v_sel) <> jsonb_array_length(q.options)
+       or (select count(distinct x) from jsonb_array_elements_text(v_sel) x) <> jsonb_array_length(q.options)
+       or exists (select 1 from jsonb_array_elements(v_sel) x where jsonb_typeof(x) <> 'string'
+                  or (x #>> '{}') not in (select o->>'id' from jsonb_array_elements(q.options) o)) then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('order', v_sel);
+  elsif q.type = 'matching' then
+    v_sel := p_response->'pairs';
+    if jsonb_typeof(v_sel) <> 'object'
+       or exists (select 1 from jsonb_each(v_sel) e
+                  where e.key not in (select o->>'id' from jsonb_array_elements(q.options->'left') o)
+                     or jsonb_typeof(e.value) <> 'string'
+                     or (e.value #>> '{}') not in (select o->>'id' from jsonb_array_elements(q.options->'right') o)) then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('pairs', v_sel);
+  elsif q.type = 'hotspot' then
+    v_sel := p_response->'selected';
+    if jsonb_typeof(v_sel) <> 'array'
+       or exists (select 1 from jsonb_array_elements(v_sel) x where jsonb_typeof(x) <> 'string'
+                  or (x #>> '{}') not in (select o->>'id' from jsonb_array_elements(q.options->'segments') o))
+       or (not coalesce((q.options->>'multi')::boolean, true) and jsonb_array_length(v_sel) > 1) then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('selected',
+      (select coalesce(jsonb_agg(distinct x), '[]'::jsonb) from jsonb_array_elements(v_sel) x));
+  elsif q.type in ('mcq_single', 'mcq_multi') then
     v_sel := p_response->'selected';
     if jsonb_typeof(v_sel) <> 'array' then raise exception 'bad_response' using errcode = 'P0001'; end if;
     select array_agg(o->>'id') into v_allowed from jsonb_array_elements(q.options) o;
@@ -950,6 +1087,8 @@ begin
     end if;
     p_response := jsonb_build_object('selected',
       (select coalesce(jsonb_agg(distinct x), '[]'::jsonb) from jsonb_array_elements(v_sel) x));
+  else
+    raise exception 'bad_question' using errcode = 'P0001';
   end if;
 
   insert into answers(attempt_id, question_id, response, updated_at)
@@ -1070,13 +1209,28 @@ begin
   if v_scn is null then raise exception 'bad_question' using errcode = 'P0001'; end if;
   select count(*) into v_n from terminal_history where attempt_id = a.id and created_at > now() - interval '15 seconds';
   if v_n >= 30 then raise exception 'too_many_attempts' using errcode = 'P0001'; end if;
-  return jsonb_build_object('status', 'in_progress', 'scenario', v_scn);
+  return jsonb_build_object('status', 'in_progress', 'scenario', v_scn,
+    'state', (select state from terminal_states where attempt_id = a.id and question_id = p_question));
 end; $$;
 
 create or replace function public.exam_terminal_log(p_attempt uuid, p_question uuid, p_cwd text, p_cmd text)
 returns void language sql security definer set search_path = public as $$
   insert into terminal_history(attempt_id, question_id, cwd, command) values (p_attempt, p_question, left(p_cwd, 300), left(p_cmd, 500));
 $$;
+
+-- Enregistre l'état de la machine après une commande (appelé par le serveur
+-- uniquement, après exam_terminal_scenario qui a vérifié la session).
+create or replace function public.exam_terminal_save(p_attempt uuid, p_question uuid, p_state jsonb,
+                                                     p_done text[], p_total int)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if length(p_state::text) > 1500000 then raise exception 'state_too_large' using errcode = 'P0001'; end if;
+  if not exists (select 1 from attempts where id = p_attempt and status = 'in_progress') then return; end if;
+  insert into terminal_states(attempt_id, question_id, state, done_ids, total, updated_at)
+  values (p_attempt, p_question, p_state, coalesce(p_done, '{}'), coalesce(p_total, 0), now())
+  on conflict (attempt_id, question_id) do update
+    set state = excluded.state, done_ids = excluded.done_ids, total = excluded.total, updated_at = now();
+end; $$;
 
 -- API : enregistre un nonce de requête signée ; faux s'il a déjà servi.
 create or replace function public.api_use_nonce(p_key uuid, p_nonce text)

@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { apiError, body, UUID, withApi } from "@/lib/api/handler";
 import { validateScenario } from "@/lib/terminal/shell";
+import { validateQuestion, type QType } from "@/lib/questions/kinds";
 
 /**
  * GET : questions du test (les bonnes réponses ne sont incluses que si la
  * clé possède aussi la portée tests:write).
  * PUT : remplace toutes les questions (refusé si des candidats ont commencé).
  *   [{ type, prompt, points, image_url?, options?: [{id?, text, image_url?}], correct?: [optionId|index],
- *      terminal?: { scenario: {...}, flag: "CYBER{...}" } }]
+ *      terminal?: { scenario: {...}, flag?: "CYBER{...}" },
+ *      // types ordering / matching / hotspot / short_answer : options + key (voir openapi.yaml)
+ *    }]
  */
 export const GET = withApi<{ id: string }>("tests:read", async ({ admin, scopes }, { id }) => {
   if (!UUID.test(id)) return apiError(404, "not_found");
@@ -25,7 +28,8 @@ export const GET = withApi<{ id: string }>("tests:read", async ({ admin, scopes 
     ? { ...q, correct: keys.get(q.id) ?? null, terminal: terms.get(q.id) ?? null } : q) });
 });
 
-const TYPES = new Set(["mcq_single", "mcq_multi", "long_text", "terminal"]);
+const TYPES = new Set(["mcq_single", "mcq_multi", "long_text", "terminal", "ordering", "matching", "hotspot", "short_answer"]);
+const FUN = new Set(["ordering", "matching", "hotspot", "short_answer"]);
 
 export const PUT = withApi<{ id: string }>("tests:write", async ({ admin, req }, { id }) => {
   if (!UUID.test(id)) return apiError(404, "not_found");
@@ -45,12 +49,18 @@ export const PUT = withApi<{ id: string }>("tests:write", async ({ admin, req },
     }
     const qid = crypto.randomUUID();
     let options = null;
-    if (q.type === "terminal") {
+    if (FUN.has(q.type)) {
+      const err = validateQuestion(q.type as QType, q.options, q.key);
+      if (err) return apiError(400, "validation_error", `Question ${i + 1} : ${err}`);
+      options = q.options;
+      keyRows.push({ question_id: qid, correct: q.key });
+    } else if (q.type === "terminal") {
       const err = validateScenario(q.terminal?.scenario);
       if (err) return apiError(400, "validation_error", `Question ${i + 1} : ${err}`);
       const flag = String(q.terminal?.flag || "").trim();
-      if (!flag || flag.length > 200) return apiError(400, "validation_error", `Question ${i + 1} : flag requis (200 caractères max)`);
-      termRows.push({ question_id: qid, scenario: q.terminal.scenario, flag });
+      if (flag.length > 200) return apiError(400, "validation_error", `Question ${i + 1} : flag de 200 caractères maximum`);
+      if (!flag && !(q.terminal.scenario.objectives || []).length) return apiError(400, "validation_error", `Question ${i + 1} : au moins une mission ou un flag`);
+      termRows.push({ question_id: qid, scenario: q.terminal.scenario, flag: flag || null });
     } else if (q.type !== "long_text") {
       if (!Array.isArray(q.options) || q.options.length < 2) return apiError(400, "validation_error", `Question ${i + 1} : 2 options minimum`);
       options = q.options.map((o: any) => ({ id: crypto.randomUUID(), text: String(o.text ?? ""), image_url: o.image_url ?? null, _ref: o.id }));

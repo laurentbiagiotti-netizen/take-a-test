@@ -1,11 +1,16 @@
 import DemoExam from "@/components/DemoExam";
-import { DEMO_CHALLENGES } from "@/lib/terminal/demo";
+import { publicDemoQuestions } from "@/lib/demo/questions";
 import { DEMO_SCENARIO } from "@/lib/terminal/demo";
-import { promptFor } from "@/lib/terminal/shell";
+import { evaluateObjectives, initState, promptFor } from "@/lib/terminal/shell";
 
 export const metadata = { title: "Démo · Cybersup Exam" };
 
 export default function DemoPage() {
-  const home = DEMO_SCENARIO.home!;
-  return <DemoExam challenges={DEMO_CHALLENGES} terminal={{ cwd: home, prompt: promptFor(DEMO_SCENARIO, home), motd: DEMO_SCENARIO.motd || null }} />;
+  const st = initState(DEMO_SCENARIO);
+  return (
+    <DemoExam
+      questions={publicDemoQuestions()}
+      terminal={{ prompt: promptFor(DEMO_SCENARIO, st.cwd), motd: DEMO_SCENARIO.motd || null, objectives: evaluateObjectives(DEMO_SCENARIO, st) }}
+    />
+  );
 }

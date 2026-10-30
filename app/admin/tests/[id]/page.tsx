@@ -3,12 +3,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
+import TypeEditor from "@/components/admin/TypeEditor";
+import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer";
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
-  prompt: string; options: Option[] | null; correct: string[] | null;
+  prompt: string; options: Option[] | any; correct: string[] | any;
   points: number; image_url?: string | null;
   terminal?: { scenario: string; flag: string } | null;
 };
@@ -98,7 +101,8 @@ export default function EditTest() {
       test_id: id, position: qs.length, type,
       prompt: type === "terminal" ? "Connecte-toi au serveur et retrouve le flag au format CYBER{...}." : "",
       options: isMcq ? [{ id: crypto.randomUUID(), text: "" }, { id: crypto.randomUUID(), text: "" }] : null,
-      correct: isMcq ? [] : null, points: 1, image_url: null,
+      correct: isMcq ? [] : type === "short_answer" ? { answers: [], case_sensitive: false } : null, points: 1, image_url: null,
+      ...(type === "hotspot" ? { options: { layout: "code", multi: false, segments: [] }, correct: [] } : {}),
       terminal: type === "terminal" ? { scenario: JSON.stringify(TERMINAL_TEMPLATE, null, 2), flag: "CYBER{exemple_a_changer}" } : null,
     }]);
   };
@@ -106,10 +110,13 @@ export default function EditTest() {
   const saveAll = async () => {
     if (locked) { alert("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
     for (const [i, q] of questions.entries()) {
+      if (FUN_TYPES.includes(q.type)) {
+        const err = validateQuestion(q.type as any, q.options, q.correct);
+        if (err) { alert(`Question ${i + 1} : ${err}`); return; }
+      }
       if (q.type !== "terminal") continue;
-      try { const x = JSON.parse(q.terminal?.scenario || ""); if (!x.files) throw new Error(); }
-      catch { alert(`Question ${i + 1} : scénario JSON invalide (la clé « files » est obligatoire).`); return; }
-      if (!q.terminal?.flag?.trim()) { alert(`Question ${i + 1} : le flag est obligatoire.`); return; }
+      try { const x = JSON.parse(q.terminal?.scenario || ""); if (!x.files) throw new Error(); if (!q.terminal?.flag?.trim() && !(x.objectives || []).length) throw new Error("vide"); }
+      catch (e: any) { alert(`Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`); return; }
     }
     setSaving(true);
     const del = await supabase.from("questions").delete().eq("test_id", id);
@@ -124,10 +131,10 @@ export default function EditTest() {
       // Re-attach answer keys (only for MCQ)
       const keyRows = (inserted || []).map((row: any, idx: number) => ({
         question_id: row.id, correct: questions[idx].correct ?? [],
-      })).filter((_, idx) => questions[idx].type === "mcq_single" || questions[idx].type === "mcq_multi");
+      })).filter((_, idx) => ["mcq_single", "mcq_multi", ...FUN_TYPES].includes(questions[idx].type));
       if (keyRows.length) await supabase.from("answer_keys").upsert(keyRows);
       const termRows = (inserted || []).map((row: any, idx: number) => questions[idx].type === "terminal" ? ({
-        question_id: row.id, scenario: JSON.parse(questions[idx].terminal!.scenario), flag: questions[idx].terminal!.flag.trim(),
+        question_id: row.id, scenario: JSON.parse(questions[idx].terminal!.scenario), flag: questions[idx].terminal!.flag.trim() || null,
       }) : null).filter(Boolean);
       if (termRows.length) {
         const { error } = await supabase.from("question_terminals").upsert(termRows as any[]);
@@ -293,18 +300,22 @@ export default function EditTest() {
       </div>
 
       <h2 className="h2 mt-8">Questions</h2>
-      <div className="mt-2 flex gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         <button className="btn-secondary" onClick={() => addQuestion("mcq_single")}>+ QCM (une réponse)</button>
         <button className="btn-secondary" onClick={() => addQuestion("mcq_multi")}>+ QCM (plusieurs réponses)</button>
         <button className="btn-secondary" onClick={() => addQuestion("long_text")}>+ Réponse rédigée</button>
         <button className="btn-secondary" onClick={() => addQuestion("terminal")}>+ Défi terminal</button>
+        <button className="btn-secondary" onClick={() => addQuestion("ordering")}>+ Remettre dans l&apos;ordre</button>
+        <button className="btn-secondary" onClick={() => addQuestion("matching")}>+ Associer</button>
+        <button className="btn-secondary" onClick={() => addQuestion("hotspot")}>+ Repérer (code, log, mail, tableau)</button>
+        <button className="btn-secondary" onClick={() => addQuestion("short_answer")}>+ Réponse courte / données</button>
       </div>
 
       <div className="mt-4 space-y-4">
         {questions.map((q, i) => (
           <div key={i} className="card space-y-2">
             <div className="flex justify-between items-center">
-              <b>Q{i + 1} · {TYPE_LABEL[q.type]}</b>
+              <b>Q{i + 1} · {KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</b>
               <button className="text-danger text-sm" onClick={() => setQuestions((arr) => arr.filter((_, k) => k !== i))}>Retirer</button>
             </div>
             <textarea className="input" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
@@ -335,14 +346,19 @@ export default function EditTest() {
               }} />
             </label>
 
+            {FUN_TYPES.includes(q.type) && (
+              <TypeEditor key={(q.id || "new") + i} type={q.type as any} options={q.options} correct={q.correct}
+                onChange={(p) => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, ...p } : x))} />
+            )}
+
             {q.type === "terminal" && q.terminal && (
               <div className="space-y-2">
-                <label className="block text-sm text-muted">Flag attendu (comparaison exacte, espaces ignorés aux extrémités)
+                <label className="block text-sm text-muted">Flag attendu (facultatif si le scénario a des missions ; comparaison exacte)
                   <input className="input mt-1 font-mono" value={q.terminal.flag} onChange={(e) => {
                     const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, terminal: { ...x.terminal!, flag: v } } : x));
                   }} />
                 </label>
-                <label className="block text-sm text-muted">Système de fichiers simulé (JSON : user, hostname, home, motd, files, dirs, denied, env). Il reste sur le serveur : le candidat ne voit que la sortie des commandes.
+                <label className="block text-sm text-muted">Machine simulée (JSON) : user, hostname, home, motd, files (contenu ou {"{"}content, mode, owner{"}"}), dirs, denied, processes, listen, crontab, sudo, objectives. Elle reste sur le serveur : le candidat ne voit que la sortie des commandes et le titre des missions. Format détaillé dans le README.
                   <textarea className="input mt-1 font-mono text-xs min-h-[220px]" spellCheck={false} value={q.terminal.scenario} onChange={(e) => {
                     const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, terminal: { ...x.terminal!, scenario: v } } : x));
                   }} />
@@ -352,7 +368,7 @@ export default function EditTest() {
 
             {(q.type === "mcq_single" || q.type === "mcq_multi") && q.options && (
               <div className="space-y-2">
-                {q.options.map((opt, j) => (
+                {(q.options as Option[]).map((opt: Option, j: number) => (
                   <div key={opt.id} className="space-y-1">
                     <div className="flex gap-2 items-center">
                       <input
@@ -364,24 +380,24 @@ export default function EditTest() {
                             if (k !== i) return x;
                             let cur = x.correct || [];
                             if (q.type === "mcq_single") cur = e.target.checked ? [opt.id] : [];
-                            else cur = e.target.checked ? [...cur, opt.id] : cur.filter((c) => c !== opt.id);
+                            else cur = e.target.checked ? [...cur, opt.id] : cur.filter((c: string) => c !== opt.id);
                             return { ...x, correct: cur };
                           }));
                         }}
                       />
                       <input className="input flex-1" placeholder={`Réponse ${j + 1}`} value={opt.text} onChange={(e) => {
                         const v = e.target.value;
-                        setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: x.options!.map((o) => o.id === opt.id ? { ...o, text: v } : o) } : x));
+                        setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: (x.options as Option[]).map((o: Option) => o.id === opt.id ? { ...o, text: v } : o) } : x));
                       }} />
                       <label className="btn-secondary text-xs cursor-pointer">
                         {opt.image_url ? "img ✓" : "img"}
                         <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
                           const f = e.target.files?.[0]; if (!f) return;
                           const url = await uploadImage(f);
-                          if (url) setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: x.options!.map((o) => o.id === opt.id ? { ...o, image_url: url } : o) } : x));
+                          if (url) setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: (x.options as Option[]).map((o: Option) => o.id === opt.id ? { ...o, image_url: url } : o) } : x));
                         }} />
                       </label>
-                      <button className="text-sm text-muted" onClick={() => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: x.options!.filter((o) => o.id !== opt.id), correct: (x.correct || []).filter((c) => c !== opt.id) } : x))}>×</button>
+                      <button className="text-sm text-muted" onClick={() => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: (x.options as Option[]).filter((o: Option) => o.id !== opt.id), correct: (x.correct || []).filter((c: string) => c !== opt.id) } : x))}>×</button>
                     </div>
                     {opt.image_url && <img src={opt.image_url} alt="" className="max-h-24 rounded border ml-7" />}
                   </div>
@@ -402,13 +418,22 @@ export default function EditTest() {
 
 const TERMINAL_TEMPLATE = {
   user: "candidat",
-  hostname: "cybersup-lab",
+  hostname: "srv-admission",
   home: "/home/candidat",
-  motd: "Serveur d’épreuve. Tapez « help » pour la liste des commandes.",
+  motd: "Bienvenue. Lisez ~/MISSION.txt puis accomplissez les missions affichées à droite.",
   files: {
-    "/home/candidat/LISEZMOI.txt": "Un fichier caché contient la suite...\n",
-    "/home/candidat/.indice": "Regarde dans /var/backups\n",
+    "/home/candidat/MISSION.txt": "1. Crée le dossier ~/projet\n2. Le fichier ~/secret.txt doit être lisible par toi seul (600)\n3. Arrête le processus « minerd »\n",
+    "/home/candidat/secret.txt": { content: "mot de passe wifi : admission2026\n", mode: "644" },
     "/var/backups/note.b64": "Q1lCRVJ7ZXhlbXBsZV9hX2NoYW5nZXJ9Cg==\n",
   },
   denied: ["/root"],
+  processes: [
+    { pid: 1, user: "root", cmd: "/sbin/init" },
+    { pid: 4242, user: "candidat", cmd: "./minerd --donate", cpu: 95.2 },
+  ],
+  objectives: [
+    { id: "dir", title: "Créer le dossier ~/projet", check: { type: "exists", path: "/home/candidat/projet", kind: "dir" } },
+    { id: "perm", title: "Protéger ~/secret.txt (600)", check: { type: "mode", path: "/home/candidat/secret.txt", mode: "600" } },
+    { id: "kill", title: "Arrêter le processus minerd", check: { type: "process_absent", name: "minerd" } },
+  ],
 };

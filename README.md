@@ -4,8 +4,8 @@ Plateforme auto-hébergée d'examens surveillés (tests d'admission, QCM, épreu
 
 Next.js 15 + Supabase (hébergé ou auto-hébergé) + Safe Exam Browser. Interface en français, aux couleurs de Cybersup.
 
-- **Démo publique** sur `/demo` : vérification du poste (caméra, plein écran, écran unique, SEB) et épreuve d'essai avec QCM et défis en terminal Linux.
-- **Questions « défi terminal »** : le candidat explore un serveur Linux simulé et retrouve un flag.
+- **Démo publique** sur `/demo` : vérification du poste (caméra, plein écran, écran unique, SEB), puis une épreuve d'essai avec une mission sur un serveur Linux compromis et un exemple de chaque type de question.
+- **Questions variées** : QCM, réponse rédigée, remise en ordre, association, repérage (code vulnérable, journaux, mail de phishing, tableau), analyse de données, défi terminal avec missions.
 
 ---
 
@@ -66,19 +66,51 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **CSP avec nonce par requête** : aucun script ne s'exécute sans le nonce de la page (plus de `unsafe-inline`), polices auto-hébergées, aucune ressource tierce.
 - **Jeton de requête tournant** pendant l'épreuve : chaque appel présente le jeton reçu au précédent. Une session copiée et utilisée en parallèle désynchronise la chaîne : infraction, session coupée, reprise sur autorisation du surveillant.
 
+### Types de questions
+
+| Type | Ce que fait le candidat | Correction |
+|---|---|---|
+| QCM (une ou plusieurs réponses) | Coche | Tout ou rien |
+| Réponse rédigée | Écrit | À la main par un correcteur |
+| Remettre dans l'ordre | Glisse des étapes (toujours servies mélangées) | Points au prorata des étapes bien placées |
+| Associer | Relie chaque élément à gauche à un élément à droite (leurres possibles) | Au prorata des bonnes associations |
+| Repérer | Clique des lignes de **code** (la ligne fautive), de **journal** (lignes suspectes), des indices d'un **mail de phishing**, ou des lignes d'un **tableau** | (bons repérages moins erreurs) / nombre attendu |
+| Réponse courte / données | Explore un **tableau** (filtre, tri) ou un texte, et donne une réponse exacte (décodage, calcul, enquête) | Réponse exacte, espaces et casse ignorés si souhaité |
+| Défi terminal | Travaille sur une machine Linux simulée et accomplit des **missions** | Au prorata des missions réussies (+ flag éventuel) |
+
+Les bonnes réponses ne sont jamais envoyées au navigateur. Les QCM et réponses rédigées restent disponibles, on mélange librement les types dans un même examen.
+
 ### Défis terminal
 
-Le scénario (système de fichiers JSON et flag) reste **sur le serveur** : le navigateur n'envoie que la commande et ne reçoit que la sortie. Le shell est simulé en lecture seule (aucune vraie commande n'est exécutée) : `ls`, `cd`, `cat`, `grep`, `find`, `head`, `tail`, `wc`, `sort`, `uniq`, `base64`, `file`, pipes, variables d'environnement, dossiers interdits. Les motifs `grep` sont littéraux par défaut (anti-ReDoS), 30 commandes par 15 s maximum, chaque commande est journalisée et visible par le correcteur. Format du scénario :
+Chaque candidat a **sa propre machine simulée**, sauvegardée côté serveur : il peut créer, modifier, supprimer, changer les droits, tuer des processus… et les missions se cochent en direct quand l'état de la machine est correct. Aucune vraie commande n'est exécutée et le scénario (fichiers, missions, flag) ne quitte jamais le serveur.
+
+Commandes : `ls cd pwd cat head tail stat file tree touch mkdir cp mv rm rmdir chmod chown grep find wc sort uniq cut tr sed rev base64 md5sum sha256sum ps pgrep kill pkill ss ip whoami id hostname uname env export crontab sudo history`, avec `|`, `;`, `&&`, `>` et `>>`. Droits Unix respectés (propriétaire, rwx), `sudo` limité à la liste du scénario. Recherche `grep` littérale (anti-ReDoS), état limité en taille, 30 commandes par 15 s.
+
+Format du scénario (JSON, dans l'éditeur de question) :
 
 ```json
 {
-  "user": "candidat", "hostname": "cybersup-lab", "home": "/home/candidat",
+  "user": "candidat", "hostname": "srv-admission", "home": "/home/candidat",
   "motd": "Message d'accueil",
-  "files": { "/home/candidat/.indice": "Regarde dans /var/backups\n", "/var/backups/note.b64": "Q1lCRVJ7Li4ufQo=\n" },
+  "files": {
+    "/home/candidat/MISSION.txt": "1. Arrête le mineur\n2. Protège secret.txt\n",
+    "/home/candidat/secret.txt": { "content": "...", "mode": "644" },
+    "/tmp/.x/run.sh": { "content": "#!/bin/bash\n...", "mode": "755", "owner": "candidat" }
+  },
+  "dirs": [{ "path": "/tmp/.x", "owner": "candidat" }],
   "denied": ["/root"],
-  "env": { "INDICE": "..." }
+  "processes": [{ "pid": 4242, "user": "candidat", "cmd": "./minerd --donate", "cpu": 95 }],
+  "listen": [{ "port": 4444, "process": "minerd" }],
+  "crontab": "*/5 * * * * /tmp/.x/run.sh",
+  "sudo": ["cat"],
+  "objectives": [
+    { "id": "kill", "title": "Arrêter le mineur", "check": { "type": "process_absent", "name": "minerd" } },
+    { "id": "perm", "title": "Protéger secret.txt", "check": { "type": "mode", "path": "/home/candidat/secret.txt", "mode": "600" } }
+  ]
 }
 ```
+
+Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `absent`, `contains`, `equals`, `mode`, `process_absent`, `process_present`, `ran` (la commande a été utilisée). Un flag (facultatif) peut s'ajouter aux missions. Un modèle complet est inséré quand on ajoute un défi terminal, et la démo (`lib/terminal/demo.ts`) montre une enquête « serveur compromis » de bout en bout.
 
 ### API REST et webhooks
 
