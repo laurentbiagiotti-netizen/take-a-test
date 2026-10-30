@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import { convocation, importCandidates } from "@/lib/exam/convocation";
+import { DataTable } from "@/components/admin/DataTable";
 
 type Invite = {
   id: string; test_id: string; email: string; code: string; full_name: string | null;
@@ -106,7 +107,7 @@ export default function InvitesPage() {
   };
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
       <a href={`/admin/tests/${id}`} className="text-sm text-muted">← Retour à l&apos;examen</a>
       <h1 className="h1 mt-2">Candidats · {test?.title}</h1>
 
@@ -142,38 +143,45 @@ export default function InvitesPage() {
         ou exportez-les pour les transformer en brouillons Gmail à relire et envoyer vous-même.
       </p>
 
-      <table className="mt-3 w-full text-sm">
-        <thead className="text-left text-muted">
-          <tr><th className="py-2">Candidat</th><th>Code</th><th title="Minutes ajoutées à la durée de l'épreuve">Tiers-temps</th><th>État</th><th></th></tr>
-        </thead>
-        <tbody>
-          {invites.map((i) => (
-            <tr key={i.id} className="border-t align-top">
-              <td className="py-2">
-                <div>{i.full_name || i.email}</div>
-                {i.full_name && <div className="text-xs text-muted">{i.email}</div>}
-                {i.external_ref && <div className="text-xs text-faint">réf. {i.external_ref}</div>}
-              </td>
-              <td><code className="font-mono">{i.code}</code></td>
-              <td>
-                <label className="flex items-center gap-1">
-                  <input type="number" min={0} max={600} step={5} defaultValue={i.extra_minutes} disabled={!!i.used_at}
-                    className="input !w-20 !py-1" aria-label={`Tiers-temps de ${i.email}`}
-                    onBlur={(e) => setExtra(i, Number(e.target.value))} />
-                  <span className="text-xs text-muted">min</span>
-                </label>
-              </td>
-              <td>{i.used_at ? <span className="text-ok">compte lié le {new Date(i.used_at).toLocaleString("fr-FR")}</span> : <span className="text-muted">en attente</span>}</td>
-              <td className="text-right whitespace-nowrap">
-                <button className="underline mr-3" onClick={() => setPreview(i)}>voir</button>
-                <a href={mailto(i)} className="text-accent underline mr-3">brouillon</a>
-                <button className="text-danger" onClick={() => remove(i.id)}>supprimer</button>
-              </td>
-            </tr>
-          ))}
-          {!invites.length && <tr><td colSpan={5} className="py-8 text-center text-muted">Aucun candidat pour l&apos;instant : collez une liste d&apos;adresses ou un export HubSpot / Grimp ci-dessus.</td></tr>}
-        </tbody>
-      </table>
+      <DataTable
+        rows={invites} rowKey={(i) => i.id} caption="Candidats invités"
+        search={(i) => `${i.full_name ?? ""} ${i.email} ${i.external_ref ?? ""} ${i.code}`} searchLabel="Rechercher un candidat"
+        empty="Aucun candidat pour l'instant : collez une liste d'adresses ou un export HubSpot / Grimp ci-dessus."
+        columns={[
+          {
+            key: "name", label: "Candidat", primary: true, sort: (i) => i.full_name || i.email,
+            cell: (i) => <>
+              <div className="font-medium">{i.full_name || i.email}</div>
+              {i.full_name && <div className="text-xs text-muted break-all">{i.email}</div>}
+              {i.external_ref && <div className="text-xs text-faint">réf. {i.external_ref}</div>}
+            </>,
+          },
+          { key: "code", label: "Code", cell: (i) => <code className="font-mono">{i.code}</code> },
+          {
+            key: "extra", label: "Tiers-temps", title: "Minutes ajoutées à la durée de l'épreuve", sort: (i) => i.extra_minutes,
+            cell: (i) => (
+              <label className="flex items-center gap-1">
+                <input type="number" min={0} max={600} step={5} defaultValue={i.extra_minutes} disabled={!!i.used_at}
+                  className="input !w-20 !py-1 min-h-[40px]" aria-label={`Tiers-temps de ${i.email}`}
+                  onBlur={(e) => setExtra(i, Number(e.target.value))} />
+                <span className="text-xs text-muted">min</span>
+              </label>
+            ),
+          },
+          {
+            key: "state", label: "État", sort: (i) => i.used_at,
+            cell: (i) => i.used_at ? <span className="text-ok">compte lié le {new Date(i.used_at).toLocaleString("fr-FR")}</span> : <span className="text-muted">en attente</span>,
+          },
+          {
+            key: "actions", label: "", actions: true,
+            cell: (i) => <>
+              <button className="underline mr-3" onClick={() => setPreview(i)}>voir</button>
+              <a href={mailto(i)} className="text-accent underline mr-3">brouillon</a>
+              <button className="text-danger" onClick={() => remove(i.id)}>supprimer</button>
+            </>,
+          },
+        ]}
+      />
 
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6" role="dialog" aria-modal aria-label="Convocation" onClick={() => setPreview(null)}>
