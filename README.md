@@ -124,6 +124,14 @@ Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `ab
 
 ---
 
+## Démo en ligne (GitHub Pages)
+
+La démo publique existe aussi en version statique, publiée sur GitHub Pages : https://laurentbiagiotti-netizen.github.io/take-a-test/
+
+- Même interface que `/demo`, mais la machine Linux simulée et la correction tournent **dans le navigateur** (pas de serveur sur GitHub Pages). Les réponses de la démo sont donc lisibles par un curieux : c'est sans conséquence, les vrais examens ne passent jamais par là.
+- Construire : `npm run build:pages` (résultat dans `site/dist`).
+- Publication : la branche `gh-pages` contient le site. Le workflow `.github/workflows/pages.yml` la régénère à chaque push qui touche la démo (activer les Actions sur le fork). Réglage à faire une fois : **Settings > Pages > Source : Deploy from a branch, branche `gh-pages`, dossier `/ (root)`**.
+
 ## Installation
 
 ### 1. Dépendances
