@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: Cybersup Exam API
+  version: 1.0.0
+  description: |
+    API REST de la plateforme d'examens surveillés.
+
+    Authentification : `Authorization: Bearer cxk_<prefixe>_<secret>`.
+    Les clés se créent dans Administration > API et webhooks ; la clé complète
+    n'est affichée qu'une seule fois. Chaque clé porte des portées (scopes),
+    peut expirer, se révoque à tout moment et cesse de fonctionner si son
+    créateur n'est plus administrateur.
+
+    Quota : `API_RATE_LIMIT` appels par minute et par clé (120 par défaut),
+    au-delà réponse 429 avec `Retry-After`. Tous les appels sont journalisés.
+
+    Webhooks : POST JSON signé, en-tête
+    `X-Cybersup-Signature: t=<timestamp>,v1=<hex>` avec
+    `v1 = HMAC-SHA256(secret, "<t>.<corps brut>")`. Vérifiez la signature et
+    refusez un `t` de plus de 5 minutes. Événements : `attempt.submitted`,
+    `attempt.terminated`, `attempt.expired`. Renvois automatiques avec
+    attente croissante (8 essais).
+servers:
+  - url: /api/v1
+security:
+  - apiKey: []
+components:
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      description: "Clé cxk_… (portées : tests:read, tests:write, invites:read, invites:write, results:read, proctor:write)"
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+        message: { type: string }
+    Test:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: [string, "null"] }
+        duration_minutes: { type: integer, minimum: 1, maximum: 600 }
+        is_published: { type: boolean }
+        invite_only: { type: boolean }
+        require_seb: { type: boolean }
+        require_webcam: { type: boolean }
+        require_id_check: { type: boolean }
+        draw_count: { type: [integer, "null"], description: "Tirer N questions au hasard dans la banque" }
+        shuffle_questions: { type: boolean }
+        shuffle_options: { type: boolean }
+        max_violations: { type: integer }
+        allow_resume: { type: boolean }
+        grace_seconds: { type: integer }
+        opens_at: { type: [string, "null"], format: date-time }
+        closes_at: { type: [string, "null"], format: date-time }
+        retention_days: { type: integer }
+    TestInput:
+      allOf:
+        - $ref: "#/components/schemas/Test"
+        - type: object
+          properties:
+            access_code: { type: [string, "null"], description: "Code global (tests non restreints aux invités)" }
+            seb:
+              type: object
+              properties:
+                config_keys: { type: array, items: { type: string, pattern: "^[a-f0-9]{64}$" } }
+                browser_exam_keys: { type: array, items: { type: string, pattern: "^[a-f0-9]{64}$" } }
+    QuestionInput:
+      type: object
+      required: [type, prompt]
+      properties:
+        type: { type: string, enum: [mcq_single, mcq_multi, long_text] }
+        prompt: { type: string }
+        points: { type: number, default: 1 }
+        image_url: { type: [string, "null"] }
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, description: "Référence libre, utilisable dans correct" }
+              text: { type: string }
+              image_url: { type: [string, "null"] }
+        correct:
+          type: array
+          description: "Bonnes réponses : index (0, 1…) ou id de référence des options"
+          items: { oneOf: [{ type: integer }, { type: string }] }
+    Result:
+      type: object
+      properties:
+        attempt_id: { type: string, format: uuid }
+        email: { type: string }
+        full_name: { type: string }
+        status: { type: string, enum: [pending, in_progress, submitted, terminated, expired] }
+        score: { type: [number, "null"] }
+        max_score: { type: [number, "null"] }
+        violation_count: { type: integer }
+        identity_status: { type: string }
+        started_at: { type: [string, "null"], format: date-time }
+        submitted_at: { type: [string, "null"], format: date-time }
+        end_reason: { type: [string, "null"] }
+paths:
+  /tests:
+    get:
+      summary: Lister les examens
+      description: "Portée : tests:read"
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: "#/components/schemas/Test" } } } } } } }
+    post:
+      summary: Créer un examen
+      description: "Portée : tests:write"
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/TestInput" } } } }
+      responses:
+        "201": { description: Créé }
+        "400": { description: Invalide, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /tests/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      summary: Détail d'un examen
+      description: "Portée : tests:read"
+      responses: { "200": { description: OK }, "404": { description: Introuvable } }
+    patch:
+      summary: Modifier un examen (champs partiels)
+      description: "Portée : tests:write"
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/TestInput" } } } }
+      responses: { "200": { description: OK } }
+    delete:
+      summary: Supprimer un examen (et toutes ses tentatives)
+      description: "Portée : tests:write"
+      responses: { "204": { description: Supprimé } }
+  /tests/{id}/questions:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      summary: Questions (bonnes réponses incluses seulement avec tests:write)
+      description: "Portée : tests:read"
+      responses: { "200": { description: OK } }
+    put:
+      summary: Remplacer toutes les questions
+      description: "Portée : tests:write. Refusé (409) dès qu'un candidat a commencé."
+      requestBody: { required: true, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/QuestionInput" } } } } }
+      responses: { "200": { description: OK }, "409": { description: Questions verrouillées } }
+  /tests/{id}/invites:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+    get:
+      summary: Lister les invitations et leurs codes
+      description: "Portée : invites:read"
+      responses: { "200": { description: OK } }
+    post:
+      summary: Inviter des candidats (idempotent par e-mail)
+      description: "Portée : invites:write. Renvoie un code personnel par candidat."
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, properties: { emails: { type: array, items: { type: string, format: email }, maxItems: 2000 } } } } }
+      responses: { "201": { description: Créées } }
+  /invites/{id}:
+    delete:
+      summary: Supprimer une invitation
+      description: "Portée : invites:write"
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "204": { description: Supprimée } }
+  /tests/{id}/results:
+    get:
+      summary: Résultats d'un examen
+      description: "Portée : results:read. `?format=csv` pour un export tableur (séparateur ;)."
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: format, in: query, schema: { type: string, enum: [json, csv] } }
+      responses: { "200": { description: OK, content: { application/json: { schema: { type: object, properties: { data: { type: array, items: { $ref: "#/components/schemas/Result" } } } } } } } }
+  /attempts/{id}:
+    get:
+      summary: Détail d'une tentative (réponses, journal, intégrité du journal)
+      description: "Portée : results:read"
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses: { "200": { description: OK } }
+  /attempts/{id}/actions:
+    post:
+      summary: Action de surveillance
+      description: "Portée : proctor:write"
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { type: string, enum: [reset_session, extend_time, terminate, review_identity] }
+                arg:
+                  type: object
+                  description: "extend_time: {minutes} · terminate: {reason} · review_identity: {ok, note?}"
+      responses: { "200": { description: OK } }

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { genCode } from "@/lib/code";
+import { genCode } from "@/lib/security/tokens";
 
 type Invite = {
   id: string; test_id: string; email: string; code: string;

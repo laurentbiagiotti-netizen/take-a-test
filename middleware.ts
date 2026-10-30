@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// Middleware exists only to refresh the Supabase auth cookie on each request.
-// Page-level redirects are handled in the page components themselves so that
-// a transient Supabase outage doesn't bounce signed-in users to /login.
+// Rafraîchit le cookie d'auth Supabase et transmet le chemin demandé aux
+// pages serveur (nécessaire pour vérifier le hash Safe Exam Browser, qui
+// porte sur l'URL exacte, requête comprise).
 export async function middleware(req: NextRequest) {
-  let res = NextResponse.next({ request: req });
+  const forwarded = new Headers(req.headers);
+  forwarded.set("x-cx-path", req.nextUrl.pathname + req.nextUrl.search);
+  let res = NextResponse.next({ request: { headers: forwarded } });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -14,15 +16,13 @@ export async function middleware(req: NextRequest) {
         getAll: () => req.cookies.getAll(),
         setAll: (list: { name: string; value: string; options?: any }[]) => {
           list.forEach(({ name, value }) => req.cookies.set(name, value));
-          res = NextResponse.next({ request: req });
+          res = NextResponse.next({ request: { headers: forwarded } });
           list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
         },
       },
     }
   );
-  // ponytail: best-effort token refresh. Errors are non-fatal — the page will
-  // call getUser() itself and redirect to /login if there's genuinely no session.
-  try { await supabase.auth.getUser(); } catch { /* network blip, ignore */ }
+  try { await supabase.auth.getUser(); } catch { /* coupure réseau : la page revérifie */ }
   return res;
 }
 

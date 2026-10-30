@@ -1,32 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { requireStaff } from "@/lib/auth/staff";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
-
-  const { score, feedback } = await req.json();
-  const s = score === null || score === undefined || score === "" ? null : Number(score);
-  if (s !== null && (Number.isNaN(s) || s < 0)) {
-    return NextResponse.json({ error: "Invalid score" }, { status: 400 });
+  const s = await requireStaff(req);
+  if ("res" in s) return s.res;
+  const { score, feedback } = await req.json().catch(() => ({}));
+  const v = score === null || score === undefined || score === "" ? null : Number(score);
+  if (v !== null && !Number.isFinite(v)) return NextResponse.json({ error: "Note invalide" }, { status: 400 });
+  const { data, error } = await adminClient().rpc("grade_answer", {
+    p_actor: s.userId, p_answer: id, p_score: v, p_feedback: typeof feedback === "string" ? feedback : null,
+  });
+  if (error) {
+    const code = error.message.split(":")[0];
+    return NextResponse.json({ error: code === "score_out_of_range" ? "Note hors barème" : code }, { status: 400 });
   }
-
-  const { data: ans, error } = await supabase
-    .from("answers")
-    .update({ score: s, feedback: feedback ?? null })
-    .eq("id", id)
-    .select("attempt_id")
-    .single();
-  if (error || !ans) return NextResponse.json({ error: error?.message || "Update failed" }, { status: 400 });
-
-  // Recompute attempt total
-  const { data: rows } = await supabase.from("answers").select("score").eq("attempt_id", ans.attempt_id);
-  const total = (rows || []).reduce((sum: number, r: any) => sum + Number(r.score || 0), 0);
-  await supabase.from("attempts").update({ score: total }).eq("id", ans.attempt_id);
-
-  return NextResponse.json({ ok: true, attempt_total: total });
+  return NextResponse.json(data);
 }

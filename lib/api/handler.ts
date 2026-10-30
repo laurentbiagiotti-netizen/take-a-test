@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from "next/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { clientIp } from "@/lib/security/request";
+import { sha256Hex, timingSafeEqual } from "@/lib/security/tokens";
+import type { ApiScope } from "./scopes";
+
+/**
+ * Authentification des appels à l'API v1.
+ *  - Clé :  Authorization: Bearer cxk_<prefix>_<secret>
+ *  - Seul le SHA-256 de la clé est stocké ; comparaison en temps constant
+ *  - Portées (scopes) par clé, expiration, révocation
+ *  - Quota par clé et par minute (API_RATE_LIMIT, 120 par défaut)
+ *  - Chaque appel est journalisé dans api_audit
+ */
+export type ApiCtx = {
+  keyId: string;
+  actorId: string | null;
+  scopes: string[];
+  admin: ReturnType<typeof adminClient>;
+  req: NextRequest;
+};
+
+type Handler<P> = (ctx: ApiCtx, params: P) => Promise<NextResponse>;
+
+export function apiError(status: number, error: string, message?: string) {
+  return NextResponse.json({ error, message: message || error }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+export function withApi<P = Record<string, string>>(scope: ApiScope, handler: Handler<P>) {
+  return async (req: NextRequest, context: { params: Promise<P> }) => {
+    const admin = adminClient();
+    const auth = req.headers.get("authorization") || "";
+    const m = /^Bearer\s+(cxk_([a-f0-9]{12})_[a-f0-9]{48})$/i.exec(auth.trim());
+    let keyId: string | null = null;
+    let res: NextResponse;
+    try {
+      if (!m) { res = apiError(401, "unauthorized", "Clé d'API manquante ou mal formée"); return res; }
+      const [, key, prefix] = m;
+      const { data: k } = await admin.from("api_keys")
+        .select("id, key_hash, scopes, revoked_at, expires_at, created_by").eq("prefix", prefix.toLowerCase()).maybeSingle();
+      const hash = await sha256Hex(key);
+      if (!k || !timingSafeEqual(hash, k.key_hash) || k.revoked_at || (k.expires_at && new Date(k.expires_at) < new Date())) {
+        res = apiError(401, "unauthorized", "Clé d'API invalide, expirée ou révoquée"); return res;
+      }
+      keyId = k.id;
+      // Une clé ne vaut que tant que son créateur est toujours administrateur.
+      const { data: owner } = k.created_by
+        ? await admin.from("profiles").select("role").eq("id", k.created_by).maybeSingle()
+        : { data: null };
+      if (owner?.role !== "admin") { res = apiError(401, "unauthorized", "Le propriétaire de la clé n'est plus administrateur"); return res; }
+      if (!k.scopes.includes(scope)) { res = apiError(403, "insufficient_scope", `Portée requise : ${scope}`); return res; }
+      const limit = parseInt(process.env.API_RATE_LIMIT || "120", 10);
+      const { data: allowed } = await admin.rpc("api_rate_hit", { p_key: k.id, p_limit: limit });
+      if (allowed === false) {
+        res = apiError(429, "rate_limited", "Quota dépassé, réessayez dans une minute");
+        res.headers.set("Retry-After", "60"); return res;
+      }
+      res = await handler({ keyId: k.id, actorId: k.created_by, scopes: k.scopes, admin, req }, await context.params);
+      res.headers.set("Cache-Control", "no-store");
+      return res;
+    } catch (e) {
+      console.error("[api]", e);
+      res = apiError(500, "server_error");
+      return res;
+    } finally {
+      const u = new URL(req.url);
+      admin.from("api_audit").insert({
+        key_id: keyId, method: req.method, path: u.pathname.slice(0, 300), status: res!?.status ?? 500, ip: clientIp(req),
+      }).then(() => {}, () => {});
+    }
+  };
+}
+
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function body<T = any>(req: NextRequest, max = 512 * 1024): Promise<T | null> {
+  const t = await req.text();
+  if (t.length > max) return null;
+  try { return JSON.parse(t) as T; } catch { return null; }
+}
+
+/** Champs de test modifiables via l'API (liste blanche). */
+export const TEST_FIELDS = [
+  "title", "description", "duration_minutes", "is_published", "require_seb", "invite_only", "require_id_check",
+  "require_webcam", "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
+  "grace_seconds", "opens_at", "closes_at", "retention_days",
+] as const;
+
+export function pickTestFields(input: any): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (!input || typeof input !== "object") return out;
+  for (const f of TEST_FIELDS) if (f in input) out[f] = input[f];
+  return out;
+}

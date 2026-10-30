@@ -1,89 +1,91 @@
 import { NextRequest, NextResponse } from "next/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { appHost, appUrl, supabaseHost } from "@/lib/security/env";
 
 /**
- * Generates an UNENCRYPTED .seb config file (gzipped plist would be standard,
- * but SEB also accepts plain XML plist with extension .seb). Candidates
- * double-click this and SEB launches locked to the exam URL.
+ * Génère le fichier .seb (plist XML non chiffré) d'un examen.
  *
- * IMPORTANT: After downloading, open the .seb file in the SEB Configuration
- * Tool once and set a Browser Exam Key (Exam tab) + paste it into your
- * SEB_BROWSER_EXAM_KEY env var. SEB sends the BEK hash on every request so
- * the server can verify the candidate is actually inside SEB.
+ * Après génération : ouvrir le fichier dans l'outil de configuration SEB,
+ * relever la Config Key (onglet Exam) et la coller dans les réglages SEB du
+ * test côté admin. Pour une sécurité maximale, enregistrer ensuite le .seb
+ * chiffré par mot de passe depuis l'outil SEB avant de le distribuer.
  */
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const origin = req.headers.get("x-forwarded-proto") && req.headers.get("host")
-    ? `${req.headers.get("x-forwarded-proto")}://${req.headers.get("host")}`
-    : new URL(req.url).origin;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function xml(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!UUID.test(id)) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const admin = adminClient();
+  const { data: test } = await admin.from("tests").select("id, is_published").eq("id", id).maybeSingle();
+  if (!test?.is_published) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const { data: sec } = await admin.from("test_secrets").select("seb_quit_password_hash").eq("test_id", id).maybeSingle();
+
+  const origin = appUrl();
   const startUrl = `${origin}/test/${id}`;
-  const host = new URL(origin).host;
+  const quitHash = /^[a-f0-9]{64}$/i.test(sec?.seb_quit_password_hash || "") ? sec!.seb_quit_password_hash! : "";
 
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>startURL</key><string>${startUrl}</string>
-  <key>sebConfigPurpose</key><integer>1</integer>
+  <key>startURL</key><string>${xml(startUrl)}</string>
+  <key>sebConfigPurpose</key><integer>0</integer>
   <key>browserViewMode</key><integer>1</integer>
   <key>mainBrowserWindowWidth</key><string>100%</string>
   <key>mainBrowserWindowHeight</key><string>100%</string>
   <key>enableTouchExit</key><false/>
   <key>allowQuit</key><true/>
-  <key>quitURL</key><string>${origin}/dashboard</string>
-  <key>hashedQuitPassword</key><string></string>
-  <key>ignoreExitKeys</key><false/>
-  <key>enableF1</key><false/>
-  <key>enableF3</key><false/>
-  <key>enableF5</key><false/>
-  <key>enableF11</key><false/>
-  <key>enableF12</key><false/>
+  <key>hashedQuitPassword</key><string>${quitHash}</string>
+  <key>quitURL</key><string>${xml(origin)}/dashboard?seb_quit=1</string>
+  <key>quitURLConfirm</key><true/>
+  <key>examSessionClearCookiesOnStart</key><true/>
+  <key>examSessionClearCookiesOnEnd</key><true/>
+  <key>ignoreExitKeys</key><true/>
+  <key>enableF1</key><false/><key>enableF3</key><false/><key>enableF5</key><false/>
+  <key>enableF11</key><false/><key>enableF12</key><false/>
   <key>enablePrintScreen</key><false/>
-  <key>enableEsc</key><false/>
-  <key>enableCtrlEsc</key><false/>
-  <key>enableAltEsc</key><false/>
-  <key>enableAltTab</key><false/>
-  <key>enableAltF4</key><false/>
-  <key>enableStartMenu</key><false/>
+  <key>enableEsc</key><false/><key>enableCtrlEsc</key><false/><key>enableAltEsc</key><false/>
+  <key>enableAltTab</key><false/><key>enableAltF4</key><false/><key>enableStartMenu</key><false/>
   <key>enableRightMouse</key><false/>
-  <key>showTaskBar</key><false/>
-  <key>showReloadButton</key><false/>
-  <key>showMenuBar</key><false/>
+  <key>enablePrivateClipboard</key><true/>
+  <key>showTaskBar</key><false/><key>showReloadButton</key><false/><key>showMenuBar</key><false/>
   <key>browserScreenKeyboard</key><false/>
-  <key>allowSpellCheck</key><false/>
-  <key>allowDictation</key><false/>
+  <key>allowSpellCheck</key><false/><key>allowDictation</key><false/><key>allowSiri</key><false/>
   <key>enableJavaScript</key><true/>
   <key>enableBrowsingBackForward</key><false/>
   <key>newBrowserWindowByLinkPolicy</key><integer>0</integer>
   <key>newBrowserWindowByScriptPolicy</key><integer>0</integer>
   <key>blockPopUpWindows</key><true/>
-  <key>allowDownUploads</key><false/>
-  <key>allowDownloads</key><false/>
-  <key>allowFlashFullscreen</key><false/>
-  <key>allowVideoCapture</key><true/>
-  <key>allowAudioCapture</key><false/>
+  <key>allowDownUploads</key><false/><key>allowDownloads</key><false/>
+  <key>allowPDFReaderToolbar</key><false/>
+  <key>allowVideoCapture</key><true/><key>allowAudioCapture</key><false/>
   <key>allowScreenSharing</key><false/>
   <key>allowVirtualMachine</key><false/>
-  <key>detectStoppedProcess</key><true/>
-  <key>monitorProcesses</key><true/>
   <key>allowDisplayMirroring</key><false/>
   <key>allowedDisplaysMaxNumber</key><integer>1</integer>
+  <key>allowedDisplayBuiltin</key><true/>
+  <key>detectStoppedProcess</key><true/>
+  <key>monitorProcesses</key><true/>
+  <key>killExplorerShell</key><false/>
+  <key>enableAppSwitcherCheck</key><true/>
+  <key>forceAppFolderInstall</key><true/>
+  <key>prohibitedProcesses</key>
+  <array>
+    <dict><key>active</key><true/><key>currentUser</key><true/><key>executable</key><string>TeamViewer</string><key>os</key><integer>1</integer><key>strongKill</key><true/></dict>
+    <dict><key>active</key><true/><key>currentUser</key><true/><key>executable</key><string>AnyDesk</string><key>os</key><integer>1</integer><key>strongKill</key><true/></dict>
+    <dict><key>active</key><true/><key>currentUser</key><true/><key>executable</key><string>obs64</string><key>os</key><integer>1</integer><key>strongKill</key><true/></dict>
+    <dict><key>active</key><true/><key>currentUser</key><true/><key>executable</key><string>Discord</string><key>os</key><integer>1</integer><key>strongKill</key><true/></dict>
+  </array>
   <key>URLFilterEnable</key><true/>
   <key>URLFilterEnableContentFilter</key><true/>
   <key>URLFilterRules</key>
   <array>
-    <dict>
-      <key>action</key><integer>1</integer>
-      <key>active</key><true/>
-      <key>expression</key><string>${host}/*</string>
-      <key>regex</key><false/>
-    </dict>
-    <dict>
-      <key>action</key><integer>1</integer>
-      <key>active</key><true/>
-      <key>expression</key><string>*.supabase.co/*</string>
-      <key>regex</key><false/>
-    </dict>
+    <dict><key>action</key><integer>1</integer><key>active</key><true/><key>expression</key><string>${xml(appHost())}/*</string><key>regex</key><false/></dict>
+    <dict><key>action</key><integer>1</integer><key>active</key><true/><key>expression</key><string>${xml(supabaseHost())}/storage/v1/object/public/question-images/*</string><key>regex</key><false/></dict>
   </array>
   <key>sendBrowserExamKey</key><true/>
 </dict>
@@ -92,7 +94,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   return new NextResponse(plist, {
     headers: {
       "Content-Type": "application/seb",
-      "Content-Disposition": `attachment; filename="exam-${id}.seb"`,
+      "Content-Disposition": `attachment; filename="examen-${id}.seb"`,
+      "Cache-Control": "no-store",
     },
   });
 }

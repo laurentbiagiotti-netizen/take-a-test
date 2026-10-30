@@ -1,0 +1,35 @@
+import { NextRequest, NextResponse } from "next/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { requireStaff } from "@/lib/auth/staff";
+import { randomHex, sha256Hex } from "@/lib/security/tokens";
+import { API_SCOPES } from "@/lib/api/scopes";
+
+/** Création d'une clé d'API : la clé complète n'est affichée QU'UNE fois. */
+export async function POST(req: NextRequest) {
+  const s = await requireStaff(req, true);
+  if ("res" in s) return s.res;
+  const body = await req.json().catch(() => ({}));
+  const name = String(body.name || "").trim().slice(0, 100);
+  const scopes: string[] = Array.isArray(body.scopes) ? body.scopes.filter((x: string) => API_SCOPES.includes(x as any)) : [];
+  const days = Number(body.expires_in_days || 0);
+  if (!name || !scopes.length) return NextResponse.json({ error: "Nom et au moins une portée requis" }, { status: 400 });
+
+  const prefix = randomHex(6);
+  const secret = randomHex(24);
+  const key = `cxk_${prefix}_${secret}`;
+  const { data, error } = await adminClient().from("api_keys").insert({
+    name, prefix, key_hash: await sha256Hex(key), scopes, created_by: s.userId,
+    expires_at: days > 0 ? new Date(Date.now() + days * 86400_000).toISOString() : null,
+  }).select("id, name, prefix, scopes, expires_at, created_at").single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  return NextResponse.json({ ...data, key });
+}
+
+export async function DELETE(req: NextRequest) {
+  const s = await requireStaff(req, true);
+  if ("res" in s) return s.res;
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 });
+  await adminClient().from("api_keys").update({ revoked_at: new Date().toISOString() }).eq("id", id);
+  return NextResponse.json({ ok: true });
+}

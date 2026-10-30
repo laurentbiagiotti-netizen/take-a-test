@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { genCode } from "@/lib/security/tokens";
 
 type QType = "mcq_single" | "mcq_multi" | "long_text";
 type Option = { id: string; text: string; image_url?: string | null };
@@ -15,6 +16,10 @@ export default function EditTest() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
   const [test, setTest] = useState<any>(null);
+  const [secrets, setSecrets] = useState<any>({ access_code: null, seb_browser_exam_keys: [], seb_config_keys: [], seb_quit_password_hash: null });
+  const [quitPwd, setQuitPwd] = useState("");
+  const [locked, setLocked] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
   const [link, setLink] = useState("");
@@ -23,6 +28,10 @@ export default function EditTest() {
     (async () => {
       const { data: t } = await supabase.from("tests").select("*").eq("id", id).single();
       setTest(t);
+      const { data: sec } = await supabase.from("test_secrets").select("*").eq("test_id", id).maybeSingle();
+      if (sec) setSecrets(sec);
+      const { count } = await supabase.from("attempts").select("id", { count: "exact", head: true }).eq("test_id", id).neq("status", "pending");
+      setLocked((count ?? 0) > 0);
       const { data: qs } = await supabase.from("questions").select("*").eq("test_id", id).order("position");
       const ids = (qs || []).map((q: any) => q.id);
       const { data: keys } = ids.length
@@ -36,16 +45,32 @@ export default function EditTest() {
   }, [id, supabase]);
 
   const updateTest = async (patch: any) => {
-    setTest({ ...test, ...patch });
-    await supabase.from("tests").update(patch).eq("id", id);
+    setTest((t: any) => ({ ...t, ...patch }));
+    const { error } = await supabase.from("tests").update(patch).eq("id", id);
+    setMsg(error ? `Erreur : ${error.message}` : null);
   };
 
-  const generateCode = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    let out = "";
-    for (let i = 0; i < 8; i++) { if (i === 4) out += "-"; out += chars[Math.floor(Math.random() * chars.length)]; }
-    updateTest({ access_code: out });
+  const updateSecrets = async (patch: any) => {
+    const next = { ...secrets, ...patch, test_id: id };
+    setSecrets(next);
+    const { error } = await supabase.from("test_secrets").upsert(next);
+    setMsg(error ? `Erreur : ${error.message}` : null);
   };
+
+  const generateCode = () => updateSecrets({ access_code: genCode() });
+
+  const keyList = (v: string) => v.split(/[\s,]+/).map((x) => x.trim().toLowerCase()).filter((x) => /^[a-f0-9]{64}$/.test(x));
+
+  const saveQuitPassword = async () => {
+    if (!quitPwd) return updateSecrets({ seb_quit_password_hash: null });
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(quitPwd));
+    const hex = Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    await updateSecrets({ seb_quit_password_hash: hex });
+    setQuitPwd("");
+  };
+
+  const toLocalInput = (iso?: string | null) => iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : "";
+  const fromLocalInput = (v: string) => v ? new Date(v).toISOString() : null;
 
   const uploadImage = async (file: File): Promise<string | null> => {
     if (!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)) { alert("Only PNG / JPG / GIF / WebP images allowed."); return null; }
@@ -68,8 +93,10 @@ export default function EditTest() {
   };
 
   const saveAll = async () => {
+    if (locked) { alert("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
     setSaving(true);
-    await supabase.from("questions").delete().eq("test_id", id);
+    const del = await supabase.from("questions").delete().eq("test_id", id);
+    if (del.error) { setSaving(false); alert(del.error.message); return; }
     if (questions.length) {
       const rows = questions.map((q, i) => ({
         test_id: id, position: i, type: q.type, prompt: q.prompt,
@@ -107,35 +134,107 @@ export default function EditTest() {
       <div className="card mt-4 space-y-3">
         <input className="input" value={test.title} onChange={(e) => updateTest({ title: e.target.value })} />
         <textarea className="input" value={test.description || ""} onChange={(e) => updateTest({ description: e.target.value })} placeholder="Description" />
-        <label className="block text-sm">Duration (minutes)
-          <input className="input mt-1" type="number" min={1} value={test.duration_minutes} onChange={(e) => updateTest({ duration_minutes: parseInt(e.target.value) })} />
+        <label className="block text-sm">Durée (minutes)
+          <input className="input mt-1" type="number" min={1} max={600} value={test.duration_minutes} onChange={(e) => updateTest({ duration_minutes: parseInt(e.target.value) || 1 })} />
         </label>
 
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={test.is_published} onChange={(e) => updateTest({ is_published: e.target.checked })} />
-          Published (candidates can see it)
+          Publié (visible par les candidats autorisés)
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={test.require_seb || false} onChange={(e) => updateTest({ require_seb: e.target.checked })} />
-          Require Safe Exam Browser — block normal browsers from opening this test
-        </label>
+        <div className="border-t pt-3 grid grid-cols-2 gap-3 text-sm">
+          <label>Ouverture
+            <input className="input mt-1" type="datetime-local" value={toLocalInput(test.opens_at)} onChange={(e) => updateTest({ opens_at: fromLocalInput(e.target.value) })} />
+          </label>
+          <label>Fermeture
+            <input className="input mt-1" type="datetime-local" value={toLocalInput(test.closes_at)} onChange={(e) => updateTest({ closes_at: fromLocalInput(e.target.value) })} />
+          </label>
+        </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={test.invite_only || false} onChange={(e) => updateTest({ invite_only: e.target.checked })} />
-          Invite-only — only emails on the Invites list can see or take this test
-        </label>
-
-        <div className="border-t pt-3">
-          <div className="text-sm font-medium">Access code</div>
-          <p className="text-xs text-slate-500 mt-1">Optional. If set, candidates must enter this code to start the test. Share it with invited candidates.</p>
-          <div className="flex gap-2 mt-2">
-            <input className="input font-mono" placeholder="(none)" value={test.access_code || ""}
-              onChange={(e) => updateTest({ access_code: e.target.value.toUpperCase() || null })} />
-            <button className="btn-secondary" onClick={generateCode} type="button">Generate</button>
-            {test.access_code && <button className="btn-secondary" onClick={() => updateTest({ access_code: null })} type="button">Clear</button>}
+        <div className="border-t pt-3 space-y-2 text-sm">
+          <div className="font-medium">Surveillance</div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.invite_only} onChange={(e) => updateTest({ invite_only: e.target.checked })} />
+            Sur invitation uniquement (recommandé)
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.require_seb} onChange={(e) => updateTest({ require_seb: e.target.checked })} />
+            Safe Exam Browser obligatoire (vérifié sur chaque requête)
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={test.require_webcam !== false} onChange={(e) => updateTest({ require_webcam: e.target.checked })} />
+            Webcam obligatoire avec photos régulières
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.require_id_check} onChange={(e) => updateTest({ require_id_check: e.target.checked })} />
+            Vérification d&apos;identité (pièce + selfie) avant l&apos;épreuve
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.allow_resume} onChange={(e) => updateTest({ allow_resume: e.target.checked })} />
+            Autoriser la reprise sur un autre appareil sans intervention du surveillant
+          </label>
+          <div className="grid grid-cols-3 gap-3 pt-1">
+            <label>Infractions max
+              <input className="input mt-1" type="number" min={1} max={50} value={test.max_violations} onChange={(e) => updateTest({ max_violations: parseInt(e.target.value) || 1 })} />
+            </label>
+            <label>Tolérance fin (s)
+              <input className="input mt-1" type="number" min={0} max={600} value={test.grace_seconds} onChange={(e) => updateTest({ grace_seconds: parseInt(e.target.value) || 0 })} />
+            </label>
+            <label>Conservation photos (j)
+              <input className="input mt-1" type="number" min={1} max={3650} value={test.retention_days} onChange={(e) => updateTest({ retention_days: parseInt(e.target.value) || 90 })} />
+            </label>
           </div>
         </div>
+
+        <div className="border-t pt-3 space-y-2 text-sm">
+          <div className="font-medium">Tirage et ordre (chaque candidat a un sujet différent)</div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.shuffle_questions} onChange={(e) => updateTest({ shuffle_questions: e.target.checked })} />
+            Mélanger l&apos;ordre des questions
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.shuffle_options} onChange={(e) => updateTest({ shuffle_options: e.target.checked })} />
+            Mélanger l&apos;ordre des réponses
+          </label>
+          <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
+            <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />
+          </label>
+        </div>
+
+        <div className="border-t pt-3">
+          <div className="text-sm font-medium">Code d&apos;accès global</div>
+          <p className="text-xs text-slate-500 mt-1">Uniquement pour un test non restreint aux invités. Les invités utilisent leur code personnel.</p>
+          <div className="flex gap-2 mt-2">
+            <input className="input font-mono" placeholder="(aucun)" value={secrets.access_code || ""}
+              onChange={(e) => updateSecrets({ access_code: e.target.value.toUpperCase() || null })} />
+            <button className="btn-secondary" onClick={generateCode} type="button">Générer</button>
+            {secrets.access_code && <button className="btn-secondary" onClick={() => updateSecrets({ access_code: null })} type="button">Effacer</button>}
+          </div>
+        </div>
+
+        <div className="border-t pt-3 space-y-2 text-sm">
+          <div className="font-medium">Clés Safe Exam Browser</div>
+          <p className="text-xs text-slate-500">Téléchargez le .seb, ouvrez-le dans l&apos;outil de configuration SEB, onglet « Exam », et collez la <b>Config Key</b> (recommandé, valable pour tous les postes) et/ou les Browser Exam Keys. Une clé de 64 caractères hexadécimaux par ligne.</p>
+          <label className="block">Config Keys
+            <textarea key={"ck" + (secrets.seb_config_keys || []).join()} className="input mt-1 font-mono text-xs" rows={2} defaultValue={(secrets.seb_config_keys || []).join("\n")}
+              onBlur={(e) => updateSecrets({ seb_config_keys: keyList(e.target.value) })} />
+          </label>
+          <label className="block">Browser Exam Keys
+            <textarea key={"bek" + (secrets.seb_browser_exam_keys || []).join()} className="input mt-1 font-mono text-xs" rows={2} defaultValue={(secrets.seb_browser_exam_keys || []).join("\n")}
+              onBlur={(e) => updateSecrets({ seb_browser_exam_keys: keyList(e.target.value) })} />
+          </label>
+          <div className="flex gap-2 items-end">
+            <label className="block flex-1">Mot de passe de sortie SEB {secrets.seb_quit_password_hash ? "(défini)" : "(aucun)"}
+              <input className="input mt-1" type="password" autoComplete="new-password" value={quitPwd} onChange={(e) => setQuitPwd(e.target.value)} placeholder="Laisser vide pour supprimer" />
+            </label>
+            <button className="btn-secondary" type="button" onClick={saveQuitPassword}>Enregistrer</button>
+          </div>
+          {test.require_seb && !(secrets.seb_config_keys?.length || secrets.seb_browser_exam_keys?.length) &&
+            <p className="text-red-600 text-xs">SEB est obligatoire mais aucune clé n&apos;est configurée : personne ne pourra composer.</p>}
+        </div>
+        {msg && <p className="text-red-600 text-sm">{msg}</p>}
+        {locked && <p className="text-amber-700 text-sm">Des candidats ont composé : les questions sont verrouillées.</p>}
 
         <div className="border-t pt-3">
           <a href={`/admin/tests/${id}/invites`} className="btn-secondary">Manage candidate invites →</a>
@@ -145,7 +244,7 @@ export default function EditTest() {
           <div className="space-y-2 border-t pt-3">
             <div className="text-sm bg-slate-100 rounded p-2 break-all">
               Share link: <code>{link}</code>
-              {test.access_code && <div className="text-xs text-slate-600 mt-1">Code: <code className="font-mono">{test.access_code}</code></div>}
+              {secrets.access_code && <div className="text-xs text-slate-600 mt-1">Code : <code className="font-mono">{secrets.access_code}</code></div>}
             </div>
             <div className="text-sm bg-amber-50 border border-amber-200 rounded p-3">
               <b>Safe Exam Browser (recommended)</b>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
+import { appUrl } from "@/lib/security/env";
+import { requireStaff } from "@/lib/auth/staff";
 
 /**
  * Bulk-send Supabase invite emails to every pending invite for this test.
@@ -16,11 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY is not configured on the server" }, { status: 500 });
   }
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return NextResponse.json({ error: "Admins only" }, { status: 403 });
+  const s = await requireStaff(req, true);
+  if ("res" in s) return s.res;
 
   const { only } = (await req.json().catch(() => ({}))) as { only?: string[] };
 
@@ -33,10 +31,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: invites } = await q;
   if (!invites?.length) return NextResponse.json({ sent: 0 });
 
-  const origin = req.headers.get("x-forwarded-proto") && req.headers.get("host")
-    ? `${req.headers.get("x-forwarded-proto")}://${req.headers.get("host")}`
-    : new URL(req.url).origin;
-  const testUrl = `${origin}/test/${id}`;
+  // Origine fixe (APP_URL) : jamais l'en-tête Host, sinon un lien d'invitation
+  // pourrait pointer vers un domaine choisi par l'attaquant.
+  const testUrl = `${appUrl()}/test/${id}`;
 
   const results: { email: string; ok: boolean; error?: string }[] = [];
   for (const inv of invites) {
