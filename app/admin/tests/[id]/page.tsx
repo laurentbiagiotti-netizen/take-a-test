@@ -193,10 +193,7 @@ export default function EditTest() {
             <input type="checkbox" checked={!!test.require_seb} onChange={(e) => updateTest({ require_seb: e.target.checked })} />
             Safe Exam Browser obligatoire (vérifié sur chaque requête)
           </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={test.require_webcam !== false} onChange={(e) => updateTest({ require_webcam: e.target.checked })} />
-            Webcam obligatoire avec photos régulières
-          </label>
+          <p className="text-muted">Toujours actifs, non désactivables : caméra lancée automatiquement et analysée, plein écran obligatoire, une question à la fois sans retour en arrière.</p>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!test.require_id_check} onChange={(e) => updateTest({ require_id_check: e.target.checked })} />
             Vérification d&apos;identité (pièce + selfie) avant l&apos;épreuve
@@ -231,10 +228,6 @@ export default function EditTest() {
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!test.shuffle_options} onChange={(e) => updateTest({ shuffle_options: e.target.checked })} />
             Mélanger l&apos;ordre des réponses
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.linear_navigation} onChange={(e) => updateTest({ linear_navigation: e.target.checked })} />
-            Une question à la fois, sans retour en arrière (vérifié par le serveur)
           </label>
           <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
             <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />

@@ -55,7 +55,9 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **Webcam imposée côté serveur** : absence de photo pendant plus de 75 s = infraction.
 - **Analyse caméra** dans le navigateur (détecteur de visages embarqué, aucun service externe) : absence de visage (avertissement), plusieurs visages, caméra masquée ou image figée (infractions). Chaque anomalie déclenche une photo immédiate, encadrée en orange dans la fiche du candidat. La détection peut se tromper : elle signale, le surveillant juge.
 - **Plein écran automatique** au clic de démarrage (un navigateur ne permet pas de l'ouvrir sans clic) ; si le candidat en sort, l'épreuve est masquée par un écran de blocage jusqu'à son retour. Sous Safe Exam Browser, déjà en mode kiosque, ce contrôle est inutile et désactivé.
-- **Une question à la fois** (option par test) : pas de retour en arrière, réponse verrouillée en passant à la suivante, vérifié par le serveur.
+- **Une question à la fois, toujours** (non désactivable) : pas de retour en arrière, réponse verrouillée en passant à la suivante, vérifié par le serveur.
+- **Caméra obligatoire et automatique** : ouverte dès l'arrivée sur la page, départ impossible sans caméra et sans visage détecté ; caméra coupée en cours d'épreuve = infraction et épreuve masquée.
+- **Plein écran obligatoire** : l'épreuve ne démarre pas sans lui ; en sortir est une infraction, l'épreuve est masquée et le moindre clic le redemande.
 - **Rôle surveillant** (`proctor`) : suit les tentatives, valide les identités, ajoute du temps (tiers-temps), arrête une épreuve et note les réponses rédigées, sans voir les codes d'accès ni modifier les examens ou les notes de QCM.
 - **Fenêtre d'ouverture** (date d'ouverture et de fermeture).
 - **RGPD** : photos (webcam, identité) purgées automatiquement après la durée de conservation fixée par test ; webcam désactivable par test.

@@ -57,6 +57,8 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const [left, setLeft] = useState(25 * 60);
   const [cam, setCam] = useState<CameraStatus | null>(null);
   const [camOn, setCamOn] = useState(false);
+  const [camDenied, setCamDenied] = useState(false);
+  const [confirmNext, setConfirmNext] = useState(false);
   const [anomalies, setAnomalies] = useState<{ kind: CameraAnomaly; at: string }[]>([]);
   const [isFull, setIsFull] = useState(true);
   const [fullExits, setFullExits] = useState(0);
@@ -74,6 +76,8 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     set("screens", extended === true ? "ko" : extended === false ? "ok" : "info",
       extended === true ? "Écran secondaire détecté : débranchez-le le jour de l'épreuve." : extended === false ? undefined : "Non vérifiable avec ce navigateur.");
     set("seb", inSeb ? "ok" : "info", inSeb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
+    set("fullscreen", "info", inSeb ? "Géré par Safe Exam Browser." : "Obligatoire : il s'active au démarrage, l'épreuve ne commence pas sans lui.");
+    openCamera();
     return () => streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
@@ -113,6 +117,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   }, [camOn, stage, modelUrl]);
 
   // Plein écran : épreuve masquée tant que le candidat n'y est pas
+  // Tout clic ou touche hors plein écran le redemande
   useEffect(() => {
     if (stage !== "exam" || inSeb) return;
     const onFs = () => {
@@ -120,27 +125,39 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
       setIsFull(full);
       if (!full) setFullExits((n) => n + 1);
     };
+    const refull = () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().then(() => setIsFull(true)).catch(() => {});
+    };
     document.addEventListener("fullscreenchange", onFs);
-    return () => document.removeEventListener("fullscreenchange", onFs);
+    document.addEventListener("pointerdown", refull, true);
+    document.addEventListener("keydown", refull, true);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      document.removeEventListener("pointerdown", refull, true);
+      document.removeEventListener("keydown", refull, true);
+    };
   }, [stage]);
 
-  const testCamera = async () => {
+  // Caméra ouverte automatiquement à l'arrivée sur la page
+  async function openCamera() {
+    if (streamRef.current?.getVideoTracks().some((t) => t.readyState === "live")) return;
+    set("camera", "info", "Ouverture de la caméra : autorisez l'accès quand le navigateur le demande.");
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
       streamRef.current = s;
+      s.getVideoTracks().forEach((t) => t.addEventListener("ended", () => {
+        setCamOn(false); setCam(null);
+        set("camera", "ko", "La caméra a été coupée.");
+      }));
       if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play().catch(() => {}); }
       set("camera", "info", "Caméra active : analyse du visage en cours…");
+      setCamDenied(false);
       setCamOn(true);
-    } catch { set("camera", "ko", "Accès refusé ou caméra absente. Autorisez la caméra dans votre navigateur."); }
-  };
-
-  const testFullscreen = async () => {
-    try {
-      await document.documentElement.requestFullscreen();
-      set("fullscreen", "ok", "Plein écran disponible.");
-      setTimeout(() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }, 1500);
-    } catch { set("fullscreen", "ko", "Le plein écran est bloqué par ce navigateur."); }
-  };
+    } catch {
+      setCamDenied(true);
+      set("camera", "ko", "Caméra refusée ou absente : autorisez-la dans le navigateur (icône dans la barre d'adresse) puis réessayez.");
+    }
+  }
 
   const goFull = async () => {
     if (inSeb) return true;
@@ -148,9 +165,23 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     catch { setBanner("Le navigateur a refusé le plein écran : cliquez à nouveau."); return false; }
   };
 
+  const faceOk = camOn && !!cam && !cam.anomaly
+    && (cam.faces === 1 || (cam.ready && cam.faces === null && cam.brightness >= 18));
+
   const begin = async () => {
-    await goFull();
-    setStage("exam"); setStep(0); window.scrollTo({ top: 0 });
+    setBanner(null);
+    if (!faceOk) { setBanner("La caméra est obligatoire et un seul visage doit être détecté pour commencer."); return; }
+    if (!(await goFull()) || (!inSeb && !document.fullscreenElement)) {
+      setBanner("Le plein écran est obligatoire : l'épreuve ne peut pas commencer sans lui.");
+      return;
+    }
+    setStage("exam"); setStep(0); setBanner(null); window.scrollTo({ top: 0 });
+  };
+
+  const validate = () => {
+    setConfirmNext(false);
+    if (step < total - 1) { setStep((s) => s + 1); window.scrollTo({ top: 0 }); }
+    else finish();
   };
 
   const run = async (command: string) => {
@@ -183,12 +214,18 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
 
   return (
     <div className="min-h-screen relative">
-      {stage === "exam" && !isFull && !inSeb && (
+      {stage === "exam" && ((!isFull && !inSeb) || !camOn) && (
         <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
           <div className="card max-w-md text-center">
-            <h2 className="h1 text-danger">Plein écran requis</h2>
-            <p className="text-muted mt-3">Vous avez quitté le plein écran. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas.</p>
-            <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
+            {!camOn ? <>
+              <h2 className="h1 text-danger">Caméra requise</h2>
+              <p className="text-muted mt-3">La caméra a été coupée. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant qu&apos;elle n&apos;est pas rétablie.</p>
+              <button className="btn mt-6" onClick={openCamera} autoFocus>Réactiver la caméra</button>
+            </> : <>
+              <h2 className="h1 text-danger">Plein écran obligatoire</h2>
+              <p className="text-muted mt-3">Vous avez quitté le plein écran. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas.</p>
+              <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
+            </>}
           </div>
         </div>
       )}
@@ -233,8 +270,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
                       {c.detail && <div className="text-xs text-muted mt-0.5">{c.detail}</div>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {c.id === "camera" && !camOn && <button className="btn-secondary !py-1 text-xs" onClick={testCamera}>Tester</button>}
-                      {c.id === "fullscreen" && <button className="btn-secondary !py-1 text-xs" onClick={testFullscreen}>Tester</button>}
+                      {c.id === "camera" && camDenied && <button className="btn-secondary !py-1 text-xs" onClick={openCamera}>Réessayer</button>}
                       <Badge s={c.state} />
                     </div>
                   </div>
@@ -251,10 +287,14 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             </section>
             <div className="card text-sm text-muted space-y-1">
               <div className="h2 text-fg mb-2">Le jour de l&apos;épreuve</div>
-              <p>Plein écran automatique au démarrage : si vous en sortez, l&apos;épreuve est masquée. Caméra allumée et analysée, un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
-              <p>Une question à la fois. Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
+              <p>Plein écran obligatoire : l&apos;épreuve ne démarre pas sans lui et reste masquée si vous en sortez. Caméra obligatoire, ouverte automatiquement et analysée en continu. Un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
+              <p>Une question à la fois, sans retour en arrière : une réponse validée est définitive. Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
             </div>
-            <button className="btn" onClick={begin}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
+            {banner && <p className="text-danger text-sm">{banner}</p>}
+            <div className="flex items-center gap-4">
+              <button className="btn" onClick={begin} disabled={!faceOk}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
+              {!faceOk && <span className="text-xs text-muted">Disponible dès que la caméra détecte votre visage.</span>}
+            </div>
           </>
         )}
 
@@ -262,14 +302,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
           <>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted">Question <b className="text-fg">{step + 1}</b> / {total}</span>
-              <div className="flex gap-1">
-                {Array.from({ length: total }, (_, i) => (
-                  <button key={i} onClick={() => setStep(i)} aria-label={`Question ${i + 1}`}
-                    className={`w-7 h-7 text-xs rounded border ${i === step ? "border-accent font-bold text-fg" : "border-line text-muted"} ${i === 0 ? (termDone ? "bg-surface-2" : "") : answers[questions[i - 1].id] ? "bg-surface-2" : ""}`}>
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
+              <span className="text-xs text-muted">Question par question : pas de retour en arrière.</span>
             </div>
 
             {step === 0 ? (
@@ -292,11 +325,14 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
               </section>
             )}
 
-            <div className="flex justify-between">
-              <button className="btn-secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>← Précédente</button>
-              {step < total - 1
-                ? <button className="btn" onClick={() => { setStep((s) => s + 1); window.scrollTo({ top: 0 }); }}>Suivante →</button>
-                : <button className="btn" onClick={finish}>Terminer et voir mon score</button>}
+            <div className="flex justify-end items-center gap-2">
+              {confirmNext ? <>
+                <span className="text-sm text-danger">{step < total - 1 ? "Valider ? Vous ne pourrez plus revenir sur cette question." : "Rendre la copie définitivement ?"}</span>
+                <button className="btn-secondary" onClick={() => setConfirmNext(false)}>Annuler</button>
+                <button className="btn" onClick={validate}>Confirmer</button>
+              </> : step < total - 1
+                ? <button className="btn" onClick={() => setConfirmNext(true)}>Valider et continuer →</button>
+                : <button className="btn" onClick={() => setConfirmNext(true)}>Valider et voir mon score</button>}
             </div>
           </>
         )}
@@ -328,7 +364,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
               {anomalies.map((a, i) => <div key={i} className="text-xs text-muted">{a.at} · {ANOMALY_LABEL[a.kind]}</div>)}
             </div>
             <div className="flex gap-3">
-              <button className="btn-secondary" onClick={() => { setStage("exam"); setResult(null); setStep(0); goFull(); }}>Revenir à l&apos;épreuve</button>
+              <button className="btn-secondary" onClick={() => window.location.reload()}>Recommencer l&apos;essai</button>
               {!staticSite && <a className="btn" href="/login">Accéder à mes examens</a>}
             </div>
           </section>

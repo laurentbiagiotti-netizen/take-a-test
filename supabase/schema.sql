@@ -41,7 +41,7 @@ create table tests (
   require_webcam boolean not null default true,
   id_verify_before_start boolean not null default false,
   seb_accept_config_key boolean not null default false,
-  linear_navigation boolean not null default false,
+  linear_navigation boolean not null default true,
   draw_count int check (draw_count is null or draw_count > 0),
   shuffle_questions boolean not null default true,
   shuffle_options boolean not null default true,
@@ -764,7 +764,7 @@ begin
     'state', a.status, 'attempt_id', a.id, 'unlocked', a.unlocked,
     'identity_status', a.identity_status, 'title', t.title, 'description', t.description,
     'duration_minutes', t.duration_minutes + a.extra_minutes, 'max_violations', t.max_violations,
-    'require_seb', t.require_seb, 'require_webcam', t.require_webcam, 'linear', t.linear_navigation,
+    'require_seb', t.require_seb, 'require_webcam', true, 'linear', true,
     'id_verify_before_start', t.id_verify_before_start, 'session_active', a.session_token_hash is not null,
     'allow_resume', t.allow_resume, 'closes_at', t.closes_at);
 end; $$;
@@ -981,7 +981,7 @@ begin
 
   return jsonb_build_object('status', 'in_progress', 'token', v_token, 'attempt_id', a.id, 'deadline_at', a.deadline_at, 'server_now', now(),
     'questions', v_questions, 'answers', v_answers,
-    'linear', t.linear_navigation, 'current_index', a.current_index,
+    'linear', true, 'current_index', a.current_index,
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
 
@@ -1003,7 +1003,7 @@ begin
   end if;
   -- Webcam imposée côté serveur : pas de photo reçue depuis 75 s = infraction
   -- (au plus une toutes les 75 s).
-  if t.require_webcam and now() - a.session_started_at > interval '75 seconds' then
+  if now() - a.session_started_at > interval '75 seconds' then
     select max(created_at) into v_last_snap from proctor_events
       where attempt_id = a.id and kind in ('snapshot', 'snapshots_missing');
     if now() - coalesce(v_last_snap, a.session_started_at) > interval '75 seconds' then
@@ -1021,8 +1021,8 @@ end; $$;
 create or replace function public._check_linear(a attempts, p_question uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
-  if (select linear_navigation from tests where id = a.test_id)
-     and array_position(a.question_order, p_question) is distinct from a.current_index + 1 then
+  -- Toujours actif : question par question pour toutes les épreuves
+  if array_position(a.question_order, p_question) is distinct from a.current_index + 1 then
     raise exception 'question_locked' using errcode = 'P0001';
   end if;
 end; $$;
