@@ -103,27 +103,68 @@ function Ordering({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
   );
 }
 
+/**
+ * Associer : on clique un élément à gauche, puis sa réponse dans la liste de droite.
+ * Chaque ligne garde aussi une liste déroulante (clavier, lecteurs d'écran).
+ */
 function Matching({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any) => void }) {
   const pairs: Record<string, string> = value?.pairs || {};
-  const used = new Set(Object.values(pairs));
+  const left: any[] = q.options?.left || [];
+  const right: any[] = q.options?.right || [];
+  const [active, setActive] = useState<string | null>(null);
+  const used = new Map(Object.entries(pairs).map(([l, r]) => [r, l]));
+  const setPair = (l: string, r: string | null) => {
+    const next = { ...pairs };
+    for (const [k, v] of Object.entries(next)) if (r && v === r && k !== l) delete next[k];
+    if (r) next[l] = r; else delete next[l];
+    onChange({ pairs: next });
+  };
+  const pick = (r: string) => {
+    const target = active ?? left.find((l) => !pairs[l.id])?.id;
+    if (!target) return;
+    setPair(target, pairs[target] === r ? null : r);
+    const nextEmpty = left.find((l) => l.id !== target && !pairs[l.id]);
+    setActive(nextEmpty ? nextEmpty.id : null);
+  };
+  const textOf = (id?: string) => right.find((r) => r.id === id)?.text;
   return (
-    <div className="space-y-2">
-      {(q.options?.left || []).map((l: any) => (
-        <div key={l.id} className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 p-3 rounded-md border border-line bg-surface-2">
-          <span className="font-medium">{l.text}</span>
-          <span className="text-faint">→</span>
-          <select className="input" value={pairs[l.id] || ""} onChange={(e) => {
-            const next = { ...pairs };
-            if (e.target.value) next[l.id] = e.target.value; else delete next[l.id];
-            onChange({ pairs: next });
-          }}>
-            <option value="">Choisir…</option>
-            {(q.options?.right || []).map((r: any) => (
-              <option key={r.id} value={r.id}>{r.text}{used.has(r.id) && pairs[l.id] !== r.id ? " (déjà utilisé)" : ""}</option>
-            ))}
-          </select>
+    <div className="grid md:grid-cols-[1.3fr_1fr] gap-4">
+      <ul className="space-y-2">
+        {left.map((l) => {
+          const isActive = active === l.id;
+          return (
+            <li key={l.id}>
+              <div className={`rounded-md border p-3 transition-colors ${isActive ? "border-accent bg-accent/10" : pairs[l.id] ? "border-line-strong bg-surface-2" : "border-line bg-surface-2"}`}>
+                <button type="button" className="w-full text-left flex items-center gap-3" onClick={() => setActive(isActive ? null : l.id)} aria-pressed={isActive}>
+                  <span className="font-medium flex-1">{l.text}</span>
+                  <span className={`text-sm px-2 py-1 rounded ${pairs[l.id] ? "bg-accent/15 text-accent-light" : "text-faint border border-dashed border-line"}`}>
+                    {textOf(pairs[l.id]) || (isActive ? "choisissez à droite" : "à associer")}
+                  </span>
+                </button>
+                <label className="sr-only" htmlFor={`m-${l.id}`}>Réponse pour {l.text}</label>
+                <select id={`m-${l.id}`} className="sr-only focus:not-sr-only focus:input focus:mt-2" value={pairs[l.id] || ""} onChange={(e) => setPair(l.id, e.target.value || null)}>
+                  <option value="">Choisir…</option>
+                  {right.map((r) => <option key={r.id} value={r.id}>{r.text}</option>)}
+                </select>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+      <div>
+        <div className="text-xs text-muted mb-2">{active ? "Cliquez la bonne réponse :" : "Cliquez un élément à gauche, puis sa réponse :"}</div>
+        <div className="flex flex-wrap gap-2">
+          {right.map((r) => {
+            const owner = used.get(r.id);
+            return (
+              <button type="button" key={r.id} onClick={() => pick(r.id)}
+                className={`px-3 py-2 rounded-md border text-sm text-left transition-colors ${owner ? "border-line text-faint bg-bg" : "border-line-strong bg-surface-2 hover:border-accent"}`}>
+                {r.text}{owner && <span className="sr-only"> (déjà associé)</span>}
+              </button>
+            );
+          })}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

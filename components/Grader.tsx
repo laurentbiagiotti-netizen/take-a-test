@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/components/Toaster";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -26,7 +27,7 @@ export default function Grader({
       body: JSON.stringify({ score: score === "" ? null : Number(score), feedback }),
     });
     setSaving(false);
-    if (!r.ok) { const j = await r.json().catch(() => ({})); return alert(j.error || "Échec de l’enregistrement"); }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); return notify(j.error || "Échec de l’enregistrement"); }
     const j = await r.json();
     setSavedAt(new Date().toLocaleTimeString());
     router.refresh();

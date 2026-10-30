@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Field, PasswordField, PasswordMeter, authMessage, passwordScore } from "@/components/auth/fields";
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -15,14 +16,15 @@ export default function SignupPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (passwordScore(password).score < 2) return setErr("Choisissez un mot de passe plus solide (voir l'indicateur).");
     setLoading(true); setErr(null);
-    // Role is hard-locked to candidate. Admins are provisioned via SQL/dashboard.
+    // Rôle verrouillé à « candidat » : les comptes de l'équipe sont créés à part.
     const { error } = await supabase.auth.signUp({
       email, password,
       options: { data: { full_name: fullName, role: "candidate" } },
     });
-    if (error) { setLoading(false); return setErr(error.message); }
     setLoading(false);
+    if (error) return setErr(authMessage(error.message));
     router.push("/dashboard");
     router.refresh();
   };
@@ -30,12 +32,15 @@ export default function SignupPage() {
   return (
     <main className="max-w-md mx-auto px-6 py-16">
       <h1 className="h1">Créer un compte candidat</h1>
-      <p className="text-sm text-muted mt-1">Vous avez reçu une invitation ? Utilisez exactement l&apos;adresse e-mail à laquelle elle a été envoyée.</p>
+      <p className="text-sm text-muted mt-2">Utilisez exactement l&apos;adresse e-mail qui a reçu votre convocation : c&apos;est elle qui vous donne accès à l&apos;épreuve.</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
-        <input className="input" placeholder="Nom et prénom" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-        <input className="input" type="email" placeholder="Adresse e-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="input" type="password" placeholder="Mot de passe (12 caractères minimum)" value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required />
-        {err && <p className="text-sm text-danger">{err}</p>}
+        <Field label="Prénom et nom" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <Field label="Adresse e-mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <div>
+          <PasswordField autoComplete="new-password" hint="Astuce : une phrase de plusieurs mots est longue et facile à retenir." value={password} onChange={(e) => setPassword(e.target.value)} minLength={12} required />
+          <PasswordMeter value={password} />
+        </div>
+        {err && <p className="text-sm text-danger" role="alert">{err}</p>}
         <button className="btn w-full justify-center" disabled={loading}>{loading ? "Création…" : "Créer le compte"}</button>
       </form>
       <p className="mt-4 text-sm text-muted">Déjà un compte ? <Link href="/login" className="underline">Se connecter</Link></p>

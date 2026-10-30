@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/components/Toaster";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -43,7 +44,7 @@ export default function InvitesPage() {
   const parsed = input.trim() ? importCandidates(input) : { rows: [], skipped: 0 };
 
   const addBatch = async () => {
-    if (!parsed.rows.length) return alert("Aucune adresse e-mail valide");
+    if (!parsed.rows.length) return notify("Aucune adresse e-mail valide");
     setBusy(true);
     const existing = new Set(invites.map((i) => i.email));
     const fresh = parsed.rows.filter((r) => !existing.has(r.email));
@@ -51,7 +52,7 @@ export default function InvitesPage() {
       ? await supabase.from("invites").insert(fresh.map((r) => ({ ...r, test_id: id, code: genCode() })))
       : { error: null };
     setBusy(false);
-    if (error) return alert(error.message);
+    if (error) return notify(error.message);
     setNote(`${fresh.length} candidat(s) ajouté(s)${parsed.rows.length - fresh.length ? `, ${parsed.rows.length - fresh.length} déjà présent(s)` : ""}${parsed.skipped ? `, ${parsed.skipped} ligne(s) ignorée(s) (adresse absente ou en double)` : ""}.`);
     setInput("");
     load();
@@ -61,7 +62,7 @@ export default function InvitesPage() {
     const v = Math.min(600, Math.max(0, Math.round(minutes || 0)));
     if (v === inv.extra_minutes) return;
     const { error } = await supabase.from("invites").update({ extra_minutes: v }).eq("id", inv.id);
-    if (error) return alert(error.message);
+    if (error) return notify(error.message);
     setInvites((all) => all.map((x) => x.id === inv.id ? { ...x, extra_minutes: v } : x));
   };
 
@@ -170,6 +171,7 @@ export default function InvitesPage() {
               </td>
             </tr>
           ))}
+          {!invites.length && <tr><td colSpan={5} className="py-8 text-center text-muted">Aucun candidat pour l&apos;instant : collez une liste d&apos;adresses ou un export HubSpot / Grimp ci-dessus.</td></tr>}
         </tbody>
       </table>
 

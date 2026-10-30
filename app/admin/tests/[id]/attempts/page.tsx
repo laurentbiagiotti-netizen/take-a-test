@@ -61,6 +61,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
               </tr>
             );
           })}
+          {!(attempts || []).length && <tr><td colSpan={9} className="py-8 text-center text-muted">Aucune tentative pour l&apos;instant. Elles apparaissent dès qu&apos;un candidat ouvre l&apos;épreuve.</td></tr>}
         </tbody>
       </table>
     </main>

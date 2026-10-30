@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/components/Toaster";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { API_SCOPES } from "@/lib/api/scopes";
@@ -30,7 +31,7 @@ export default function ApiAdmin() {
   const createKey = async () => {
     const r = await fetch("/api/admin/api-keys", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, scopes, expires_in_days: days, require_signature: requireSig, allowed_cidrs: cidrs.split(/[\s,]+/).filter(Boolean) }) });
     const j = await r.json();
-    if (!r.ok) return alert(j.error);
+    if (!r.ok) return notify(j.error);
     setNewKey({ key: j.key, signing_secret: j.signing_secret }); setName(""); setCidrs(""); load();
   };
 
@@ -41,12 +42,12 @@ export default function ApiAdmin() {
 
   const addHook = async () => {
     let u: URL;
-    try { u = new URL(hookUrl); } catch { return alert("URL invalide"); }
-    if (u.protocol !== "https:") return alert("HTTPS obligatoire");
-    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1)/.test(u.hostname)) return alert("Adresse interne refusée");
+    try { u = new URL(hookUrl); } catch { return notify("URL invalide"); }
+    if (u.protocol !== "https:") return notify("HTTPS obligatoire");
+    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1)/.test(u.hostname)) return notify("Adresse interne refusée");
     const secret = randomHex(32);
     const { error } = await supabase.from("webhooks").insert({ url: hookUrl, secret, events: EVENTS });
-    if (error) return alert(error.message);
+    if (error) return notify(error.message);
     setNewSecret(secret); setHookUrl(""); load();
   };
 

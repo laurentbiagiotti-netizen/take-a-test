@@ -13,7 +13,7 @@ const config: Config = {
         "line-strong": "#323b55",
         fg: "#eceef3",
         muted: "#9aa3b7",
-        faint: "#6b7489",
+        faint: "#7c859b",
         accent: "#fd7119",
         "accent-light": "#ffa364",
         ok: "#34d399",

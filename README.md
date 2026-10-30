@@ -227,3 +227,7 @@ Aucune surveillance à distance n'est parfaite. SEB lui-même n'est pas inviolab
 ## Licence
 
 MIT. Projet d'origine © ExPl0iT-29 ; modifications © Cybersup.
+
+## Réinitialisation du mot de passe
+
+La page « Mot de passe oublié » envoie un lien Supabase vers `/reset-password`. Ajoutez l'adresse `https://<votre domaine>/reset-password` dans Supabase, *Authentication, URL Configuration, Redirect URLs*.

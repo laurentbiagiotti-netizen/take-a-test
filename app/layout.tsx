@@ -7,9 +7,10 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import SiteHeader from "@/components/SiteHeader";
+import Toaster from "@/components/Toaster";
 
 export const metadata: Metadata = {
-  title: "Cybersup Exam",
+  title: { default: "Tests d'admission · Cybersup", template: "%s · Cybersup" },
   description: "Plateforme d'examens surveillés de Cybersup",
   robots: { index: false, follow: false },
 };
@@ -24,6 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen flex flex-col">
         {!bare && <SiteHeader />}
         <div className="flex-1">{children}</div>
+        <Toaster />
         {!bare && (
           <footer className="border-t border-line py-4 text-center text-xs text-faint">
             Cybersup, l&apos;école qui protège votre avenir

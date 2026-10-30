@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/components/Toaster";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -17,7 +18,7 @@ export default function StaffActions({ attemptId, status, identityStatus, isAdmi
     });
     setBusy(false);
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) return alert(j.error || "Erreur");
+    if (!r.ok) return notify(j.error || "Erreur");
     if (j.deleted) { router.push("/admin"); return; }
     router.refresh();
   };

@@ -34,4 +34,4 @@ table { @apply text-fg; }
 thead { @apply text-muted; }
 code { @apply font-mono text-[0.9em]; }
 input[type="checkbox"], input[type="radio"] { accent-color: #fd7119; }
-a.underline { @apply decoration-accent/60 underline-offset-2; }
+a.underline { @apply decoration-accent decoration-[1.5px] underline-offset-[3px] hover:text-fg; }

@@ -1,4 +1,5 @@
 "use client";
+import { notify } from "@/components/Toaster";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -87,12 +88,12 @@ export default function EditTest() {
   const fromLocalInput = (v: string) => v ? new Date(v).toISOString() : null;
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    if (!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)) { alert("Images PNG, JPG, GIF ou WebP uniquement."); return null; }
-    if (file.size > 5 * 1024 * 1024) { alert("Image trop lourde (5 Mo maximum)."); return null; }
+    if (!/^image\/(png|jpe?g|gif|webp)$/i.test(file.type)) { notify("Images PNG, JPG, GIF ou WebP uniquement."); return null; }
+    if (file.size > 5 * 1024 * 1024) { notify("Image trop lourde (5 Mo maximum)."); return null; }
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
     const path = `${id}/${crypto.randomUUID()}.${ext}`;
     const up = await supabase.storage.from("question-images").upload(path, file, { contentType: file.type });
-    if (up.error) { alert(up.error.message); return null; }
+    if (up.error) { notify(up.error.message); return null; }
     const { data: pub } = supabase.storage.from("question-images").getPublicUrl(path);
     return pub.publicUrl;
   };
@@ -110,19 +111,19 @@ export default function EditTest() {
   };
 
   const saveAll = async () => {
-    if (locked) { alert("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
+    if (locked) { notify("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
     for (const [i, q] of questions.entries()) {
       if (FUN_TYPES.includes(q.type)) {
         const err = validateQuestion(q.type as any, q.options, q.correct);
-        if (err) { alert(`Question ${i + 1} : ${err}`); return; }
+        if (err) { notify(`Question ${i + 1} : ${err}`); return; }
       }
       if (q.type !== "terminal") continue;
       try { const x = JSON.parse(q.terminal?.scenario || ""); if (!x.files) throw new Error(); if (!q.terminal?.flag?.trim() && !(x.objectives || []).length) throw new Error("vide"); }
-      catch (e: any) { alert(`Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`); return; }
+      catch (e: any) { notify(`Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`); return; }
     }
     setSaving(true);
     const del = await supabase.from("questions").delete().eq("test_id", id);
-    if (del.error) { setSaving(false); alert(del.error.message); return; }
+    if (del.error) { setSaving(false); notify(del.error.message); return; }
     if (questions.length) {
       const rows = questions.map((q, i) => ({
         test_id: id, position: i, type: q.type, prompt: q.prompt,
@@ -141,7 +142,7 @@ export default function EditTest() {
       }) : null).filter(Boolean);
       if (termRows.length) {
         const { error } = await supabase.from("question_terminals").upsert(termRows as any[]);
-        if (error) alert(error.message);
+        if (error) notify(error.message);
       }
     }
     setSaving(false);
@@ -159,7 +160,7 @@ export default function EditTest() {
           onClick={async () => {
             if (!confirm(`Supprimer « ${test.title} » ?\n\nLes questions, tentatives, réponses, invitations et journaux de cet examen seront aussi supprimés. Action irréversible.`)) return;
             const { error } = await supabase.from("tests").delete().eq("id", id);
-            if (error) return alert(error.message);
+            if (error) return notify(error.message);
             window.location.href = "/admin";
           }}
         >Supprimer l&apos;examen</button>
