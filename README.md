@@ -18,7 +18,7 @@ Le navigateur du candidat n'a **aucun accès direct** aux tables d'examen. Il ne
 3. vérifie le jeton de session unique (généré par le serveur, cookie httpOnly) et le poste : changement de navigateur = infraction, changement d'IP = signalé ;
 4. appelle une fonction SQL réservée au serveur, qui applique le chrono, les règles et le barème.
 
-Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la base **décide** (gravité, compteur d'infractions, arrêt de l'épreuve, correction).
+Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la base **décide** de ce qui est automatique (chrono, compteur d'infractions, correction). **Arrêter une épreuve reste toujours une décision humaine** : au seuil d'infractions, le surveillant est alerté et tranche (recommandation CNIL, délibération 2023-058, §38).
 
 ## Ce qui change par rapport au projet d'origine
 
@@ -52,8 +52,8 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **Filigrane** (e-mail du candidat + identifiant) sur l'écran d'examen, pour décourager et tracer les photos d'écran.
 - Détection de plusieurs écrans, des outils de développement, des tentatives d'impression.
 - **Journal inaltérable** : événements numérotés et chaînés par hash, ancrés dans la tentative et dans les webhooks ; modification, suppression ou troncature détectées.
-- **Webcam imposée côté serveur** : absence de photo pendant plus de 75 s = infraction.
-- **Analyse caméra** dans le navigateur (détecteur de visages embarqué, aucun service externe) : absence de visage (avertissement), plusieurs visages, caméra masquée ou image figée (infractions). Chaque anomalie déclenche une photo immédiate, encadrée en orange dans la fiche du candidat. La détection peut se tromper : elle signale, le surveillant juge.
+- **Photos uniquement sur anomalie** : pas d'enregistrement ni de photo régulière ; une photo n'est prise que lorsqu'une anomalie est détectée, pour que le surveillant puisse la vérifier.
+- **Analyse caméra** dans le navigateur (détecteurs embarqués, aucun service externe, aucune reconnaissance faciale ni analyse du comportement) : absence de visage, autre personne, caméra masquée ou image figée sont des **alertes** pour le surveillant, jamais des infractions comptées.
 - **Plein écran automatique** au clic de démarrage (un navigateur ne permet pas de l'ouvrir sans clic) ; si le candidat en sort, l'épreuve est masquée par un écran de blocage jusqu'à son retour. Sous Safe Exam Browser, déjà en mode kiosque, ce contrôle est inutile et désactivé.
 - **Une question à la fois, toujours** (non désactivable) : pas de retour en arrière, réponse verrouillée en passant à la suivante, vérifié par le serveur.
 - **Caméra automatique** : ouverte dès l'arrivée sur la page ; si elle marche, le départ attend qu'un visage soit détecté. Si le candidat la refuse ou la coupe, l'épreuve continue mais le surveillant reçoit une alerte (« caméra refusée » ou « caméra coupée »), sans infraction comptée.
@@ -61,7 +61,7 @@ Le navigateur **signale** (sortie de plein écran, changement d'onglet…), la b
 - **Plein écran obligatoire** : l'épreuve ne démarre pas sans lui ; en sortir est une infraction, l'épreuve est masquée et le moindre clic le redemande.
 - **Rôle surveillant** (`proctor`) : suit les tentatives, valide les identités, ajoute du temps (tiers-temps), arrête une épreuve et note les réponses rédigées, sans voir les codes d'accès ni modifier les examens ou les notes de QCM.
 - **Fenêtre d'ouverture** (date d'ouverture et de fermeture).
-- **RGPD** : photos (webcam, identité) purgées automatiquement après la durée de conservation fixée par test ; webcam désactivable par test.
+- **RGPD** : notice candidats (`/confidentialite`), trame d'AIPD (`docs/aipd-trame.md`), photos et pièces d'identité purgées automatiquement après 30 jours (réglable par test), 60 jours après une suspicion de fraude signalée par un surveillant.
 - En-têtes HTTP durcis (CSP stricte, COOP, CORP, HSTS, `no-referrer`).
 
 ### Sécurité du staff et de l'infrastructure

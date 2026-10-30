@@ -43,7 +43,8 @@ export default function SignupPage() {
         {err && <p className="text-sm text-danger" role="alert">{err}</p>}
         <button className="btn w-full justify-center" disabled={loading}>{loading ? "Création…" : "Créer le compte"}</button>
       </form>
-      <p className="mt-4 text-sm text-muted">Déjà un compte ? <Link href="/login" className="underline">Se connecter</Link></p>
+      <p className="mt-4 text-xs text-muted">En créant un compte, vous acceptez que vos données soient traitées pour l&apos;organisation de l&apos;épreuve : <a href="/confidentialite" className="underline">vos données et vos droits</a>.</p>
+      <p className="mt-2 text-sm text-muted">Déjà un compte ? <Link href="/login" className="underline">Se connecter</Link></p>
     </main>
   );
 }

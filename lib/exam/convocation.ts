@@ -37,6 +37,9 @@ export function convocation(i: ConvocationInput): { to: string; subject: string;
     "L'épreuve se passe en plein écran, question par question, sans retour en arrière. Copier-coller et changement de fenêtre sont bloqués.",
     "À la fin, un accusé de réception avec un numéro de référence s'affiche : notez-le.",
     "",
+    "La caméra n'enregistre pas en continu : une photo n'est prise qu'en cas d'anomalie, et aucune décision n'est automatique. Vos données et vos droits, et la possibilité de passer l'épreuve en présentiel :",
+    `${i.origin}/confidentialite`,
+    "",
     "Bonne épreuve,",
     "L'équipe admissions Cybersup",
   ].join("\n");

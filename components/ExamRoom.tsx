@@ -8,7 +8,8 @@ import { EVENT_LABEL, TYPE_HINT, faceReady, formatClock, fullscreenSupported, is
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
- * d'infractions, clôture et correction sont décidés par le serveur.
+ * d'infractions et correction sont tenus par le serveur ; arrêter une épreuve
+ * est toujours une décision humaine (surveillant).
  * Aucune bonne réponse n'est jamais envoyée au navigateur.
  *
  * Règles fixes : une question à la fois sans retour, plein écran obligatoire,
@@ -20,7 +21,6 @@ type Q = PublicQ;
 type Phase = "prep" | "starting" | "active" | "ended" | "blocked";
 
 const HEARTBEAT_MS = 10_000;
-const SNAPSHOT_MS = 20_000;
 const VIOLATION_DEBOUNCE_MS = 1500;
 
 export default function ExamRoom(props: {
@@ -69,7 +69,7 @@ export default function ExamRoom(props: {
     camera.stop();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     setEndMessage(
-      status === "terminated" ? "L'épreuve a été interrompue : nombre maximal d'infractions atteint." :
+      status === "terminated" ? "L'épreuve a été interrompue par un surveillant. Vos réponses enregistrées ont été transmises." :
       status === "expired" ? "Le temps est écoulé. Vos réponses enregistrées ont été transmises." :
       "Vos réponses ont été transmises. Vous pouvez fermer cette fenêtre.");
     setPhase("ended");
@@ -107,7 +107,7 @@ export default function ExamRoom(props: {
       const t = Date.now();
       if (t - lastViolationAt.current < VIOLATION_DEBOUNCE_MS) return; // un seul geste = une infraction
       lastViolationAt.current = t;
-      setBanner(`Infraction signalée : ${EVENT_LABEL[kind] || kind}. Au bout de ${maxViolations}, l'épreuve s'arrête.`);
+      setBanner(`Infraction signalée : ${EVENT_LABEL[kind] || kind}. Au-delà de ${maxViolations}, le surveillant examine votre épreuve.`);
     }
     post("event", { kind, detail });
   }, [post, maxViolations]);
@@ -241,12 +241,7 @@ export default function ExamRoom(props: {
     if (blob) { const fd = new FormData(); fd.append("image", blob, name); await post("snapshot", undefined, fd); }
   }, [camera.videoRef, post]);
 
-  // Captures webcam régulières (déposées par le serveur dans un espace privé)
-  useEffect(() => {
-    if (phase !== "active") return;
-    const i = setInterval(() => { if (camera.live()) sendFrame("snap.jpg", 0.6); }, SNAPSHOT_MS);
-    return () => clearInterval(i);
-  }, [phase, camera.live, sendFrame]);
+  // Pas de photo régulière : une photo n'est prise que lors d'une anomalie (CNIL, délib. 2023-058)
 
   // Analyse caméra : anomalies signalées au serveur avec une photo immédiate
   useEffect(() => {
@@ -399,7 +394,7 @@ export default function ExamRoom(props: {
           <div className="card">
             <div className="h2">Aperçu caméra</div>
             <video ref={camera.attach} className={`mt-3 w-full aspect-video rounded-md bg-black object-cover border ${faceOk ? "border-ok" : "border-line"}`} muted playsInline aria-label="Aperçu de la caméra" />
-            <p className="text-xs text-muted mt-2">Placez-vous seul, face à la caméra, dans un endroit éclairé. Des photos sont prises pendant l&apos;épreuve et conservées de façon sécurisée pendant la durée fixée par l&apos;école.</p>
+            <p className="text-xs text-muted mt-2">Placez-vous seul, face à la caméra, dans un endroit calme et neutre. L&apos;image n&apos;est pas enregistrée en continu : une photo n&apos;est prise que si une anomalie est détectée. <a className="underline" href="/confidentialite" target="_blank" rel="noopener">Vos données et vos droits</a></p>
           </div>
         </section>
         <RulesList maxViolations={maxViolations} />

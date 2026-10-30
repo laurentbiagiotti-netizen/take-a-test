@@ -211,7 +211,7 @@ export default function EditTest() {
             Autoriser la reprise sur un autre appareil sans intervention du surveillant
           </label>
           <div className="grid grid-cols-3 gap-3 pt-1">
-            <label>Infractions max
+            <label title="Au-delà, le surveillant est alerté ; l'épreuve n'est jamais arrêtée automatiquement">Seuil d'alerte (infractions)
               <input className="input mt-1" type="number" min={1} max={50} value={test.max_violations} onChange={(e) => updateTest({ max_violations: parseInt(e.target.value) || 1 })} />
             </label>
             <label>Tolérance fin (s)

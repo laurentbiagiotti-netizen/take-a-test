@@ -351,7 +351,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
           </section>
         )}
       </main>
-      <footer className="border-t border-line py-4 text-center text-xs text-faint">Cybersup, l&apos;école qui protège votre avenir</footer>
+      <footer className="border-t border-line py-4 text-center text-xs text-faint">Cybersup, l&apos;école qui protège votre avenir{!staticSite && <> · <a href="/confidentialite" className="underline">Vos données et vos droits</a></>}</footer>
     </div>
   );
 }

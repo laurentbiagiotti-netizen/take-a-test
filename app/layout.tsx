@@ -28,7 +28,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Toaster />
         {!bare && (
           <footer className="border-t border-line py-4 text-center text-xs text-faint">
-            Cybersup, l&apos;école qui protège votre avenir
+            Cybersup, l&apos;école qui protège votre avenir · <a href="/confidentialite" className="underline">Vos données et vos droits</a>
           </footer>
         )}
       </body>

@@ -10,7 +10,7 @@ const LABEL: Record<string, string> = {
   camera_refused: "caméra refusée", no_face: "absence de visage", multiple_faces: "plusieurs visages",
   camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps visible)", snapshots_missing: "photos absentes",
   device_changed: "changement d'appareil", ip_changed: "changement d'adresse IP", connection_gap: "coupures réseau",
-  print_attempt: "tentatives d'impression", paste_blocked: "collages bloqués", copy_blocked: "copies bloquées",
+  print_attempt: "tentatives d'impression", violation_threshold: "seuil d'infractions atteint", staff_suspicion: "suspicion de fraude signalée", paste_blocked: "collages bloqués", copy_blocked: "copies bloquées",
 };
 const CAM = new Set(["no_face", "multiple_faces", "camera_covered", "camera_frozen", "other_person", "camera_refused", "camera_off"]);
 const STATUS: Record<string, string> = { pending: "pas commencé", in_progress: "en cours", submitted: "copie rendue", terminated: "interrompue (infractions)", expired: "temps écoulé" };

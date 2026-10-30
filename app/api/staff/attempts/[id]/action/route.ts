@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { requireStaff } from "@/lib/auth/staff";
 import { kickWebhooks } from "@/lib/webhooks";
 
-const ACTIONS = new Set(["reset_session", "extend_time", "terminate", "review_identity", "reset_attempt"]);
+const ACTIONS = new Set(["reset_session", "extend_time", "terminate", "review_identity", "reset_attempt", "flag_suspicion", "clear_suspicion"]);
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

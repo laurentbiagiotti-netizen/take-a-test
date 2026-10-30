@@ -3,8 +3,8 @@ import { notify } from "@/components/Toaster";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function StaffActions({ attemptId, status, identityStatus, isAdmin }: {
-  attemptId: string; status: string; identityStatus: string; isAdmin: boolean;
+export default function StaffActions({ attemptId, status, identityStatus, isAdmin, suspicionAt }: {
+  attemptId: string; status: string; identityStatus: string; isAdmin: boolean; suspicionAt?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -50,9 +50,17 @@ export default function StaffActions({ attemptId, status, identityStatus, isAdmi
             if (note !== null) act("review_identity", { ok: false, note });
           }}>Identité non conforme</button>
         </>}
+        {!suspicionAt
+          ? <button className="btn-secondary" disabled={busy} onClick={() => {
+              const note = prompt("Suspicion de fraude : motif (les photos seront conservées 60 jours de plus pour la procédure) :");
+              if (note) act("flag_suspicion", { note });
+            }}>Signaler une suspicion</button>
+          : <button className="btn-secondary" disabled={busy} onClick={() => act("clear_suspicion", {}, "Lever la suspicion ? Les photos suivront à nouveau la durée de conservation normale.")}>Lever la suspicion</button>}
         <button className="btn-secondary" onClick={verify}>Vérifier l&apos;intégrité du journal</button>
         {isAdmin && <button className="btn-secondary text-danger" disabled={busy} onClick={() => act("reset_attempt", {}, "Supprimer définitivement cette tentative (réponses et journal) pour permettre un nouveau passage ?")}>Supprimer la tentative</button>}
       </div>
+      {suspicionAt && <p className="text-warn">Suspicion signalée le {new Date(suspicionAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })} : photos conservées 60 jours à compter de cette date.</p>}
+      <p className="text-xs text-muted">Les alertes (caméra, sorties de fenêtre) ne décident de rien : c&apos;est à vous de vérifier et, si besoin, d&apos;arrêter l&apos;épreuve ou de signaler une suspicion.</p>
       {chain && <p className={chain.startsWith("Journal intègre") ? "text-ok" : "text-danger font-semibold"}>{chain}</p>}
     </div>
   );

@@ -12,7 +12,7 @@ const KIND: Record<string, string> = {
   camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps)", snapshots_missing: "photos absentes",
   connection_gap: "coupure réseau", ip_changed: "changement d'IP", device_changed: "changement d'appareil",
   print_attempt: "impression", copy_blocked: "copie bloquée", paste_blocked: "collage bloqué", shortcut_blocked: "raccourci bloqué",
-  attempt_terminated: "épreuve interrompue", attempt_expired: "temps écoulé",
+  attempt_terminated: "épreuve interrompue", violation_threshold: "SEUIL D'INFRACTIONS ATTEINT : à examiner", staff_suspicion: "suspicion signalée", attempt_expired: "temps écoulé",
 };
 const STATUS: Record<string, string> = { in_progress: "en cours", submitted: "rendu", terminated: "interrompu", expired: "temps écoulé" };
 

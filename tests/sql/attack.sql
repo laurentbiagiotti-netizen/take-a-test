@@ -62,6 +62,13 @@ select exam_log_event('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',6
 select exam_heartbeat('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'3.3.3.3','UA-CHANGE')->>'status' as hb_ua_change;
 select exam_log_event('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'fullscreen_exit',null,'1.1.1.1','UA1') as troisieme_infraction;
 select status, score, max_score, end_reason, violation_count from attempts where id=:'att';
+-- Seuil atteint : l'épreuve continue, le surveillant est alerté (jamais d'arrêt automatique)
+reset role;
+do $$ begin
+  if (select status from attempts where violation_count >= 3 limit 1) <> 'in_progress' then raise exception 'arret automatique interdit'; end if;
+  if not exists (select 1 from proctor_events where kind = 'violation_threshold' and severity = 'critical') then raise exception 'alerte de seuil absente'; end if;
+end $$;
+set role service_role;
 select exam_save_answer('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'22222222-0000-0000-0000-000000000003','{"text":"apres"}','1.1.1.1','UA1') as apres_cloture;
 select * from verify_event_chain(:'att');
 select count(*) from webhook_outbox;

@@ -50,7 +50,9 @@ create table tests (
   grace_seconds int not null default 30 check (grace_seconds between 0 and 600),
   opens_at timestamptz,
   closes_at timestamptz,
-  retention_days int not null default 90 check (retention_days between 1 and 3650),
+  -- Photos et pièces d'identité supprimées après ce délai (CNIL, délib. 2023-058 : pas de
+  -- conservation hors suspicion) ; 60 jours de plus si l'équipe a signalé une suspicion de fraude.
+  retention_days int not null default 30 check (retention_days between 1 and 3650),
   -- Admission : seuil global, plancher par domaine ({"Réflexes cyber": 0.3} = 30 % minimum),
   -- grille d'entretien oral affichée sur la fiche jury (Markdown).
   pass_mark numeric check (pass_mark is null or pass_mark >= 0),
@@ -142,6 +144,9 @@ create table attempts (
   current_index int not null default 0,
   recent_nonce_hashes text[] not null default '{}',
   resume_allowed boolean not null default false,
+  -- Suspicion de fraude retenue par une personne de l'équipe (jamais automatique)
+  suspicion_at timestamptz,
+  suspicion_note text,
   unique (test_id, candidate_id)
 );
 create index on attempts(status, deadline_at);
@@ -695,9 +700,12 @@ begin
   perform _log(p_attempt, p_kind, 'violation', p_detail, p_ip);
   update attempts set violation_count = violation_count + 1 where id = p_attempt returning * into a;
   select max_violations into v_max from tests where id = a.test_id;
-  if a.violation_count >= v_max then
-    perform _finalize_attempt(a.id, 'terminated', 'max_violations');
-    select * into a from attempts where id = p_attempt;
+  -- Seuil atteint : alerte au surveillant, jamais d'arrêt automatique. Une personne
+  -- de l'équipe vérifie et décide (CNIL, délib. 2023-058, §38 ; RGPD art. 22).
+  if a.violation_count = v_max then
+    perform _log(a.id, 'violation_threshold', 'critical', jsonb_build_object('count', a.violation_count, 'max', v_max), p_ip);
+    perform _enqueue_webhook('attempt.flagged', jsonb_build_object('attempt_id', a.id, 'test_id', a.test_id,
+      'candidate_id', a.candidate_id, 'violation_count', a.violation_count));
   end if;
   return a;
 end; $$;
@@ -1015,7 +1023,6 @@ declare
   a attempts;
   t tests;
   v_gap numeric;
-  v_last_snap timestamptz;
 begin
   a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
@@ -1024,25 +1031,7 @@ begin
   if v_gap > 45 then
     perform _log(a.id, 'connection_gap', 'warning', jsonb_build_object('seconds', round(v_gap)), p_ip);
   end if;
-  -- Webcam imposée côté serveur : pas de photo reçue depuis 75 s = infraction
-  -- (au plus une toutes les 75 s).
-  if now() - a.session_started_at > interval '75 seconds' then
-    select max(created_at) into v_last_snap from proctor_events
-      where attempt_id = a.id and kind in ('snapshot', 'snapshots_missing');
-    if now() - coalesce(v_last_snap, a.session_started_at) > interval '75 seconds' then
-      -- Caméra refusée ou coupée et déjà signalée : on journalise sans sanctionner
-      -- (le candidat a le droit de continuer, le surveillant voit l'alerte).
-      if exists (select 1 from proctor_events where attempt_id = a.id
-                 and kind in ('camera_refused', 'camera_off')
-                 and created_at > coalesce((select max(created_at) from proctor_events
-                                            where attempt_id = a.id and kind = 'snapshot'), a.session_started_at - interval '1 hour')) then
-        perform _log(a.id, 'snapshots_missing', 'warning', jsonb_build_object('camera', 'indisponible'), p_ip);
-      else
-        a := _add_violation(a.id, 'snapshots_missing', null, p_ip);
-        if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
-      end if;
-    end if;
-  end if;
+  -- Plus d'exigence de photos régulières : les photos ne sont prises que lors d'une anomalie.
   update attempts set last_seen_at = now() where id = a.id;
   return jsonb_build_object('status', a.status, 'deadline_at', a.deadline_at, 'server_now', now(),
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
@@ -1182,10 +1171,10 @@ begin
     when 'camera_off' then 'warning'
     when 'camera_refused' then 'warning'
     when 'no_face' then 'warning'
-    when 'multiple_faces' then 'violation'
-    when 'camera_covered' then 'violation'
-    when 'camera_frozen' then 'violation'
-    when 'other_person' then 'violation'
+    when 'multiple_faces' then 'warning'
+    when 'camera_covered' then 'warning'
+    when 'camera_frozen' then 'warning'
+    when 'other_person' then 'warning'
     when 'fullscreen_return' then 'info'
     when 'copy_blocked' then 'warning'
     when 'paste_blocked' then 'warning'
@@ -1370,6 +1359,13 @@ begin
     if not (p_arg->>'ok')::boolean and a.status = 'in_progress' then
       perform _finalize_attempt(a.id, 'terminated', 'identity_rejected');
     end if;
+  elsif p_action = 'flag_suspicion' then
+    -- Décision humaine : conserve les photos 60 jours de plus pour la procédure
+    update attempts set suspicion_at = now(), suspicion_note = left(p_arg->>'note', 500) where id = a.id;
+    perform _log(a.id, 'staff_suspicion', 'warning', jsonb_build_object('by', p_actor, 'note', left(p_arg->>'note', 500)), null);
+  elsif p_action = 'clear_suspicion' then
+    update attempts set suspicion_at = null, suspicion_note = null where id = a.id;
+    perform _log(a.id, 'staff_suspicion_cleared', 'info', jsonb_build_object('by', p_actor), null);
   elsif p_action = 'reset_attempt' then
     if not _is_admin_user(p_actor) then raise exception 'forbidden' using errcode = '42501'; end if;
     delete from attempts where id = a.id;
@@ -1438,7 +1434,8 @@ language sql stable security definer set search_path = public as $$
   from attempts a join tests t on t.id = a.test_id
   where a.status in ('submitted', 'terminated', 'expired')
     and a.media_purged_at is null
-    and a.submitted_at < now() - make_interval(days => t.retention_days);
+    and a.submitted_at < now() - make_interval(days => t.retention_days)
+    and (a.suspicion_at is null or a.suspicion_at < now() - interval '60 days');
 $$;
 
 create or replace function public.mark_media_purged(p_attempt uuid)

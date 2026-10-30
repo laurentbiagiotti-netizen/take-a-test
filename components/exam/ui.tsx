@@ -112,10 +112,10 @@ export function RuleIcon({ name }: { name: keyof typeof ICONS | string }) {
 export function examRules(maxViolations?: number): { icon: string; title: string; text: string }[] {
   return [
     { icon: "fullscreen", title: "Plein écran obligatoire", text: "L'épreuve démarre en plein écran et se masque si vous en sortez." },
-    { icon: "camera", title: "Caméra allumée", text: "Elle s'ouvre seule et est analysée. La refuser ou la couper est signalé au surveillant." },
+    { icon: "camera", title: "Caméra allumée", text: "Elle s'ouvre seule. L'image n'est pas enregistrée : une photo est prise seulement en cas d'anomalie (autre personne, caméra masquée), examinée par un surveillant." },
     { icon: "linear", title: "Une question à la fois", text: "Une réponse validée est définitive : pas de retour en arrière." },
     { icon: "clock", title: "Chrono tenu par le serveur", text: "Fermer ou recharger la page ne l'arrête pas." },
-    { icon: "lock", title: "Copier, coller, changer de fenêtre", text: maxViolations ? `Bloqués et comptés comme infractions : au bout de ${maxViolations}, l'épreuve s'arrête.` : "Bloqués et comptés comme infractions." },
+    { icon: "lock", title: "Copier, coller, changer de fenêtre", text: maxViolations ? `Bloqués et comptés comme infractions : au-delà de ${maxViolations}, un surveillant examine votre épreuve.` : "Bloqués et comptés comme infractions, examinées par un surveillant." },
     { icon: "screen", title: "Un seul écran, un seul appareil", text: "Débranchez tout écran secondaire avant de commencer." },
   ];
 }

@@ -72,7 +72,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <StaffActions attemptId={a.id} status={a.status} identityStatus={a.identity_status} isAdmin={profile?.role === "admin"} />
+      <StaffActions attemptId={a.id} status={a.status} identityStatus={a.identity_status} isAdmin={profile?.role === "admin"} suspicionAt={a.suspicion_at} />
 
       {(identity.document || identity.selfie) && (
         <section>
