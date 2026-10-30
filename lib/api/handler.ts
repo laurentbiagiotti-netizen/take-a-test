@@ -42,7 +42,7 @@ export function withApi<P = Record<string, string>>(scope: ApiScope, handler: Ha
     const auth = req.headers.get("authorization") || "";
     const m = /^Bearer\s+(cxk_([a-f0-9]{12})_[a-f0-9]{48})$/i.exec(auth.trim());
     let keyId: string | null = null;
-    let res: NextResponse;
+    let res: NextResponse | undefined;
     try {
       if (!m) { res = apiError(401, "unauthorized", "Clé d'API manquante ou mal formée"); return res; }
       const [, key, prefix] = m;
@@ -99,7 +99,7 @@ export function withApi<P = Record<string, string>>(scope: ApiScope, handler: Ha
     } finally {
       const u = new URL(req.url);
       admin.from("api_audit").insert({
-        key_id: keyId, method: req.method, path: u.pathname.slice(0, 300), status: res!?.status ?? 500, ip: clientIp(req),
+        key_id: keyId, method: req.method, path: u.pathname.slice(0, 300), status: res?.status ?? 500, ip: clientIp(req),
       }).then(() => {}, () => {});
     }
   };

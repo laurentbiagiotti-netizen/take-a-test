@@ -18,7 +18,6 @@ type Question = {
   terminal?: { scenario: string; flag: string } | null;
 };
 
-const TYPE_LABEL: Record<string, string> = { mcq_single: "QCM, une réponse", mcq_multi: "QCM, plusieurs réponses", long_text: "réponse rédigée", terminal: "défi terminal" };
 
 export default function EditTest() {
   const { id } = useParams<{ id: string }>();
@@ -211,7 +210,7 @@ export default function EditTest() {
             Autoriser la reprise sur un autre appareil sans intervention du surveillant
           </label>
           <div className="grid grid-cols-3 gap-3 pt-1">
-            <label title="Au-delà, le surveillant est alerté ; l'épreuve n'est jamais arrêtée automatiquement">Seuil d'alerte (infractions)
+            <label title="Au-delà, le surveillant est alerté ; l'épreuve n'est jamais arrêtée automatiquement">Seuil d&apos;alerte (infractions)
               <input className="input mt-1" type="number" min={1} max={50} value={test.max_violations} onChange={(e) => updateTest({ max_violations: parseInt(e.target.value) || 1 })} />
             </label>
             <label>Tolérance fin (s)

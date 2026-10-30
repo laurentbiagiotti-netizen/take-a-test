@@ -8,7 +8,7 @@ function v4(ip: string): bigint | null {
 }
 
 function v6(ip: string): bigint | null {
-  let s = ip.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
+  const s = ip.toLowerCase().replace(/^\[|\]$/g, "").split("%")[0];
   const mapped = s.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
   if (mapped) return null;
   if (!/^[0-9a-f:]+$/.test(s) || (s.match(/::/g) || []).length > 1) return null;
