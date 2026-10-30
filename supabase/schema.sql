@@ -51,6 +51,11 @@ create table tests (
   opens_at timestamptz,
   closes_at timestamptz,
   retention_days int not null default 90 check (retention_days between 1 and 3650),
+  -- Admission : seuil global, plancher par domaine ({"Réflexes cyber": 0.3} = 30 % minimum),
+  -- grille d'entretien oral affichée sur la fiche jury (Markdown).
+  pass_mark numeric check (pass_mark is null or pass_mark >= 0),
+  domain_floors jsonb not null default '{}'::jsonb,
+  interview_guide text check (interview_guide is null or length(interview_guide) <= 50000),
   created_at timestamptz not null default now(),
   check (opens_at is null or closes_at is null or opens_at < closes_at)
 );
@@ -80,7 +85,11 @@ create table questions (
   --   short_answer {data?: {kind: table|text, ...}, placeholder?}
   options jsonb,
   points numeric not null default 1 check (points >= 0),
-  image_url text
+  image_url text,
+  -- Compétence évaluée (scores par domaine, planchers, statistiques)
+  domain text check (domain is null or length(domain) <= 100),
+  -- Variantes jumelles : une seule question par groupe est tirée pour chaque candidat
+  variant_group text check (variant_group is null or length(variant_group) <= 100)
 );
 create index on questions(test_id);
 
@@ -156,6 +165,11 @@ create table invites (
   code text not null unique,
   used_at timestamptz,
   used_by uuid references profiles(id) on delete set null,
+  -- Tiers-temps réglé à l'avance (minutes ajoutées à la durée de l'épreuve)
+  extra_minutes int not null default 0 check (extra_minutes between 0 and 600),
+  full_name text check (full_name is null or length(full_name) <= 200),
+  -- Identifiant du candidat dans l'outil d'origine (HubSpot, Grimp…)
+  external_ref text check (external_ref is null or length(external_ref) <= 200),
   created_at timestamptz not null default now(),
   unique (test_id, email)
 );
@@ -666,6 +680,9 @@ begin
     'candidate_email', (select email from profiles where id = a.candidate_id),
     'status', p_status, 'reason', p_reason, 'score', v_total, 'max_score', v_max,
     'violation_count', a.violation_count, 'submitted_at', now(),
+    'admission', _attempt_report(p_attempt),
+    'external_ref', (select i.external_ref from invites i join profiles pr on pr.email = i.email
+                     where i.test_id = a.test_id and pr.id = a.candidate_id),
     'journal_last_hash', (select last_event_hash from attempts where id = p_attempt),
     'journal_events', (select event_seq from attempts where id = p_attempt)));
 end; $$;
@@ -753,9 +770,10 @@ begin
     end if;
     select * into sec from test_secrets where test_id = p_test;
     v_code_required := inv.id is not null or (not t.invite_only and sec.access_code is not null);
-    insert into attempts(test_id, candidate_id, unlocked, identity_status)
+    insert into attempts(test_id, candidate_id, unlocked, identity_status, extra_minutes)
     values (p_test, p_user, not v_code_required,
-            case when t.require_id_check then 'pending'::identity_status else 'not_required' end)
+            case when t.require_id_check then 'pending'::identity_status else 'not_required' end,
+            coalesce(inv.extra_minutes, 0))
     returning * into a;
     perform _log(a.id, 'attempt_created', 'info', null, null);
   end if;
@@ -869,16 +887,21 @@ begin
     if t.closes_at is not null and now() > t.closes_at then raise exception 'test_closed' using errcode = 'P0001'; end if;
     if t.opens_at is not null and now() < t.opens_at then raise exception 'test_not_open' using errcode = 'P0001'; end if;
 
-    if t.draw_count is not null then
-      select array_agg(id) into v_order from (
-        select id from questions where test_id = t.id order by random() limit t.draw_count) s;
-      if not t.shuffle_questions then
-        select array_agg(id order by position) into v_order from questions where id = any(v_order);
-      end if;
-    elsif t.shuffle_questions then
-      select array_agg(id order by random()) into v_order from questions where test_id = t.id;
+    -- Tiers-temps fixé sur l'invitation après la création de la tentative
+    a.extra_minutes := greatest(a.extra_minutes, coalesce((select i.extra_minutes from invites i
+      join profiles p on p.email = i.email where i.test_id = t.id and p.id = p_user), 0));
+    -- 1. une variante tirée au hasard par groupe ; 2. tirage de N questions ; 3. ordre
+    select array_agg(id) into v_order from (
+      select id from (
+        select distinct on (coalesce(variant_group, id::text)) id
+        from questions where test_id = t.id
+        order by coalesce(variant_group, id::text), random()) pool
+      order by random()
+      limit coalesce(t.draw_count, 100000)) s;
+    if t.shuffle_questions then
+      select array_agg(id order by random()) into v_order from questions where id = any(v_order);
     else
-      select array_agg(id order by position) into v_order from questions where test_id = t.id;
+      select array_agg(id order by position, id) into v_order from questions where id = any(v_order);
     end if;
     if v_order is null then raise exception 'no_questions' using errcode = 'P0001'; end if;
 
@@ -905,7 +928,7 @@ begin
       deadline_at = case when t.closes_at is null
                          then now() + make_interval(mins => t.duration_minutes + a.extra_minutes)
                          else least(now() + make_interval(mins => t.duration_minutes + a.extra_minutes), t.closes_at) end,
-      question_order = v_order, option_orders = v_opts,
+      question_order = v_order, option_orders = v_opts, extra_minutes = a.extra_minutes,
       session_token_hash = p_new_token_hash, session_started_at = now(), last_seen_at = now(),
       client_ip = p_ip, user_agent = left(coalesce(p_ua, ''), 500)
     where id = a.id returning * into a;
@@ -1200,9 +1223,11 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare a attempts;
 begin
   a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
-  if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+  if a.status <> 'in_progress' then
+    return jsonb_build_object('status', a.status, 'receipt', case when a.submitted_at is not null then _receipt(a.id) end);
+  end if;
   perform _finalize_attempt(a.id, 'submitted', 'candidate');
-  return jsonb_build_object('status', 'submitted');
+  return jsonb_build_object('status', 'submitted', 'receipt', _receipt(a.id));
 end; $$;
 
 -- Jeton de requête tournant : chaque appel d'examen présente le jeton reçu
@@ -1437,10 +1462,134 @@ begin
 end; $$;
 
 ------------------------------------------------------------
+-- Admission : score par domaine, planchers, accusé de réception,
+-- statistiques par question, suivi en direct
+------------------------------------------------------------
+
+-- Score par domaine et décision indicative (seuil global + planchers).
+create or replace function public._attempt_report(p_attempt uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare a attempts; t tests; v_domains jsonb; v_below jsonb; v_score numeric; v_max numeric;
+begin
+  select * into a from attempts where id = p_attempt;
+  if a.id is null then return null; end if;
+  select * into t from tests where id = a.test_id;
+  with d as (
+    select coalesce(q.domain, 'Général') as domain, sum(q.points) as max, sum(coalesce(an.score, 0)) as score
+    from questions q
+    left join answers an on an.question_id = q.id and an.attempt_id = a.id
+    where q.id = any(coalesce(a.question_order, '{}'))
+    group by 1
+  ), f as (
+    select d.*, case when d.max > 0 then round(d.score / d.max, 3) else null end as ratio,
+           (t.domain_floors->>d.domain)::numeric as floor
+    from d
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('domain', domain, 'score', score, 'max', max, 'ratio', ratio,
+           'floor', floor, 'below', floor is not null and ratio is not null and ratio < floor) order by domain), '[]'::jsonb),
+         coalesce(jsonb_agg(domain order by domain) filter (where floor is not null and ratio is not null and ratio < floor), '[]'::jsonb),
+         sum(score), sum(max)
+    into v_domains, v_below, v_score, v_max from f;
+  return jsonb_build_object(
+    'score', coalesce(a.score, v_score), 'max_score', coalesce(a.max_score, v_max), 'pass_mark', t.pass_mark,
+    'passed', case when t.pass_mark is null or a.score is null then null
+                   else a.score >= t.pass_mark and jsonb_array_length(v_below) = 0 end,
+    'below_floors', v_below, 'domains', v_domains);
+end; $$;
+
+-- Accusé de réception affiché au candidat quand il rend sa copie.
+create or replace function public._receipt(p_attempt uuid)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'reference', upper(substr(encode(sha256(convert_to(a.id::text || coalesce(a.submitted_at::text, '') || coalesce(a.last_event_hash, ''), 'UTF8')), 'hex'), 1, 12)),
+    'submitted_at', a.submitted_at,
+    'answered', (select count(*) from answers an where an.attempt_id = a.id and an.response is not null and an.response <> '{}'::jsonb),
+    'questions', coalesce(array_length(a.question_order, 1), 0))
+  from attempts a where a.id = p_attempt;
+$$;
+
+-- Rapport d'une tentative (fiche jury). Personnel seulement.
+create or replace function public.attempt_report(p_attempt uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  if not is_staff() then raise exception 'forbidden' using errcode = '42501'; end if;
+  return _attempt_report(p_attempt) || jsonb_build_object('receipt', _receipt(p_attempt));
+end; $$;
+
+-- Statistiques par question sur les copies terminées :
+--   reussite      = score moyen obtenu (0 à 1)
+--   discrimination = réussite du quart supérieur moins celle du quart inférieur
+-- Une question que tout le monde réussit, que personne ne réussit, ou qui ne
+-- sépare pas les bons des moins bons candidats est signalée.
+create or replace function public.item_stats(p_test uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare v jsonb;
+begin
+  if not is_staff() then raise exception 'forbidden' using errcode = '42501'; end if;
+  with fin as (
+    select a.id, a.question_order, case when a.max_score > 0 then a.score / a.max_score else 0 end as total,
+           ntile(4) over (order by case when a.max_score > 0 then a.score / a.max_score else 0 end) as quart
+    from attempts a where a.test_id = p_test and a.status in ('submitted', 'expired', 'terminated')
+  ), it as (
+    select q.id, q.position, q.domain, q.variant_group, q.type, left(q.prompt, 160) as prompt, q.points, f.quart,
+           case when q.points > 0 then coalesce(an.score, 0) / q.points else 0 end as r,
+           an.response is not null as answered
+    from fin f
+    join questions q on q.id = any(f.question_order)
+    left join answers an on an.attempt_id = f.id and an.question_id = q.id
+    where q.type <> 'long_text' or an.score is not null
+  ), agg as (
+    select id, position, domain, variant_group, type, prompt, count(*) as n,
+           round(avg(r), 3) as reussite,
+           round(count(*) filter (where not answered)::numeric / count(*), 3) as sans_reponse,
+           round(coalesce(avg(r) filter (where quart = 4), 0) - coalesce(avg(r) filter (where quart = 1), 0), 3) as discrimination
+    from it group by id, position, domain, variant_group, type, prompt
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id', id, 'position', position, 'domain', domain, 'variant_group', variant_group, 'type', type,
+      'prompt', prompt, 'n', n, 'reussite', reussite, 'sans_reponse', sans_reponse, 'discrimination', discrimination,
+      'alerte', case when n < 10 then null
+                     when reussite >= 0.9 then 'trop facile'
+                     when reussite <= 0.15 then 'trop difficile'
+                     when discrimination < 0.15 then 'ne départage pas'
+                     else null end)
+    order by position, variant_group nulls first, id), '[]'::jsonb)
+  into v from agg;
+  return jsonb_build_object('copies', (select count(*) from attempts where test_id = p_test and status in ('submitted', 'expired', 'terminated')), 'questions', v);
+end; $$;
+
+-- Vue en direct pour le surveillant : épreuves en cours et dernières alertes.
+create or replace function public.staff_live(p_test uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+declare v jsonb;
+begin
+  if not is_staff() then raise exception 'forbidden' using errcode = '42501'; end if;
+  select coalesce(jsonb_agg(row_to_json(x)::jsonb order by x.alertes_recentes desc, x.nom), '[]'::jsonb) into v from (
+    select a.id, coalesce(p.full_name, p.email) as nom, a.status, a.violation_count as infractions,
+           a.current_index + 1 as question, coalesce(array_length(a.question_order, 1), 0) as total,
+           greatest(0, extract(epoch from a.deadline_at - now()))::int as secondes_restantes,
+           extract(epoch from now() - a.last_seen_at)::int as silence,
+           a.extra_minutes as tiers_temps,
+           (select count(*) from proctor_events e where e.attempt_id = a.id and e.severity in ('warning', 'violation', 'critical')
+              and e.created_at > now() - interval '2 minutes') as alertes_recentes,
+           (select coalesce(jsonb_agg(jsonb_build_object('kind', e.kind, 'severity', e.severity, 'at', e.created_at) order by e.seq desc), '[]'::jsonb)
+              from (select * from proctor_events e2 where e2.attempt_id = a.id and e2.severity in ('warning', 'violation', 'critical')
+                    order by e2.seq desc limit 4) e) as alertes,
+           exists (select 1 from proctor_events e where e.attempt_id = a.id and e.kind in ('camera_refused', 'camera_off')) as camera_absente
+    from attempts a join profiles p on p.id = a.candidate_id
+    where a.test_id = p_test and (a.status = 'in_progress' or (a.status <> 'pending' and a.submitted_at > now() - interval '15 minutes'))
+  ) x;
+  return jsonb_build_object('now', now(), 'attempts', v,
+    'en_attente', (select count(*) from attempts where test_id = p_test and status = 'pending'),
+    'rendus', (select count(*) from attempts where test_id = p_test and status in ('submitted', 'expired', 'terminated')));
+end; $$;
+
+------------------------------------------------------------
 -- Droits d'exécution : tout est fermé, puis ouvert au strict nécessaire
 ------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_admin(), public.is_staff(), public.my_dashboard() to authenticated;
+grant execute on function public.attempt_report(uuid), public.item_stats(uuid), public.staff_live(uuid) to authenticated;
 grant execute on all functions in schema public to service_role;
 
 ------------------------------------------------------------

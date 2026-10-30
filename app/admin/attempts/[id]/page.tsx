@@ -56,7 +56,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10 space-y-6">
       <div>
-        <a href="/admin" className="text-sm text-muted">← Retour</a>
+        <div className="flex justify-between"><a href="/admin" className="text-sm text-muted">← Retour</a>{a.submitted_at && <a href={`/admin/attempts/${a.id}/fiche`} className="btn-secondary">Fiche jury</a>}</div>
         <h1 className="h1 mt-2">{a.test?.title}</h1>
         <p className="text-fg">{a.candidate?.full_name} · {a.candidate?.email}</p>
         <div className="text-sm text-muted mt-1 grid grid-cols-2 md:grid-cols-4 gap-1">

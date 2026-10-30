@@ -30,7 +30,11 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
       <a href="/admin" className="text-sm text-muted">← Retour</a>
       <div className="flex items-center justify-between mt-2">
         <h1 className="h1">Tentatives</h1>
-        <a className="btn-secondary" href={`/admin/tests/${id}/attempts`}>Actualiser</a>
+        <div className="flex gap-2">
+          <a className="btn" href={`/admin/tests/${id}/live`}>Suivi en direct</a>
+          <a className="btn-secondary" href={`/admin/tests/${id}/stats`}>Statistiques des questions</a>
+          <a className="btn-secondary" href={`/admin/tests/${id}/attempts`}>Actualiser</a>
+        </div>
       </div>
       <table className="mt-6 w-full text-sm">
         <thead className="text-left text-muted">
@@ -53,7 +57,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
                   {a.status === "in_progress" ? (silent ? "perdue" : "en ligne") : "-"}
                 </td>
                 <td>{a.submitted_at ? new Date(a.submitted_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "-"}</td>
-                <td><a className="underline" href={`/admin/attempts/${a.id}`}>Voir</a></td>
+                <td className="whitespace-nowrap"><a className="underline mr-3" href={`/admin/attempts/${a.id}`}>Voir</a>{a.submitted_at && <a className="underline" href={`/admin/attempts/${a.id}/fiche`}>Fiche jury</a>}</td>
               </tr>
             );
           })}

@@ -118,11 +118,19 @@ export const TEST_FIELDS = [
   "title", "description", "duration_minutes", "is_published", "require_seb", "invite_only", "require_id_check",
   "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
   "grace_seconds", "opens_at", "closes_at", "retention_days", "id_verify_before_start", "seb_accept_config_key",
+  "pass_mark", "domain_floors", "interview_guide",
 ] as const;
 
 export function pickTestFields(input: any): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   if (!input || typeof input !== "object") return out;
   for (const f of TEST_FIELDS) if (f in input) out[f] = input[f];
+  // Planchers : { "Domaine": 0.3 } uniquement, valeurs entre 0 et 1
+  if ("domain_floors" in out) {
+    const f = out.domain_floors as any;
+    const ok = f && typeof f === "object" && !Array.isArray(f) && Object.keys(f).length <= 50
+      && Object.entries(f).every(([k, v]) => k.length <= 100 && typeof v === "number" && v >= 0 && v <= 1);
+    if (!ok) delete out.domain_floors;
+  }
   return out;
 }

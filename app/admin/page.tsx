@@ -34,7 +34,8 @@ export default async function AdminHome() {
             </div>
             <div className="flex gap-2">
               {isAdmin && <Link href={`/admin/tests/${t.id}`} className="btn-secondary">Modifier</Link>}
-              {isAdmin && <Link href={`/admin/tests/${t.id}/invites`} className="btn-secondary">Invitations</Link>}
+              {isAdmin && <Link href={`/admin/tests/${t.id}/invites`} className="btn-secondary">Candidats</Link>}
+              <Link href={`/admin/tests/${t.id}/live`} className="btn-secondary">En direct</Link>
               <Link href={`/admin/tests/${t.id}/attempts`} className="btn-secondary">Tentatives</Link>
               {isAdmin && <DeleteTestButton id={t.id} title={t.title} />}
             </div>

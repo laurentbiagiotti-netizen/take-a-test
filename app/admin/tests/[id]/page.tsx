@@ -13,6 +13,7 @@ type Question = {
   id?: string; test_id: string; position: number; type: QType;
   prompt: string; options: Option[] | any; correct: string[] | any;
   points: number; image_url?: string | null;
+  domain?: string | null; variant_group?: string | null;
   terminal?: { scenario: string; flag: string } | null;
 };
 
@@ -28,6 +29,7 @@ export default function EditTest() {
   const [msg, setMsg] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
+  const domains = Array.from(new Set(questions.map((q) => q.domain?.trim()).filter(Boolean) as string[])).sort();
   const [link, setLink] = useState("");
 
   useEffect(() => {
@@ -126,6 +128,7 @@ export default function EditTest() {
         test_id: id, position: i, type: q.type, prompt: q.prompt,
         options: q.options, points: q.points,
         image_url: q.image_url ?? null,
+        domain: q.domain?.trim() || null, variant_group: q.variant_group?.trim() || null,
       }));
       const { data: inserted } = await supabase.from("questions").insert(rows).select("id");
       // Re-attach answer keys (only for MCQ)
@@ -232,6 +235,36 @@ export default function EditTest() {
           <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
             <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />
           </label>
+          <p className="text-xs text-muted">Variantes : les questions qui partagent un même « groupe de variantes » sont interchangeables ; chaque candidat n&apos;en reçoit qu&apos;une, tirée au hasard.</p>
+        </div>
+
+        <div className="border-t pt-3 space-y-2 text-sm">
+          <div className="font-medium">Admission</div>
+          <label className="block">Seuil d&apos;admissibilité (points, vide = aucun)
+            <input className="input mt-1 w-32" type="number" min={0} step={0.5} value={test.pass_mark ?? ""} onChange={(e) => updateTest({ pass_mark: e.target.value === "" ? null : Number(e.target.value) })} />
+          </label>
+          <div>
+            <div>Plancher par domaine (% minimum de réussite ; en dessous, le candidat est signalé au jury)</div>
+            <div className="grid sm:grid-cols-2 gap-2 mt-1">
+              {domains.map((d) => (
+                <label key={d} className="flex items-center justify-between gap-2 border border-line rounded px-2 py-1">
+                  <span>{d}</span>
+                  <span className="flex items-center gap-1">
+                    <input className="input !w-16 !py-0.5" type="number" min={0} max={100} value={test.domain_floors?.[d] != null ? Math.round(test.domain_floors[d] * 100) : ""}
+                      onChange={(e) => {
+                        const f = { ...(test.domain_floors || {}) };
+                        if (e.target.value === "") delete f[d]; else f[d] = Math.min(100, Math.max(0, Number(e.target.value))) / 100;
+                        updateTest({ domain_floors: f });
+                      }} /> %
+                  </span>
+                </label>
+              ))}
+              {!domains.length && <span className="text-xs text-muted">Indiquez le domaine de chaque question pour régler les planchers.</span>}
+            </div>
+          </div>
+          <label className="block">Grille d&apos;entretien oral (affichée sur la fiche jury)
+            <textarea className="input mt-1 min-h-[140px] text-sm" value={test.interview_guide || ""} onChange={(e) => updateTest({ interview_guide: e.target.value })} />
+          </label>
         </div>
 
         <div className="border-t pt-3">
@@ -318,6 +351,18 @@ export default function EditTest() {
             <textarea className="input" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
               const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, prompt: v } : x));
             }} />
+            <div className="grid sm:grid-cols-2 gap-2 text-sm">
+              <label>Domaine (compétence)
+                <input className="input mt-1" list="domains" value={q.domain || ""} placeholder="ex. Réseaux" onChange={(e) => {
+                  const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, domain: v } : x));
+                }} />
+              </label>
+              <label title="Les questions d'un même groupe sont des variantes : une seule est tirée pour chaque candidat">Groupe de variantes (facultatif)
+                <input className="input mt-1" value={q.variant_group || ""} placeholder="ex. reseau-q03" onChange={(e) => {
+                  const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, variant_group: v } : x));
+                }} />
+              </label>
+            </div>
 
             <div className="flex items-center gap-2 text-sm">
               <label className="btn-secondary cursor-pointer">
@@ -409,6 +454,7 @@ export default function EditTest() {
       <div className="mt-6">
         <button className="btn" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
       </div>
+      <datalist id="domains">{domains.map((d) => <option key={d} value={d} />)}</datalist>
     </main>
   );
 }

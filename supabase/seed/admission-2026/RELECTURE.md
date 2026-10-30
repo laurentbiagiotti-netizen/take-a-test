@@ -276,3 +276,10 @@ Réponses : Ana / Bilal / Chloé / On ne peut pas savoir. Bonne réponse : Ana. 
 - A : « Une panne du SIEM » devient « Une panne du SIEM, qui a mal géolocalisé l'une des deux connexions »
 - B : « Un simple décalage horaire » devient « Un simple décalage horaire entre les journaux de deux serveurs »
 - D : « Un comportement normal » devient « Un comportement normal pour un collaborateur qui voyage beaucoup »
+
+## Deuxième passe : variantes, missions, planchers
+
+5. **Une variante jumelle par question.** Chaque question existe en deux versions de même compétence, même difficulté et même type (fichiers `src/*_variantes.py`). Pour chaque candidat, la plateforme tire l'une des deux au hasard : 2^50 à 2^55 sujets différents, et une question qui circule ne sert qu'à la moitié des candidats. Les 155 variantes ont été relues par un second correcteur (calculs refaits, code exécuté) ; cinq retouches ont suivi (B3 Q17 et Q36, Mastère Q16 et Q38, B1 Q35).
+6. **Mission terminal en B3 et en Mastère** (8 minutes, 4 points) : un serveur de fichiers saturé à remettre en état (B3), un serveur web compromis à investiguer et nettoyer (Mastère). Les missions se valident toutes seules sur l'état de la machine simulée. Durée totale : 58 minutes, 54 points, seuil proposé 27.
+7. **Plancher par domaine** : 30 % dans chaque domaine du QCM. En dessous, le candidat est signalé au jury même s'il dépasse le seuil global. À ajuster après les premières sessions grâce à la page « Statistiques des questions ».
+8. **Grille d'entretien** : la grille de Dylan (version condensée) est attachée à chaque épreuve et imprimée sur la fiche jury.

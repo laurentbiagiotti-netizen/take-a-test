@@ -131,19 +131,29 @@ Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `ab
 
 ## Épreuves d'admission 2026
 
-Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 »), relus :
+Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 »), relus et enrichis :
 
-| Épreuve | Questions | Durée | Seuil proposé |
+| Épreuve | Contenu tiré pour chaque candidat | Durée | Seuil proposé |
 |---|---|---|---|
-| Bachelor 1 Cybersécurité | 55, dont 5 énigmes CYBEROKU | 55 min | 28/55 |
-| Bachelor 3 Cybersécurité | 50 | 50 min | 25/50 |
-| Mastère Cybersécurité (M1) | 50 | 50 min | 25/50 |
+| Bachelor 1 Cybersécurité | 55 questions dont 5 énigmes CYBEROKU | 55 min | 28/55 |
+| Bachelor 3 Cybersécurité | 50 questions et une mission terminal (4 points) | 58 min | 27/54 |
+| Mastère Cybersécurité (M1) | 50 questions et une mission terminal (4 points) | 58 min | 27/54 |
 
-1 point par question, tout ou rien sur les questions à plusieurs réponses, réponses mélangées pour chaque candidat. Le détail de la relecture (mauvaises réponses réécrites pour que la bonne ne se repère plus à sa longueur, énigmes ajoutées) est dans `supabase/seed/admission-2026/RELECTURE.md`.
+- **Deux variantes par question** : chaque candidat reçoit l'une ou l'autre au hasard, deux candidats n'ont donc pratiquement jamais le même sujet.
+- **Plancher par domaine** (30 % par défaut) en plus du seuil global : un candidat sous le plancher est signalé au jury.
+- 1 point par question, tout ou rien sur les questions à plusieurs réponses, réponses mélangées.
+- Détail de la relecture : `supabase/seed/admission-2026/RELECTURE.md`.
+- Charger les épreuves : après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql` (épreuves non publiées, sur invitation).
+- Modifier une question : éditer `supabase/seed/admission-2026/src/`, puis `python3 supabase/seed/admission-2026/src/gen.py`.
 
-- Charger les épreuves : après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql`. Elles sont créées non publiées et sur invitation.
-- Modifier une question : éditer `supabase/seed/admission-2026/src/*.py`, puis lancer `python3 supabase/seed/admission-2026/src/gen.py` (régénère le SQL et les JSON, avec les explications de chaque réponse).
-- Les grilles d'entretien oral restent dans le dossier Drive.
+## Le jour de l'épreuve
+
+- **Candidats** (*Admin, Candidats*) : liste d'adresses ou export HubSpot / Grimp collé tel quel ; tiers-temps réglé à l'avance pour chaque candidat ; convocations préparées en brouillon (aperçu, ouverture dans la messagerie, export CSV), jamais envoyées automatiquement.
+- **Suivi en direct** : avancement, temps restant, infractions et alertes de chaque candidat, actualisés toutes les 5 secondes.
+- **Accusé de réception** : à la fin, le candidat voit une référence à 12 caractères, la date et le nombre de questions répondues.
+- **Fiche jury** : score par domaine, planchers, déroulé et photos marquantes, puis la grille d'entretien et une zone d'avis, à imprimer.
+- **Statistiques des questions** : réussite et pouvoir de discrimination de chaque question (et de chaque variante), avec les questions à revoir.
+- **HubSpot et Grimp** : voir `docs/integration-hubspot-grimp.md`.
 
 ## Tests
 

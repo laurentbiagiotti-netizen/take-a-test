@@ -170,10 +170,26 @@ paths:
       responses: { "200": { description: OK } }
     post:
       summary: Inviter des candidats (idempotent par e-mail)
-      description: "Portée : invites:write. Renvoie un code personnel par candidat."
+      description: "Portée : invites:write. Renvoie un code personnel par candidat. `candidates` permet de transmettre un export HubSpot ou Grimp : nom, tiers-temps (minutes) et identifiant d'origine, renvoyé ensuite dans les résultats et les webhooks."
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, properties: { emails: { type: array, items: { type: string, format: email }, maxItems: 2000 } } } } }
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emails: { type: array, items: { type: string, format: email }, maxItems: 2000 }
+                candidates:
+                  type: array
+                  maxItems: 2000
+                  items:
+                    type: object
+                    required: [email]
+                    properties:
+                      email: { type: string, format: email }
+                      full_name: { type: string, maxLength: 200 }
+                      extra_minutes: { type: integer, minimum: 0, maximum: 600, description: Tiers-temps }
+                      external_ref: { type: string, maxLength: 200, description: "Identifiant HubSpot, Grimp…" }
       responses: { "201": { description: Créées } }
   /invites/{id}:
     delete:

@@ -1,11 +1,20 @@
 {
  "title": "Admission Bachelor 3 Cybersécurité 2026",
- "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50.",
- "duration_minutes": 50,
- "pass_mark": 25,
+ "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 58 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Plus une mission terminal de 8 minutes (4 points). Seuil d'admissibilité proposé : 27/54.",
+ "duration_minutes": 58,
+ "pass_mark": 27,
+ "domain_floors": {
+  "Cybersécurité": 0.3,
+  "Logique et diagnostic": 0.3,
+  "Réseaux": 0.3,
+  "Scripting et programmation": 0.3,
+  "Systèmes": 0.3
+ },
  "questions": [
   {
    "position": 1,
+   "variant_group": "b3-q01",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Combien d'adresses d'hôtes utilisables contient le réseau 192.168.10.0/26 ?",
@@ -34,7 +43,40 @@
    "explanation": "Un /26 laisse 6 bits d'hôte : 2^6 = 64 adresses, moins l'adresse réseau et l'adresse de broadcast = 62 hôtes."
   },
   {
+   "position": 1,
+   "variant_group": "b3-q01",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Combien d'adresses d'hôtes utilisables contient le réseau 172.16.8.0/27 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "30"
+    },
+    {
+     "id": "b",
+     "text": "32"
+    },
+    {
+     "id": "c",
+     "text": "62"
+    },
+    {
+     "id": "d",
+     "text": "14"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un /27 laisse 5 bits d'hôte : 2^5 = 32 adresses, moins l'adresse réseau et l'adresse de broadcast = 30 hôtes."
+  },
+  {
    "position": 2,
+   "variant_group": "b3-q02",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un poste a l'adresse 192.168.1.130/25. Quelle est l'adresse de son réseau ?",
@@ -63,7 +105,40 @@
    "explanation": "Masque /25 = 255.255.255.128. Les réseaux sont .0 à .127 et .128 à .255 ; .130 appartient au réseau 192.168.1.128."
   },
   {
+   "position": 2,
+   "variant_group": "b3-q02",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un poste a l'adresse 10.20.30.77/26. Quelle est l'adresse de son réseau ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "10.20.30.0"
+    },
+    {
+     "id": "b",
+     "text": "10.20.30.127"
+    },
+    {
+     "id": "c",
+     "text": "10.20.30.64"
+    },
+    {
+     "id": "d",
+     "text": "10.20.30.76"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Masque /26 = 255.255.255.192 : les réseaux avancent de 64 en 64 (.0, .64, .128, .192) ; .77 appartient au réseau 10.20.30.64."
+  },
+  {
    "position": 3,
+   "variant_group": "b3-q03",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Deux postes, 10.0.1.10/24 et 10.0.2.10/24, sont branchés sur le même switch, dans le même VLAN, sans routeur. Peuvent-ils communiquer ?",
@@ -92,7 +167,40 @@
    "explanation": "Chaque poste considère l'autre comme hors de son réseau (/24) et envoie le trafic à sa passerelle. Sans routeur, pas de communication, même sur le même switch."
   },
   {
+   "position": 3,
+   "variant_group": "b3-q03",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Deux postes, 172.16.1.10/16 et 172.16.200.5/16, sont branchés sur le même switch, dans le même VLAN, sans routeur. Peuvent-ils communiquer ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Non, car le troisième octet est différent : il faut un routeur"
+    },
+    {
+     "id": "b",
+     "text": "Oui, car avec un masque /16 les deux adresses sont dans le réseau 172.16.0.0"
+    },
+    {
+     "id": "c",
+     "text": "Non, car les adresses en 172.16.x sont privées et ne se routent pas entre elles"
+    },
+    {
+     "id": "d",
+     "text": "Oui, mais seulement si une passerelle par défaut est configurée sur chaque poste"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Avec un masque /16, seuls les deux premiers octets définissent le réseau : les deux postes sont dans 172.16.0.0/16 et communiquent directement, sans routeur."
+  },
+  {
    "position": 4,
+   "variant_group": "b3-q04",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un port de switch qui relie deux switchs et transporte plusieurs VLAN doit être configuré en mode :",
@@ -121,7 +229,40 @@
    "explanation": "Un port trunk (802.1Q) transporte plusieurs VLAN en étiquetant les trames ; un port access n'appartient qu'à un seul VLAN."
   },
   {
+   "position": 4,
+   "variant_group": "b3-q04",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Sur un switch, le port qui relie un poste de travail appartenant uniquement au VLAN 20 doit être configuré en mode :",
+   "options": [
+    {
+     "id": "a",
+     "text": "trunk"
+    },
+    {
+     "id": "b",
+     "text": "access"
+    },
+    {
+     "id": "c",
+     "text": "mirror"
+    },
+    {
+     "id": "d",
+     "text": "shutdown"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Un port access appartient à un seul VLAN et transmet des trames non étiquetées au poste ; le mode trunk sert aux liaisons qui transportent plusieurs VLAN."
+  },
+  {
    "position": 5,
+   "variant_group": "b3-q05",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un poste se retrouve avec l'adresse 169.254.23.4. Quelle est la cause la plus probable ?",
@@ -150,7 +291,40 @@
    "explanation": "169.254.x.x est une adresse APIPA, attribuée automatiquement par Windows quand aucun serveur DHCP ne répond."
   },
   {
+   "position": 5,
+   "variant_group": "b3-q05",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Sur un réseau, les postes récemment ajoutés obtiennent une adresse en 169.254.x.x, alors que les anciens postes fonctionnent normalement. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le serveur DNS ne résout pas les noms des nouveaux postes"
+    },
+    {
+     "id": "b",
+     "text": "La passerelle par défaut refuse les nouveaux postes"
+    },
+    {
+     "id": "c",
+     "text": "L'étendue (plage d'adresses) du serveur DHCP est épuisée"
+    },
+    {
+     "id": "d",
+     "text": "Les nouveaux postes ont un conflit d'adresse IP entre eux"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Une adresse 169.254.x.x (APIPA) signifie qu'aucun bail DHCP n'a été obtenu. Les anciens postes gardent leur bail : l'étendue n'a plus d'adresse libre pour les nouveaux."
+  },
+  {
    "position": 6,
+   "variant_group": "b3-q06",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Réseaux",
    "prompt": "Cochez les protocoles qui utilisent principalement UDP (plusieurs réponses possibles) :",
@@ -180,7 +354,41 @@
    "explanation": "DNS (UDP 53 pour les requêtes) et DHCP (UDP 67/68) utilisent UDP. SSH (TCP 22) et SMTP (TCP 25) utilisent TCP."
   },
   {
+   "position": 6,
+   "variant_group": "b3-q06",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Réseaux",
+   "prompt": "Cochez les protocoles qui utilisent principalement TCP (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "HTTPS"
+    },
+    {
+     "id": "b",
+     "text": "TFTP"
+    },
+    {
+     "id": "c",
+     "text": "NTP"
+    },
+    {
+     "id": "d",
+     "text": "FTP"
+    }
+   ],
+   "correct": [
+    "a",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "HTTPS (TCP 443) et FTP (TCP 21) utilisent TCP. TFTP (UDP 69) et NTP (UDP 123) utilisent UDP."
+  },
+  {
    "position": 7,
+   "variant_group": "b3-q07",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Un poste en 192.168.1.20 accède à Internet alors que cette adresse n'est pas routable sur Internet. Quel mécanisme le permet ?",
@@ -209,7 +417,40 @@
    "explanation": "Le routeur ou la box remplace l'adresse privée par son adresse publique (NAT/PAT) pour sortir sur Internet."
   },
   {
+   "position": 7,
+   "variant_group": "b3-q07",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un serveur web interne en 192.168.10.5 doit être joignable depuis Internet via l'adresse publique de l'entreprise. Que configure-t-on sur le routeur ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un enregistrement DNS PTR pointant vers 192.168.10.5"
+    },
+    {
+     "id": "b",
+     "text": "Une réservation DHCP pour l'adresse 192.168.10.5"
+    },
+    {
+     "id": "c",
+     "text": "Un VLAN dédié au serveur, sans autre configuration"
+    },
+    {
+     "id": "d",
+     "text": "Une redirection de port (NAT de destination) vers 192.168.10.5"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "La redirection de port (NAT de destination) renvoie vers le serveur interne les connexions qui arrivent sur l'adresse publique, pour le port choisi (443 par exemple)."
+  },
+  {
    "position": 8,
+   "variant_group": "b3-q08",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Quel est le rôle de la passerelle par défaut configurée sur un poste ?",
@@ -238,7 +479,40 @@
    "explanation": "Tout paquet destiné à une adresse hors du réseau local est envoyé à la passerelle, qui se charge de le router."
   },
   {
+   "position": 8,
+   "variant_group": "b3-q08",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Un poste a une adresse IP et un masque corrects, mais aucune passerelle par défaut n'est configurée. Que peut-il joindre ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Uniquement les machines de son propre réseau local"
+    },
+    {
+     "id": "b",
+     "text": "Internet, mais pas les machines de son réseau local"
+    },
+    {
+     "id": "c",
+     "text": "Rien du tout : sans passerelle, la carte réseau est désactivée"
+    },
+    {
+     "id": "d",
+     "text": "Tous les réseaux, mais sans résolution de noms DNS"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Sans passerelle, le poste ne sait pas où envoyer les paquets destinés aux autres réseaux : il ne communique qu'avec son réseau local."
+  },
+  {
    "position": 9,
+   "variant_group": "b3-q09",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Combien de sous-réseaux en /26 peut-on créer à partir d'un réseau en /24 ?",
@@ -267,7 +541,40 @@
    "explanation": "On emprunte 2 bits d'hôte (26 - 24 = 2) : 2^2 = 4 sous-réseaux de 64 adresses chacun."
   },
   {
+   "position": 9,
+   "variant_group": "b3-q09",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Combien de sous-réseaux en /27 peut-on créer à partir d'un réseau en /24 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "16"
+    },
+    {
+     "id": "b",
+     "text": "32"
+    },
+    {
+     "id": "c",
+     "text": "8"
+    },
+    {
+     "id": "d",
+     "text": "4"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "On emprunte 3 bits d'hôte (27 - 24 = 3) : 2^3 = 8 sous-réseaux de 32 adresses chacun."
+  },
+  {
    "position": 10,
+   "variant_group": "b3-q10",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Réseaux",
    "prompt": "Quel protocole permet à un poste de trouver l'adresse MAC correspondant à une adresse IP de son réseau local ?",
@@ -296,7 +603,40 @@
    "explanation": "ARP (Address Resolution Protocol) associe une adresse IP à une adresse MAC sur le réseau local. Le résultat est conservé dans la table ARP."
   },
   {
+   "position": 10,
+   "variant_group": "b3-q10",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Réseaux",
+   "prompt": "Quelle commande Windows affiche la table de correspondance entre adresses IP et adresses MAC connue du poste ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "ipconfig /all"
+    },
+    {
+     "id": "b",
+     "text": "route print"
+    },
+    {
+     "id": "c",
+     "text": "nslookup"
+    },
+    {
+     "id": "d",
+     "text": "arp -a"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "arp -a affiche le cache ARP du poste (adresse IP et adresse MAC associée). ipconfig /all ne donne que la MAC des cartes du poste lui-même."
+  },
+  {
    "position": 11,
+   "variant_group": "b3-q11",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Dans un domaine Active Directory, 15 comptables doivent accéder à un dossier partagé. Quelle est la bonne pratique ?",
@@ -325,7 +665,40 @@
    "explanation": "Les droits s'attribuent à des groupes, pas à des utilisateurs : plus simple à gérer (arrivées, départs) et plus lisible."
   },
   {
+   "position": 11,
+   "variant_group": "b3-q11",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Les 20 commerciaux accèdent au dossier partagé « Ventes » grâce au groupe GG_Commerciaux. Un nouveau commercial arrive. Comment lui donner accès ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'ajouter au groupe GG_Commerciaux"
+    },
+    {
+     "id": "b",
+     "text": "Ajouter son compte dans les droits NTFS du dossier"
+    },
+    {
+     "id": "c",
+     "text": "Lui communiquer le mot de passe d'un collègue"
+    },
+    {
+     "id": "d",
+     "text": "Lui donner le Contrôle total sur le partage"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Les droits sont déjà donnés au groupe : il suffit d'y ajouter l'utilisateur. Ajouter des comptes un par un sur le dossier rend la gestion illisible."
+  },
+  {
    "position": 12,
+   "variant_group": "b3-q12",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Un dossier est partagé avec le droit de partage « Contrôle total » pour « Utilisateurs du domaine ». Paul, membre de ce groupe, a uniquement le droit NTFS « Lecture ». Quel accès Paul a-t-il en passant par le réseau ?",
@@ -354,7 +727,40 @@
    "explanation": "Par le réseau, c'est la permission la plus restrictive entre droits de partage et droits NTFS qui s'applique : ici, Lecture."
   },
   {
+   "position": 12,
+   "variant_group": "b3-q12",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un dossier est partagé avec le droit de partage « Modifier » pour « Utilisateurs authentifiés ». Julie, membre de ce groupe, a le droit NTFS « Contrôle total » sur ce dossier. Quel accès effectif Julie a-t-elle en passant par le réseau ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Contrôle total"
+    },
+    {
+     "id": "b",
+     "text": "Lecture"
+    },
+    {
+     "id": "c",
+     "text": "Modification"
+    },
+    {
+     "id": "d",
+     "text": "Aucun accès"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Par le réseau, c'est la permission la plus restrictive entre droits de partage (Modifier) et droits NTFS (Contrôle total) qui s'applique : ici, Modification."
+  },
+  {
    "position": 13,
+   "variant_group": "b3-q13",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Une GPO liée à une unité d'organisation (OU) s'applique :",
@@ -383,7 +789,40 @@
    "explanation": "Une GPO s'applique aux objets utilisateurs et ordinateurs de l'OU (et des sous-OU par héritage). Elle ne s'applique pas aux groupes en tant que tels."
   },
   {
+   "position": 13,
+   "variant_group": "b3-q13",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Une GPO liée au domaine et une GPO liée à l'OU « Postes » définissent le même paramètre avec des valeurs différentes. Aucune option particulière n'est activée (ni « Appliqué », ni blocage de l'héritage). Quelle valeur s'applique aux ordinateurs de l'OU « Postes » ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Celle de la GPO liée au domaine, car elle est de niveau supérieur"
+    },
+    {
+     "id": "b",
+     "text": "Aucune des deux, car le conflit bloque l'application du paramètre"
+    },
+    {
+     "id": "c",
+     "text": "Celle de la GPO créée le plus récemment dans la console de gestion"
+    },
+    {
+     "id": "d",
+     "text": "Celle de la GPO liée à l'OU, car elle est appliquée en dernier"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les GPO s'appliquent dans l'ordre local, site, domaine, puis OU : en cas de conflit, la dernière appliquée (la plus proche de l'objet) l'emporte."
+  },
+  {
    "position": 14,
+   "variant_group": "b3-q14",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Sous Linux, que donne la commande chmod 750 sur un fichier ?",
@@ -412,7 +851,40 @@
    "explanation": "7 = 4+2+1 (rwx), 5 = 4+1 (r-x), 0 = aucun droit."
   },
   {
+   "position": 14,
+   "variant_group": "b3-q14",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, que donne la commande chmod 754 sur un fichier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Propriétaire : rwx / Groupe : rw- / Autres : r--"
+    },
+    {
+     "id": "b",
+     "text": "Propriétaire : rwx / Groupe : r-- / Autres : r-x"
+    },
+    {
+     "id": "c",
+     "text": "Propriétaire : r-x / Groupe : rwx / Autres : r--"
+    },
+    {
+     "id": "d",
+     "text": "Propriétaire : rwx / Groupe : r-x / Autres : r--"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "7 = 4+2+1 (rwx), 5 = 4+1 (r-x), 4 = lecture seule (r--)."
+  },
+  {
    "position": 15,
+   "variant_group": "b3-q15",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Sous Linux, quelle commande affiche l'état du service apache2 ?",
@@ -441,7 +913,40 @@
    "explanation": "systemctl status affiche si le service est actif, depuis quand, et ses derniers messages de log."
   },
   {
+   "position": 15,
+   "variant_group": "b3-q15",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, quelle commande fait démarrer automatiquement le service ssh à chaque démarrage du système ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "systemctl start ssh"
+    },
+    {
+     "id": "b",
+     "text": "systemctl reload ssh"
+    },
+    {
+     "id": "c",
+     "text": "systemctl enable ssh"
+    },
+    {
+     "id": "d",
+     "text": "service ssh restart"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "systemctl enable active le démarrage automatique du service. systemctl start le lance tout de suite, mais seulement jusqu'au prochain redémarrage."
+  },
+  {
    "position": 16,
+   "variant_group": "b3-q16",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Un technicien doit exécuter des commandes d'administration sur un serveur Linux sans connaître le mot de passe root. Quelle est la bonne solution ?",
@@ -470,7 +975,40 @@
    "explanation": "sudo permet de déléguer des droits d'administration de façon nominative et journalisée, sans partager le mot de passe root."
   },
   {
+   "position": 16,
+   "variant_group": "b3-q16",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un développeur doit seulement pouvoir redémarrer le service nginx sur un serveur Linux. Quelle solution respecte le principe du moindre privilège ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "L'ajouter au groupe sudo pour qu'il ait tous les droits root"
+    },
+    {
+     "id": "b",
+     "text": "Une règle sudoers l'autorisant à lancer seulement ce redémarrage"
+    },
+    {
+     "id": "c",
+     "text": "Lui donner le mot de passe root en lui demandant de se limiter à nginx"
+    },
+    {
+     "id": "d",
+     "text": "Faire un chmod 777 sur le binaire nginx pour qu'il puisse le relancer"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le fichier sudoers permet de n'autoriser qu'une commande précise (ici systemctl restart nginx), de façon nominative et journalisée."
+  },
+  {
    "position": 17,
+   "variant_group": "b3-q17",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Que signifie la règle de sauvegarde 3-2-1 ?",
@@ -499,7 +1037,40 @@
    "explanation": "La règle 3-2-1 limite le risque de tout perdre en même temps (panne, sinistre, rançongiciel)."
   },
   {
+   "position": 17,
+   "variant_group": "b3-q17",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Une entreprise sauvegarde chaque nuit son serveur sur un NAS situé dans la même salle. Que manque-t-il pour respecter la règle 3-2-1 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une deuxième sauvegarde quotidienne sur le même NAS"
+    },
+    {
+     "id": "b",
+     "text": "Une troisième copie conservée hors site (autre bâtiment, cloud)"
+    },
+    {
+     "id": "c",
+     "text": "Un deuxième disque en RAID 1 dans le serveur"
+    },
+    {
+     "id": "d",
+     "text": "Une sauvegarde complète à la place des incrémentales"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Les données et le NAS font 2 copies, mais au même endroit. Il faut une troisième copie hors site ; un RAID n'est pas une sauvegarde."
+  },
+  {
    "position": 18,
+   "variant_group": "b3-q18",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Quel type d'enregistrement DNS associe un nom à une adresse IPv4 ?",
@@ -528,7 +1099,40 @@
    "explanation": "A = nom vers IPv4 ; AAAA = IPv6 ; MX = serveur de messagerie ; CNAME = alias ; PTR = résolution inverse."
   },
   {
+   "position": 18,
+   "variant_group": "b3-q18",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Quel type d'enregistrement DNS permet de retrouver le nom associé à une adresse IP (résolution inverse) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "AAAA"
+    },
+    {
+     "id": "b",
+     "text": "CNAME"
+    },
+    {
+     "id": "c",
+     "text": "SRV"
+    },
+    {
+     "id": "d",
+     "text": "PTR"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "PTR = résolution inverse (IP vers nom) ; AAAA = nom vers IPv6 ; CNAME = alias ; SRV = localisation d'un service (utilisé par Active Directory)."
+  },
+  {
    "position": 19,
+   "variant_group": "b3-q19",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Un collaborateur a quitté l'entreprise. Que faites-vous en priorité de son compte Active Directory ?",
@@ -557,7 +1161,40 @@
    "explanation": "La désactivation coupe l'accès tout de suite, tout en conservant le compte (groupes, données, traces) pour la récupération des fichiers et un éventuel audit."
   },
   {
+   "position": 19,
+   "variant_group": "b3-q19",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Un administrateur réseau quitte l'entreprise en mauvais termes. En plus de désactiver son compte nominatif, que faites-vous en priorité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Changer les mots de passe des comptes à privilèges et de service qu'il connaissait"
+    },
+    {
+     "id": "b",
+     "text": "Supprimer tous les fichiers qu'il a créés sur les serveurs de l'entreprise"
+    },
+    {
+     "id": "c",
+     "text": "Réinstaller l'ensemble des serveurs dont il avait la charge directe"
+    },
+    {
+     "id": "d",
+     "text": "Attendre la fin de son préavis pour vérifier ses dernières actions"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Désactiver son compte ne suffit pas : il connaît des secrets partagés (comptes admin, comptes de service, équipements). Il faut les changer immédiatement."
+  },
+  {
    "position": 20,
+   "variant_group": "b3-q20",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Systèmes",
    "prompt": "Sous Linux, quel fichier contient la liste des comptes utilisateurs du système ?",
@@ -586,7 +1223,40 @@
    "explanation": "/etc/passwd liste les comptes. Les empreintes des mots de passe sont dans /etc/shadow, lisible uniquement par root ; /etc/group liste les groupes."
   },
   {
+   "position": 20,
+   "variant_group": "b3-q20",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Systèmes",
+   "prompt": "Sous Linux, dans quel fichier sont stockées les empreintes (hash) des mots de passe des utilisateurs ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "/etc/passwd"
+    },
+    {
+     "id": "b",
+     "text": "/etc/group"
+    },
+    {
+     "id": "c",
+     "text": "/etc/shadow"
+    },
+    {
+     "id": "d",
+     "text": "/etc/sudoers"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "/etc/shadow contient les empreintes des mots de passe et n'est lisible que par root ; /etc/passwd, lisible par tous, ne contient qu'un « x » à la place."
+  },
+  {
    "position": 21,
+   "variant_group": "b3-q21",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Un utilisateur a saisi son mot de passe sur un faux site reçu par mail. Quelle est l'action prioritaire ?",
@@ -615,7 +1285,40 @@
    "explanation": "Le mot de passe est compromis : il faut couper l'accès de l'attaquant au plus vite. L'analyse et la suppression du mail viennent ensuite."
   },
   {
+   "position": 21,
+   "variant_group": "b3-q21",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Un utilisateur a ouvert la pièce jointe d'un mail suspect, et son poste se comporte de façon anormale. Quelle est l'action prioritaire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Débrancher le poste du réseau sans l'éteindre, puis prévenir l'équipe sécurité"
+    },
+    {
+     "id": "b",
+     "text": "Lancer une analyse antivirus complète et attendre le résultat avant d'agir"
+    },
+    {
+     "id": "c",
+     "text": "Éteindre et formater le poste pour éliminer le logiciel malveillant"
+    },
+    {
+     "id": "d",
+     "text": "Supprimer le mail et demander à l'utilisateur de continuer à travailler"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Isoler le poste empêche la propagation et les échanges avec l'attaquant ; le laisser allumé conserve les traces utiles à l'analyse."
+  },
+  {
    "position": 22,
+   "variant_group": "b3-q22",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "L'authentification multifacteur (MFA) protège principalement contre :",
@@ -644,7 +1347,40 @@
    "explanation": "Avec le MFA, connaître le mot de passe ne suffit plus : il faut aussi le second facteur."
   },
   {
+   "position": 22,
+   "variant_group": "b3-q22",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Le chiffrement complet du disque (BitLocker par exemple) d'un ordinateur portable protège principalement contre :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un rançongiciel exécuté par l'utilisateur"
+    },
+    {
+     "id": "b",
+     "text": "Le vol d'un mot de passe par hameçonnage"
+    },
+    {
+     "id": "c",
+     "text": "La lecture des données si le portable est volé"
+    },
+    {
+     "id": "d",
+     "text": "Une attaque par déni de service (DDoS)"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Sans la clé, le disque d'un portable volé reste illisible. Une fois la session ouverte, les données sont déchiffrées : le chiffrement ne protège pas contre un malware."
+  },
+  {
    "position": 23,
+   "variant_group": "b3-q23",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Cybersécurité",
    "prompt": "Cochez les mesures efficaces pour se protéger d'un rançongiciel ou en limiter l'impact (plusieurs réponses possibles) :",
@@ -675,7 +1411,42 @@
    "explanation": "Les mises à jour ferment les failles utilisées pour entrer, la limitation des droits freine la propagation, et des sauvegardes isolées permettent de restaurer. Un disque de sauvegarde monté en permanence sera chiffré en même temps que le reste."
   },
   {
+   "position": 23,
+   "variant_group": "b3-q23",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez les bonnes pratiques pour sécuriser les comptes administrateurs d'un domaine Active Directory (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "Utiliser un compte d'administration distinct du compte utilisé au quotidien"
+    },
+    {
+     "id": "b",
+     "text": "Activer l'authentification multifacteur sur ces comptes"
+    },
+    {
+     "id": "c",
+     "text": "Limiter le nombre de membres du groupe « Admins du domaine »"
+    },
+    {
+     "id": "d",
+     "text": "Partager un seul compte administrateur entre tous les techniciens"
+    }
+   ],
+   "correct": [
+    "a",
+    "b",
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Un compte dédié, le MFA et un nombre réduit d'administrateurs limitent l'exposition. Un compte partagé empêche la traçabilité et circule trop facilement."
+  },
+  {
    "position": 24,
+   "variant_group": "b3-q24",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Qu'est-ce que le principe du moindre privilège ?",
@@ -704,7 +1475,40 @@
    "explanation": "Limiter les droits limite ce qu'un attaquant (ou une erreur) peut faire avec un compte compromis."
   },
   {
+   "position": 24,
+   "variant_group": "b3-q24",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Un compte de service sert uniquement à lire une base de données pour générer des rapports. Quels droits lui attribuer ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Lecture seule sur la base concernée, et rien d'autre"
+    },
+    {
+     "id": "b",
+     "text": "Administrateur du serveur de base de données"
+    },
+    {
+     "id": "c",
+     "text": "Lecture et écriture sur toutes les bases, au cas où"
+    },
+    {
+     "id": "d",
+     "text": "Membre du groupe « Admins du domaine »"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Moindre privilège : le compte n'a que les droits nécessaires à sa mission. S'il est compromis, l'attaquant ne peut que lire cette base."
+  },
+  {
    "position": 25,
+   "variant_group": "b3-q25",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Selon le RGPD, dans quel délai une violation de données personnelles présentant un risque doit-elle être notifiée à la CNIL ?",
@@ -733,7 +1537,40 @@
    "explanation": "Article 33 du RGPD : 72 heures au plus tard après en avoir pris connaissance."
   },
   {
+   "position": 25,
+   "variant_group": "b3-q25",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Selon le RGPD, lorsqu'une violation de données personnelles présente un risque élevé pour les personnes, que doit faire l'organisme en plus de notifier l'autorité de contrôle ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Informer les personnes concernées dans les meilleurs délais"
+    },
+    {
+     "id": "b",
+     "text": "Porter plainte dans tous les cas auprès de la police"
+    },
+    {
+     "id": "c",
+     "text": "Suspendre le traitement jusqu'à la décision de la CNIL"
+    },
+    {
+     "id": "d",
+     "text": "Publier un communiqué de presse dans les 72 heures"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Article 34 du RGPD : en cas de risque élevé, les personnes concernées doivent aussi être informées, pour qu'elles puissent se protéger."
+  },
+  {
    "position": 26,
+   "variant_group": "b3-q26",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Quelle est la différence entre un IDS et un IPS ?",
@@ -762,7 +1599,40 @@
    "explanation": "IDS = Intrusion Detection System (détection) ; IPS = Intrusion Prevention System (détection et blocage)."
   },
   {
+   "position": 26,
+   "variant_group": "b3-q26",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Pour qu'un IPS puisse bloquer le trafic malveillant, et pas seulement alerter, où doit-il être placé ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Sur un port miroir (SPAN) du switch, qui reçoit une copie du trafic"
+    },
+    {
+     "id": "b",
+     "text": "Sur chaque poste client, à la place de l'antivirus"
+    },
+    {
+     "id": "c",
+     "text": "Sur le serveur DNS, pour filtrer les requêtes de noms"
+    },
+    {
+     "id": "d",
+     "text": "En coupure sur le chemin du trafic, que tout flux doit traverser"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Un IPS doit être en coupure (inline) pour pouvoir bloquer. Sur un port miroir, il ne voit qu'une copie du trafic : il ne peut qu'alerter, comme un IDS."
+  },
+  {
    "position": 27,
+   "variant_group": "b3-q27",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Cybersécurité",
    "prompt": "Cochez les protocoles qui transmettent les données en clair et doivent être remplacés par une version chiffrée (plusieurs réponses possibles) :",
@@ -793,7 +1663,42 @@
    "explanation": "Telnet → SSH ; FTP → SFTP ou FTPS ; HTTP → HTTPS. SSH est déjà chiffré."
   },
   {
+   "position": 27,
+   "variant_group": "b3-q27",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Cybersécurité",
+   "prompt": "Cochez les protocoles qui chiffrent les échanges (plusieurs réponses possibles) :",
+   "options": [
+    {
+     "id": "a",
+     "text": "TFTP"
+    },
+    {
+     "id": "b",
+     "text": "IMAPS"
+    },
+    {
+     "id": "c",
+     "text": "SFTP"
+    },
+    {
+     "id": "d",
+     "text": "LDAPS"
+    }
+   ],
+   "correct": [
+    "b",
+    "c",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "IMAPS, SFTP et LDAPS sont des versions chiffrées (TLS ou SSH) de IMAP, du transfert de fichiers et de LDAP. TFTP transmet tout en clair, sans authentification."
+  },
+  {
    "position": 28,
+   "variant_group": "b3-q28",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Comment une application doit-elle stocker les mots de passe de ses utilisateurs ?",
@@ -822,7 +1727,40 @@
    "explanation": "Un hachage salé n'est pas réversible : même en cas de fuite de la base, les mots de passe ne sont pas directement lisibles. Base64 n'est qu'un encodage."
   },
   {
+   "position": 28,
+   "variant_group": "b3-q28",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Pourquoi ajoute-t-on un sel (salt) avant de hacher un mot de passe ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Pour pouvoir retrouver le mot de passe d'origine en cas d'oubli"
+    },
+    {
+     "id": "b",
+     "text": "Pour que deux mots de passe identiques n'aient pas la même empreinte"
+    },
+    {
+     "id": "c",
+     "text": "Pour compresser l'empreinte et réduire la taille de la base"
+    },
+    {
+     "id": "d",
+     "text": "Pour chiffrer le mot de passe avec une clé connue du serveur"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le sel, aléatoire et propre à chaque compte, rend inutiles les tables d'empreintes précalculées et empêche de repérer les mots de passe identiques."
+  },
+  {
    "position": 29,
+   "variant_group": "b3-q29",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Un collaborateur reçoit l'appel d'un « technicien Microsoft » qui lui demande d'installer un logiciel de prise en main à distance pour « corriger un problème ». De quoi s'agit-il ?",
@@ -851,7 +1789,40 @@
    "explanation": "Microsoft ne contacte jamais spontanément les utilisateurs par téléphone pour du support. Le but est d'obtenir un accès à distance au poste. Il faut raccrocher et prévenir le service informatique."
   },
   {
+   "position": 29,
+   "variant_group": "b3-q29",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Une personne en tenue de livreur suit de près un salarié pour franchir une porte à badge sans badger elle-même. De quoi s'agit-il ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "D'une pratique courante, sans enjeu de sécurité particulier"
+    },
+    {
+     "id": "b",
+     "text": "D'une attaque par hameçonnage ciblé (spear phishing)"
+    },
+    {
+     "id": "c",
+     "text": "D'une attaque par force brute sur le lecteur de badge"
+    },
+    {
+     "id": "d",
+     "text": "D'une intrusion physique par talonnage (tailgating)"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Le talonnage exploite la politesse pour contourner le contrôle d'accès physique. Chacun doit badger, et on oriente les visiteurs vers l'accueil."
+  },
+  {
    "position": 30,
+   "variant_group": "b3-q30",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Cybersécurité",
    "prompt": "Une mise à jour de sécurité critique est publiée pour le pare-feu de l'entreprise. Quelle est la bonne démarche ?",
@@ -880,7 +1851,40 @@
    "explanation": "Une faille critique doit être corrigée vite, mais de façon maîtrisée : on informe, on planifie et on sait revenir en arrière si la mise à jour pose problème."
   },
   {
+   "position": 30,
+   "variant_group": "b3-q30",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Cybersécurité",
+   "prompt": "Un éditeur annonce qu'une faille critique de votre passerelle VPN est activement exploitée, mais aucun correctif n'est encore disponible. Que faites-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Ne rien faire tant que le correctif n'est pas publié par l'éditeur"
+    },
+    {
+     "id": "b",
+     "text": "Appliquer les contournements de l'éditeur et surveiller les accès VPN"
+    },
+    {
+     "id": "c",
+     "text": "Réinstaller le VPN dans sa version actuelle pour repartir sur une base saine"
+    },
+    {
+     "id": "d",
+     "text": "Redémarrer le boîtier VPN chaque jour pour effacer une éventuelle intrusion"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "En attendant le correctif, on réduit l'exposition avec les mesures de contournement publiées et on surveille les journaux pour détecter une compromission."
+  },
+  {
    "position": 31,
+   "variant_group": "b3-q31",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Que produit ce script Bash ?\nfor i in 1 2 3; do\n    echo \"Serveur$i\"\ndone",
@@ -909,7 +1913,40 @@
    "explanation": "La variable i prend successivement les valeurs 1, 2 et 3 ; echo affiche une ligne à chaque tour."
   },
   {
+   "position": 31,
+   "variant_group": "b3-q31",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Que produit ce script Bash ?\nfor i in $(seq 2 4); do\n    echo \"VM$i\"\ndone",
+   "options": [
+    {
+     "id": "a",
+     "text": "VM2 et VM4, sur deux lignes"
+    },
+    {
+     "id": "b",
+     "text": "VM$i, trois fois, sur trois lignes"
+    },
+    {
+     "id": "c",
+     "text": "VM2, VM3 et VM4, sur trois lignes"
+    },
+    {
+     "id": "d",
+     "text": "VM1, VM2, VM3 et VM4, sur quatre lignes"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "seq 2 4 produit 2, 3 et 4 ; la variable i prend successivement ces valeurs et echo affiche une ligne à chaque tour."
+  },
+  {
    "position": 32,
+   "variant_group": "b3-q32",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nx = 5\nif x > 3:\n    print(\"A\")\nelif x > 1:\n    print(\"B\")\nelse:\n    print(\"C\")",
@@ -938,7 +1975,40 @@
    "explanation": "La première condition vraie est exécutée ; les suivantes (elif, else) sont ignorées."
   },
   {
+   "position": 32,
+   "variant_group": "b3-q32",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Qu'affiche ce code Python ?\nnote = 12\nif note >= 15:\n    print(\"Bien\")\nelif note >= 10:\n    print(\"Admis\")\nelse:\n    print(\"Refusé\")",
+   "options": [
+    {
+     "id": "a",
+     "text": "Bien"
+    },
+    {
+     "id": "b",
+     "text": "Refusé"
+    },
+    {
+     "id": "c",
+     "text": "Bien puis Admis"
+    },
+    {
+     "id": "d",
+     "text": "Admis"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "12 >= 15 est faux, 12 >= 10 est vrai : seul le bloc elif est exécuté, le else est ignoré."
+  },
+  {
    "position": 33,
+   "variant_group": "b3-q33",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nserveurs = [\"web\", \"dns\", \"mail\"]\nprint(len(serveurs), serveurs[1])",
@@ -967,7 +2037,40 @@
    "explanation": "len() renvoie 3 éléments ; les index commencent à 0, donc serveurs[1] vaut \"dns\"."
   },
   {
+   "position": 33,
+   "variant_group": "b3-q33",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Qu'affiche ce code Python ?\nvlans = [10, 20, 30, 40]\nprint(len(vlans), vlans[2])",
+   "options": [
+    {
+     "id": "a",
+     "text": "4 20"
+    },
+    {
+     "id": "b",
+     "text": "3 30"
+    },
+    {
+     "id": "c",
+     "text": "5 30"
+    },
+    {
+     "id": "d",
+     "text": "4 30"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "len() renvoie 4 éléments ; les index commencent à 0, donc vlans[2] est le troisième élément, 30."
+  },
+  {
    "position": 34,
+   "variant_group": "b3-q34",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Que fait cette commande PowerShell ?\nGet-ADUser -Filter * | Where-Object { $_.Enabled -eq $false }",
@@ -996,7 +2099,40 @@
    "explanation": "Get-ADUser récupère tous les comptes, Where-Object ne garde que ceux dont la propriété Enabled est fausse. Rien n'est modifié."
   },
   {
+   "position": 34,
+   "variant_group": "b3-q34",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Que fait cette commande PowerShell ?\nGet-Service | Where-Object { $_.Status -eq \"Stopped\" }",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle arrête tous les services en cours d'exécution"
+    },
+    {
+     "id": "b",
+     "text": "Elle liste les services en cours d'exécution"
+    },
+    {
+     "id": "c",
+     "text": "Elle liste les services arrêtés"
+    },
+    {
+     "id": "d",
+     "text": "Elle redémarre tous les services arrêtés"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Get-Service récupère les services, Where-Object ne garde que ceux dont le statut est « Stopped ». Rien n'est modifié."
+  },
+  {
    "position": 35,
+   "variant_group": "b3-q35",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "À quoi sert la ligne #!/bin/bash au début d'un script ?",
@@ -1025,7 +2161,40 @@
    "explanation": "Le shebang indique au système quel interpréteur lancer. Le droit d'exécution, lui, se donne avec chmod +x."
   },
   {
+   "position": 35,
+   "variant_group": "b3-q35",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Un script deploy.sh commence bien par #!/bin/bash, mais ./deploy.sh renvoie « Permission denied ». Quelle commande corrige le problème ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "chmod +x deploy.sh"
+    },
+    {
+     "id": "b",
+     "text": "chmod 644 deploy.sh"
+    },
+    {
+     "id": "c",
+     "text": "chown root deploy.sh"
+    },
+    {
+     "id": "d",
+     "text": "bash -n deploy.sh"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Il manque le droit d'exécution : chmod +x l'ajoute. chmod 644 ne donne que lecture et écriture, et bash -n vérifie seulement la syntaxe."
+  },
+  {
    "position": 36,
+   "variant_group": "b3-q36",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Que fait cette commande ?\ngrep \"Failed password\" /var/log/auth.log | wc -l",
@@ -1054,7 +2223,40 @@
    "explanation": "grep filtre les lignes contenant le motif ; wc -l compte les lignes reçues. Utile pour repérer une attaque par force brute sur SSH."
   },
   {
+   "position": 36,
+   "variant_group": "b3-q36",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Que fait cette commande ?\ngrep -v \"^#\" /etc/ssh/sshd_config | grep -v \"^$\"",
+   "options": [
+    {
+     "id": "a",
+     "text": "Elle affiche uniquement les lignes de commentaire du fichier"
+    },
+    {
+     "id": "b",
+     "text": "Elle réécrit le fichier sans les commentaires ni les lignes vides"
+    },
+    {
+     "id": "c",
+     "text": "Elle compte les lignes non commentées du fichier"
+    },
+    {
+     "id": "d",
+     "text": "Elle affiche les lignes qui ne sont ni des commentaires ni vides"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "grep -v inverse le filtre : on retire les lignes commençant par # puis les lignes vides. Le fichier n'est pas modifié ; on obtient la configuration réellement active."
+  },
+  {
    "position": 37,
+   "variant_group": "b3-q37",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\ntentatives = 0\nwhile tentatives < 3:\n    tentatives += 1\nprint(tentatives)",
@@ -1083,7 +2285,40 @@
    "explanation": "La boucle s'exécute tant que tentatives < 3 : elle s'arrête quand tentatives vaut 3, valeur ensuite affichée."
   },
   {
+   "position": 37,
+   "variant_group": "b3-q37",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Qu'affiche ce code Python ?\ncompteur = 10\nwhile compteur > 4:\n    compteur -= 3\nprint(compteur)",
+   "options": [
+    {
+     "id": "a",
+     "text": "4"
+    },
+    {
+     "id": "b",
+     "text": "1"
+    },
+    {
+     "id": "c",
+     "text": "7"
+    },
+    {
+     "id": "d",
+     "text": "Rien : la boucle est infinie"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "compteur passe de 10 à 7, puis à 4 ; la condition 4 > 4 est fausse, la boucle s'arrête et affiche 4."
+  },
+  {
    "position": 38,
+   "variant_group": "b3-q38",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Un script de création de comptes contient en clair le mot de passe d'un administrateur du domaine. Quel est le problème ?",
@@ -1112,7 +2347,40 @@
    "explanation": "Un secret en clair dans un script finit toujours par fuiter (partage, sauvegarde, dépôt Git). On limite les droits du compte utilisé et on protège le secret."
   },
   {
+   "position": 38,
+   "variant_group": "b3-q38",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Un développeur a publié par erreur, sur un dépôt Git public, un fichier contenant une clé d'API de production. Il a supprimé ce fichier dans un nouveau commit. Est-ce suffisant ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Oui, car le fichier n'apparaît plus dans la dernière version du dépôt"
+    },
+    {
+     "id": "b",
+     "text": "Oui, si le dépôt est repassé en privé dans l'heure qui suit"
+    },
+    {
+     "id": "c",
+     "text": "Non : la clé reste dans l'historique, il faut la révoquer et la remplacer"
+    },
+    {
+     "id": "d",
+     "text": "Non : il faut supprimer le dépôt, ce qui rend la clé inutilisable"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "L'historique Git conserve le fichier, et la clé a pu être copiée entre-temps. Un secret exposé doit toujours être révoqué et remplacé."
+  },
+  {
    "position": 39,
+   "variant_group": "b3-q39",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Que fait ce script Bash ?\nif [ -f /etc/backup.conf ]; then\n    echo \"OK\"\nfi",
@@ -1141,7 +2409,40 @@
    "explanation": "Le test -f vérifie qu'un fichier ordinaire existe. Si c'est le cas, la commande entre then et fi est exécutée."
   },
   {
+   "position": 39,
+   "variant_group": "b3-q39",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Que fait ce script Bash ?\nif [ -d /var/backups ]; then\n    echo \"Présent\"\nelse\n    echo \"Absent\"\nfi",
+   "options": [
+    {
+     "id": "a",
+     "text": "Il crée le répertoire /var/backups s'il n'existe pas"
+    },
+    {
+     "id": "b",
+     "text": "Il affiche Présent si /var/backups est un répertoire existant, sinon Absent"
+    },
+    {
+     "id": "c",
+     "text": "Il affiche Présent si /var/backups est un fichier ordinaire, sinon Absent"
+    },
+    {
+     "id": "d",
+     "text": "Il affiche le contenu du répertoire /var/backups"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le test -d vérifie qu'un répertoire existe (-f teste un fichier ordinaire). Selon le résultat, c'est la branche then ou la branche else qui s'exécute."
+  },
+  {
    "position": 40,
+   "variant_group": "b3-q40",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nports = [22, 80, 443]\nfor p in ports:\n    if p != 80:\n        print(p)",
@@ -1170,7 +2471,40 @@
    "explanation": "La boucle parcourt la liste et n'affiche que les ports différents de 80 (!= signifie « différent de »)."
   },
   {
+   "position": 40,
+   "variant_group": "b3-q40",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Scripting et programmation",
+   "prompt": "Qu'affiche ce code Python ?\nports = [21, 22, 80, 443, 8080]\nfor p in ports:\n    if p > 100:\n        print(p)",
+   "options": [
+    {
+     "id": "a",
+     "text": "21, 22 et 80"
+    },
+    {
+     "id": "b",
+     "text": "443 et 8080"
+    },
+    {
+     "id": "c",
+     "text": "80, 443 et 8080"
+    },
+    {
+     "id": "d",
+     "text": "Rien"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "La boucle parcourt la liste et n'affiche que les ports strictement supérieurs à 100 : 443 et 8080."
+  },
+  {
    "position": 41,
+   "variant_group": "b3-q41",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Sur un poste, ping 8.8.8.8 fonctionne, mais ping www.google.fr renvoie « hôte inconnu ». Où se situe le problème ?",
@@ -1199,7 +2533,40 @@
    "explanation": "Internet est joignable par adresse IP, donc le câble, la carte et la passerelle fonctionnent : seule la traduction du nom échoue."
   },
   {
+   "position": 41,
+   "variant_group": "b3-q41",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Un poste en adressage IP fixe répond au ping vers 192.168.1.1, le routeur de son réseau, mais pas vers 8.8.8.8. Les autres postes accèdent normalement à Internet. Que vérifiez-vous en premier sur ce poste ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La configuration du serveur DNS"
+    },
+    {
+     "id": "b",
+     "text": "Le câble réseau"
+    },
+    {
+     "id": "c",
+     "text": "La passerelle par défaut configurée"
+    },
+    {
+     "id": "d",
+     "text": "Le pilote de la carte réseau"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "Le réseau local fonctionne (le routeur répond) et le DNS n'intervient pas dans un ping vers une adresse IP : le poste n'envoie sans doute pas son trafic vers la bonne passerelle."
+  },
+  {
    "position": 42,
+   "variant_group": "b3-q42",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Un poste ne parvient pas à joindre sa passerelle, alors que les autres postes branchés sur le même switch fonctionnent. Où cherchez-vous en priorité ?",
@@ -1228,7 +2595,40 @@
    "explanation": "Le problème ne concerne qu'un poste : l'infrastructure commune fonctionne, on cherche donc ce qui est propre à ce poste."
   },
   {
+   "position": 42,
+   "variant_group": "b3-q42",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Un seul utilisateur n'arrive plus à ouvrir un site web interne, alors que ses collègues du même service y accèdent sans problème. Où cherchez-vous en priorité ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Sur le serveur web interne, qui est peut-être arrêté"
+    },
+    {
+     "id": "b",
+     "text": "Sur le pare-feu Internet de l'entreprise"
+    },
+    {
+     "id": "c",
+     "text": "Sur le serveur DNS interne, qui ne résout plus le nom du site"
+    },
+    {
+     "id": "d",
+     "text": "Sur le poste : navigateur, proxy, fichier hosts, cache DNS"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Les collègues accèdent au site : le serveur, le DNS et le réseau fonctionnent. On cherche donc ce qui est propre à ce poste."
+  },
+  {
    "position": 43,
+   "variant_group": "b3-q43",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Tous les utilisateurs d'un étage perdent le réseau, alors que le reste du bâtiment fonctionne. Quelle est la cause la plus probable ?",
@@ -1257,7 +2657,40 @@
    "explanation": "La panne est localisée à une zone : on cherche l'équipement commun à cette zone et à elle seule."
   },
   {
+   "position": 43,
+   "variant_group": "b3-q43",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Un matin, plus aucun poste de l'entreprise n'accède à Internet, mais les serveurs internes (fichiers, intranet) restent joignables. Quelle est la cause la plus probable ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un problème sur le switch d'un des étages du bâtiment"
+    },
+    {
+     "id": "b",
+     "text": "Une panne du routeur Internet ou de la liaison opérateur"
+    },
+    {
+     "id": "c",
+     "text": "Des cartes réseau défectueuses sur l'ensemble des postes"
+    },
+    {
+     "id": "d",
+     "text": "Une GPO qui aurait modifié les adresses IP de tous les postes"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le réseau interne fonctionne pour tout le monde, seul l'accès à Internet est coupé : on cherche l'équipement commun à ce seul flux, le routeur ou le lien vers l'opérateur."
+  },
+  {
    "position": 44,
+   "variant_group": "b3-q44",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Une GPO ne semble pas s'appliquer sur un poste. Quelle commande permet de voir les GPO effectivement appliquées ?",
@@ -1286,7 +2719,40 @@
    "explanation": "gpresult /r affiche les GPO appliquées (et filtrées). gpupdate /force relance l'application, mais ne permet pas de vérifier."
   },
   {
+   "position": 44,
+   "variant_group": "b3-q44",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Un poste n'arrive pas à joindre le contrôleur de domaine par son nom, dc01.lab.local. Quelle commande permet de tester la résolution de ce nom auprès du serveur DNS ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "gpupdate /force"
+    },
+    {
+     "id": "b",
+     "text": "ipconfig /flushdns"
+    },
+    {
+     "id": "c",
+     "text": "netstat -ano"
+    },
+    {
+     "id": "d",
+     "text": "nslookup dc01.lab.local"
+    }
+   ],
+   "correct": [
+    "d"
+   ],
+   "points": 1,
+   "explanation": "nslookup interroge le serveur DNS et affiche l'adresse obtenue. ipconfig /flushdns vide le cache local mais ne teste rien."
+  },
+  {
    "position": 45,
+   "variant_group": "b3-q45",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Vous recevez ces demandes en même temps. Laquelle traitez-vous en premier ?",
@@ -1315,7 +2781,40 @@
    "explanation": "La priorité dépend de l'impact (nombre d'utilisateurs, service critique) et de l'urgence ; la messagerie bloque toute l'entreprise."
   },
   {
+   "position": 45,
+   "variant_group": "b3-q45",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Plusieurs tickets arrivent au support au même moment. Lequel prenez-vous en charge en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Un nouvel arrivant demande un logiciel pour la semaine prochaine"
+    },
+    {
+     "id": "b",
+     "text": "Un utilisateur cherche un fichier supprimé il y a un mois"
+    },
+    {
+     "id": "c",
+     "text": "Le serveur de paie est inaccessible la veille du versement des salaires"
+    },
+    {
+     "id": "d",
+     "text": "Le Wi-Fi est lent en salle de réunion, mais le filaire fonctionne"
+    }
+   ],
+   "correct": [
+    "c"
+   ],
+   "points": 1,
+   "explanation": "La priorité dépend de l'impact et de l'urgence : un service critique bloqué avec une échéance immédiate passe avant le reste."
+  },
+  {
    "position": 46,
+   "variant_group": "b3-q46",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Au démarrage de session, un poste affiche : « The trust relationship between this workstation and the primary domain failed. » Que signifie ce message ?",
@@ -1344,7 +2843,40 @@
    "explanation": "Le poste n'arrive plus à s'authentifier auprès du domaine (compte ordinateur désynchronisé). Il faut généralement le réintégrer au domaine."
   },
   {
+   "position": 46,
+   "variant_group": "b3-q46",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "À l'ouverture de session, un poste du domaine affiche : « Il n'y a actuellement aucun serveur d'ouverture de session disponible pour traiter la demande d'ouverture de session. » Que signifie ce message ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Le mot de passe saisi par l'utilisateur est incorrect ou a expiré"
+    },
+    {
+     "id": "b",
+     "text": "Le poste ne parvient à joindre aucun contrôleur de domaine (réseau ou DNS)"
+    },
+    {
+     "id": "c",
+     "text": "La licence Windows du poste a expiré et doit être réactivée"
+    },
+    {
+     "id": "d",
+     "text": "Le profil local de l'utilisateur est corrompu et doit être recréé"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "Le poste ne trouve aucun contrôleur de domaine pour vérifier l'identité de l'utilisateur : on vérifie la connexion réseau et la configuration DNS du poste."
+  },
+  {
    "position": 47,
+   "variant_group": "b3-q47",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Une connexion SSH vers un serveur échoue avec le message « Connection refused ». Que peut-on en déduire ?",
@@ -1373,7 +2905,40 @@
    "explanation": "« Refused » signifie que la machine a répondu en refusant. Un serveur injoignable donnerait plutôt « timed out », un mauvais mot de passe « Permission denied »."
   },
   {
+   "position": 47,
+   "variant_group": "b3-q47",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "En vous connectant en SSH à un serveur, vous obtenez l'avertissement « WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! ». Que peut-on en déduire ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "La clé d'hôte du serveur a changé : réinstallation ou possible interception"
+    },
+    {
+     "id": "b",
+     "text": "Le mot de passe de votre compte sur le serveur a été modifié par l'administrateur"
+    },
+    {
+     "id": "c",
+     "text": "Le service SSH n'écoute plus sur le port 22 et a été déplacé sur un autre port"
+    },
+    {
+     "id": "d",
+     "text": "Votre clé SSH privée a expiré et doit être régénérée sur votre poste"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La clé présentée par le serveur ne correspond plus à celle enregistrée dans known_hosts. Avant d'accepter, on vérifie si le serveur a été réinstallé ou s'il s'agit d'une attaque de l'homme du milieu."
+  },
+  {
    "position": 48,
+   "variant_group": "b3-q48",
+   "variant": "A",
    "type": "mcq_multi",
    "domain": "Logique et diagnostic",
    "prompt": "Avant de modifier la configuration d'un switch en production, quelles précautions prenez-vous (plusieurs réponses possibles) ?",
@@ -1404,7 +2969,42 @@
    "explanation": "Toute modification en production doit pouvoir être annulée rapidement et être communiquée en amont."
   },
   {
+   "position": 48,
+   "variant_group": "b3-q48",
+   "variant": "B",
+   "type": "mcq_multi",
+   "domain": "Logique et diagnostic",
+   "prompt": "Vous devez redémarrer un serveur de fichiers en production pour appliquer des mises à jour. Quelles précautions prenez-vous (plusieurs réponses possibles) ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Vérifier qu'une sauvegarde récente et restaurable existe"
+    },
+    {
+     "id": "b",
+     "text": "Prévenir les utilisateurs et choisir un créneau de faible activité"
+    },
+    {
+     "id": "c",
+     "text": "Redémarrer en pleine journée pour voir tout de suite les problèmes"
+    },
+    {
+     "id": "d",
+     "text": "Contrôler après redémarrage que les services et partages répondent"
+    }
+   ],
+   "correct": [
+    "a",
+    "b",
+    "d"
+   ],
+   "points": 1,
+   "explanation": "Une intervention en production se prépare (sauvegarde, communication, créneau adapté) et se vérifie ensuite ; on évite les heures de forte activité."
+  },
+  {
    "position": 49,
+   "variant_group": "b3-q49",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Les utilisateurs signalent que le serveur de fichiers est très lent tous les jours entre 12 h et 13 h, et seulement sur ce créneau. Quelle hypothèse vérifiez-vous en premier ?",
@@ -1433,7 +3033,40 @@
    "explanation": "Un problème qui revient chaque jour à heure fixe oriente vers une tâche planifiée (sauvegarde, analyse antivirus, synchronisation), pas vers une panne matérielle."
   },
   {
+   "position": 49,
+   "variant_group": "b3-q49",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Chaque lundi vers 9 h, de nombreux utilisateurs signalent que l'ouverture de session prend plusieurs minutes ; le reste de la semaine, tout est normal. Quelle hypothèse vérifiez-vous en premier ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Une surcharge due aux postes qui démarrent et se mettent à jour en même temps"
+    },
+    {
+     "id": "b",
+     "text": "Un câble réseau défectueux entre le contrôleur de domaine et le switch"
+    },
+    {
+     "id": "c",
+     "text": "Une panne matérielle du disque dur de chacun des postes concernés"
+    },
+    {
+     "id": "d",
+     "text": "Un virus programmé pour se déclencher uniquement le lundi matin"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Un problème qui revient à un moment précis, pour beaucoup d'utilisateurs à la fois, oriente vers un pic de charge (connexions, GPO, mises à jour) plutôt que vers une panne matérielle."
+  },
+  {
    "position": 50,
+   "variant_group": "b3-q50",
+   "variant": "A",
    "type": "mcq_single",
    "domain": "Logique et diagnostic",
    "prompt": "Un utilisateur ne peut plus ouvrir sa session : « Votre compte a été verrouillé ». Que faites-vous ?",
@@ -1460,6 +3093,189 @@
    ],
    "points": 1,
    "explanation": "Le verrouillage peut cacher une attaque par force brute : on vérifie qu'on parle bien à l'utilisateur et on identifie la cause pour éviter que cela se reproduise."
+  },
+  {
+   "position": 50,
+   "variant_group": "b3-q50",
+   "variant": "B",
+   "type": "mcq_single",
+   "domain": "Logique et diagnostic",
+   "prompt": "Un utilisateur appelle le support pour faire réinitialiser son mot de passe. Vous ne reconnaissez pas sa voix et il insiste sur l'urgence. Que faites-vous ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Réinitialiser le mot de passe tout de suite et le lui dicter au téléphone"
+    },
+    {
+     "id": "b",
+     "text": "Vérifier son identité (rappel au numéro de l'annuaire interne) avant de réinitialiser"
+    },
+    {
+     "id": "c",
+     "text": "Refuser définitivement toute réinitialisation de mot de passe par téléphone"
+    },
+    {
+     "id": "d",
+     "text": "Envoyer le nouveau mot de passe à l'adresse mail personnelle qu'il vous indique"
+    }
+   ],
+   "correct": [
+    "b"
+   ],
+   "points": 1,
+   "explanation": "L'urgence est un levier classique d'ingénierie sociale : on vérifie l'identité par un canal connu avant toute réinitialisation."
+  },
+  {
+   "position": 51,
+   "variant_group": null,
+   "variant": null,
+   "type": "terminal",
+   "domain": "Mission terminal",
+   "prompt": "Mission terminal (environ 8 minutes). Un serveur de fichiers sature : résolvez le ticket en ligne de commande. Chaque mission réussie rapporte 1 point ; elles se valident toutes seules.",
+   "options": null,
+   "correct": null,
+   "points": 4,
+   "scenario": {
+    "user": "tech",
+    "hostname": "srv-fic-01",
+    "home": "/home/tech",
+    "motd": "Ticket #4127 : le serveur de fichiers srv-fic-01 sature et l'équipe compta se plaint.\nLis ~/TICKET.txt, puis remplis les missions. Tape « help » pour la liste des commandes.",
+    "files": {
+     "/home/tech/TICKET.txt": "Ticket #4127, priorité haute\n-----------------------------\n1. Un processus lancé par le compte stagiaire occupe tout le processeur : arrête-le.\n2. Le disque est plein : dans /var/log/app, supprime l'archive qui occupe le plus de place\n   (garde les journaux du jour).\n3. Le dossier /srv/partage/compta est lisible par tout le monde : donne-lui les droits 770.\n4. Cette nuit, un compte a subi de nombreux échecs de connexion SSH (/var/log/auth.log).\n   Écris son nom, seul, dans ~/rapport.txt\n",
+     "/var/log/auth.log": "Oct 30 06:22:51 srv-fic-01 sshd[2038]: Accepted password for a.moreau from 10.20.0.32 port 41482 ssh2\nOct 30 08:36:15 srv-fic-01 sshd[2042]: Accepted password for a.moreau from 10.20.0.59 port 49991 ssh2\nOct 30 06:39:25 srv-fic-01 sshd[2130]: Accepted password for s.benali from 10.20.0.36 port 54057 ssh2\nOct 30 08:39:47 srv-fic-01 sshd[2096]: Accepted password for j.petit from 10.20.0.54 port 42704 ssh2\nOct 30 03:14:22 srv-fic-01 sshd[3012]: Failed password for svc-backup from 10.20.0.66 port 45592 ssh2\nOct 30 06:48:49 srv-fic-01 sshd[2092]: Accepted password for l.garcia from 10.20.0.41 port 44145 ssh2\nOct 30 03:16:55 srv-fic-01 sshd[3019]: Failed password for svc-backup from 10.20.0.66 port 46854 ssh2\nOct 30 07:14:33 srv-fic-01 sshd[2091]: Accepted password for m.durand from 10.20.0.48 port 47084 ssh2\nOct 30 03:19:23 srv-fic-01 sshd[3027]: Failed password for svc-backup from 10.20.0.66 port 54207 ssh2\nOct 30 03:11:10 srv-fic-01 sshd[3005]: Failed password for svc-backup from 10.20.0.66 port 41906 ssh2\nOct 30 07:39:21 srv-fic-01 sshd[2044]: Accepted password for a.moreau from 10.20.0.51 port 57017 ssh2\nOct 30 08:43:23 srv-fic-01 sshd[2036]: Accepted password for s.benali from 10.20.0.65 port 51023 ssh2\nOct 30 03:21:39 srv-fic-01 sshd[3034]: Failed password for svc-backup from 10.20.0.66 port 48948 ssh2\nOct 30 06:40:33 srv-fic-01 sshd[2123]: Accepted password for s.benali from 10.20.0.42 port 55273 ssh2\nOct 30 08:33:33 srv-fic-01 sshd[2008]: Accepted password for m.durand from 10.20.0.69 port 53835 ssh2\nOct 30 07:20:21 srv-fic-01 sshd[2137]: Accepted password for s.benali from 10.20.0.16 port 46082 ssh2\nOct 30 08:23:46 srv-fic-01 sshd[2050]: Accepted password for l.garcia from 10.20.0.47 port 58442 ssh2\nOct 30 08:56:18 srv-fic-01 sshd[2028]: Accepted password for a.moreau from 10.20.0.79 port 47304 ssh2\nOct 30 07:22:39 srv-fic-01 sshd[3102]: Failed password for j.petit from 10.20.0.31 port 52366 ssh2\nOct 30 06:59:36 srv-fic-01 sshd[2068]: Accepted password for a.moreau from 10.20.0.38 port 44102 ssh2\nOct 30 06:26:54 srv-fic-01 sshd[2019]: Accepted password for j.petit from 10.20.0.72 port 55291 ssh2\nOct 30 06:24:10 srv-fic-01 sshd[2046]: Accepted password for m.durand from 10.20.0.21 port 54880 ssh2\nOct 30 08:34:50 srv-fic-01 sshd[2129]: Accepted password for l.garcia from 10.20.0.23 port 59967 ssh2\nOct 30 03:12:31 srv-fic-01 sshd[3008]: Failed password for svc-backup from 10.20.0.66 port 40920 ssh2\nOct 30 06:46:24 srv-fic-01 sshd[2012]: Accepted password for l.garcia from 10.20.0.26 port 41601 ssh2\nOct 30 07:20:16 srv-fic-01 sshd[2052]: Accepted password for m.durand from 10.20.0.17 port 51673 ssh2\nOct 30 08:16:15 srv-fic-01 sshd[2084]: Accepted password for s.benali from 10.20.0.28 port 52753 ssh2\nOct 30 08:45:36 srv-fic-01 sshd[2001]: Accepted password for l.garcia from 10.20.0.83 port 57950 ssh2\nOct 30 08:55:55 srv-fic-01 sshd[2007]: Accepted password for s.benali from 10.20.0.83 port 50125 ssh2\nOct 30 03:10:19 srv-fic-01 sshd[3002]: Failed password for svc-backup from 10.20.0.66 port 50633 ssh2\nOct 30 08:42:26 srv-fic-01 sshd[2073]: Accepted password for m.durand from 10.20.0.53 port 57054 ssh2\nOct 30 03:17:40 srv-fic-01 sshd[3022]: Failed password for svc-backup from 10.20.0.66 port 43006 ssh2\nOct 30 08:11:52 srv-fic-01 sshd[2069]: Accepted password for s.benali from 10.20.0.79 port 58182 ssh2\nOct 30 06:37:56 srv-fic-01 sshd[2022]: Accepted password for a.moreau from 10.20.0.71 port 42106 ssh2\nOct 30 03:14:52 srv-fic-01 sshd[3014]: Failed password for svc-backup from 10.20.0.66 port 56205 ssh2\nOct 30 03:11:19 srv-fic-01 sshd[3003]: Failed password for svc-backup from 10.20.0.66 port 56653 ssh2\nOct 30 08:30:41 srv-fic-01 sshd[2127]: Accepted password for l.garcia from 10.20.0.50 port 51128 ssh2\nOct 30 03:15:20 srv-fic-01 sshd[3016]: Failed password for svc-backup from 10.20.0.66 port 57559 ssh2\nOct 30 08:27:30 srv-fic-01 sshd[2113]: Accepted password for m.durand from 10.20.0.12 port 46855 ssh2\nOct 30 08:36:19 srv-fic-01 sshd[2079]: Accepted password for s.benali from 10.20.0.72 port 40174 ssh2\nOct 30 07:32:51 srv-fic-01 sshd[2109]: Accepted password for s.benali from 10.20.0.52 port 41967 ssh2\nOct 30 06:41:39 srv-fic-01 sshd[2035]: Accepted password for j.petit from 10.20.0.83 port 45594 ssh2\nOct 30 06:13:16 srv-fic-01 sshd[2056]: Accepted password for a.moreau from 10.20.0.40 port 40752 ssh2\nOct 30 08:33:24 srv-fic-01 sshd[2076]: Accepted password for a.moreau from 10.20.0.81 port 49036 ssh2\nOct 30 08:14:28 srv-fic-01 sshd[2054]: Accepted password for j.petit from 10.20.0.50 port 45288 ssh2\nOct 30 08:51:42 srv-fic-01 sshd[2016]: Accepted password for j.petit from 10.20.0.71 port 53171 ssh2\nOct 30 08:17:53 srv-fic-01 sshd[2060]: Accepted password for a.moreau from 10.20.0.57 port 56425 ssh2\nOct 30 07:27:42 srv-fic-01 sshd[2124]: Accepted password for s.benali from 10.20.0.61 port 49963 ssh2\nOct 30 08:39:50 srv-fic-01 sshd[2106]: Accepted password for j.petit from 10.20.0.61 port 53089 ssh2\nOct 30 03:19:11 srv-fic-01 sshd[3029]: Failed password for svc-backup from 10.20.0.66 port 57920 ssh2\nOct 30 08:43:11 srv-fic-01 sshd[2089]: Accepted password for s.benali from 10.20.0.32 port 50311 ssh2\nOct 30 06:35:34 srv-fic-01 sshd[2083]: Accepted password for l.garcia from 10.20.0.78 port 56927 ssh2\nOct 30 06:28:28 srv-fic-01 sshd[2086]: Accepted password for s.benali from 10.20.0.79 port 49357 ssh2\nOct 30 08:27:49 srv-fic-01 sshd[2114]: Accepted password for a.moreau from 10.20.0.90 port 52105 ssh2\nOct 30 06:45:13 srv-fic-01 sshd[2064]: Accepted password for j.petit from 10.20.0.24 port 45312 ssh2\nOct 30 07:40:49 srv-fic-01 sshd[2126]: Accepted password for l.garcia from 10.20.0.21 port 56699 ssh2\nOct 30 06:44:50 srv-fic-01 sshd[2104]: Accepted password for j.petit from 10.20.0.44 port 47677 ssh2\nOct 30 03:18:17 srv-fic-01 sshd[3024]: Failed password for svc-backup from 10.20.0.66 port 42582 ssh2\nOct 30 07:21:24 srv-fic-01 sshd[3101]: Failed password for j.petit from 10.20.0.31 port 51763 ssh2\nOct 30 07:17:30 srv-fic-01 sshd[2103]: Accepted password for j.petit from 10.20.0.44 port 54563 ssh2\nOct 30 03:20:19 srv-fic-01 sshd[3030]: Failed password for svc-backup from 10.20.0.66 port 48805 ssh2\nOct 30 03:10:53 srv-fic-01 sshd[3001]: Failed password for svc-backup from 10.20.0.66 port 53329 ssh2\nOct 30 06:52:21 srv-fic-01 sshd[2041]: Accepted password for s.benali from 10.20.0.59 port 48939 ssh2\nOct 30 07:10:15 srv-fic-01 sshd[2024]: Accepted password for s.benali from 10.20.0.10 port 54785 ssh2\nOct 30 07:47:34 srv-fic-01 sshd[2101]: Accepted password for j.petit from 10.20.0.37 port 45058 ssh2\nOct 30 03:19:22 srv-fic-01 sshd[3028]: Failed password for svc-backup from 10.20.0.66 port 54021 ssh2\nOct 30 03:10:15 srv-fic-01 sshd[3000]: Failed password for svc-backup from 10.20.0.66 port 55258 ssh2\nOct 30 08:40:36 srv-fic-01 sshd[2071]: Accepted password for j.petit from 10.20.0.43 port 50313 ssh2\nOct 30 06:16:53 srv-fic-01 sshd[2057]: Accepted password for j.petit from 10.20.0.81 port 58890 ssh2\nOct 30 06:34:22 srv-fic-01 sshd[2087]: Accepted password for j.petit from 10.20.0.90 port 40309 ssh2\nOct 30 06:45:59 srv-fic-01 sshd[2105]: Accepted password for j.petit from 10.20.0.25 port 48778 ssh2\nOct 30 07:55:43 srv-fic-01 sshd[2118]: Accepted password for l.garcia from 10.20.0.85 port 58322 ssh2\nOct 30 03:12:16 srv-fic-01 sshd[3006]: Failed password for svc-backup from 10.20.0.66 port 51567 ssh2\nOct 30 07:10:16 srv-fic-01 sshd[2032]: Accepted password for s.benali from 10.20.0.59 port 42406 ssh2\nOct 30 03:21:32 srv-fic-01 sshd[3035]: Failed password for svc-backup from 10.20.0.66 port 55996 ssh2\nOct 30 07:17:45 srv-fic-01 sshd[2095]: Accepted password for a.moreau from 10.20.0.76 port 48094 ssh2\nOct 30 08:59:41 srv-fic-01 sshd[2108]: Accepted password for m.durand from 10.20.0.79 port 56930 ssh2\nOct 30 03:15:23 srv-fic-01 sshd[3015]: Failed password for svc-backup from 10.20.0.66 port 52201 ssh2\nOct 30 06:20:11 srv-fic-01 sshd[2090]: Accepted password for l.garcia from 10.20.0.24 port 56875 ssh2\nOct 30 07:51:32 srv-fic-01 sshd[2033]: Accepted password for m.durand from 10.20.0.13 port 40838 ssh2\nOct 30 03:16:29 srv-fic-01 sshd[3020]: Failed password for svc-backup from 10.20.0.66 port 54433 ssh2\nOct 30 07:26:53 srv-fic-01 sshd[3106]: Failed password for j.petit from 10.20.0.31 port 42583 ssh2\nOct 30 08:36:34 srv-fic-01 sshd[2031]: Accepted password for j.petit from 10.20.0.29 port 57040 ssh2\nOct 30 07:42:42 srv-fic-01 sshd[2000]: Accepted password for m.durand from 10.20.0.23 port 47316 ssh2\nOct 30 08:40:37 srv-fic-01 sshd[2088]: Accepted password for l.garcia from 10.20.0.55 port 57608 ssh2\nOct 30 08:50:16 srv-fic-01 sshd[2053]: Accepted password for s.benali from 10.20.0.74 port 50274 ssh2\nOct 30 08:16:55 srv-fic-01 sshd[2013]: Accepted password for l.garcia from 10.20.0.89 port 54070 ssh2\nOct 30 06:40:24 srv-fic-01 sshd[2014]: Accepted password for a.moreau from 10.20.0.25 port 54968 ssh2\nOct 30 08:45:18 srv-fic-01 sshd[2051]: Accepted password for j.petit from 10.20.0.22 port 48641 ssh2\nOct 30 07:59:39 srv-fic-01 sshd[2058]: Accepted password for j.petit from 10.20.0.87 port 41245 ssh2\nOct 30 07:56:52 srv-fic-01 sshd[2099]: Accepted password for j.petit from 10.20.0.73 port 53207 ssh2\nOct 30 07:25:30 srv-fic-01 sshd[3105]: Failed password for j.petit from 10.20.0.31 port 48351 ssh2\nOct 30 07:23:48 srv-fic-01 sshd[3103]: Failed password for j.petit from 10.20.0.31 port 59432 ssh2\nOct 30 07:24:13 srv-fic-01 sshd[3104]: Failed password for j.petit from 10.20.0.31 port 58356 ssh2\nOct 30 03:18:17 srv-fic-01 sshd[3026]: Failed password for svc-backup from 10.20.0.66 port 45640 ssh2\nOct 30 06:45:53 srv-fic-01 sshd[2132]: Accepted password for a.moreau from 10.20.0.51 port 51919 ssh2\nOct 30 08:47:15 srv-fic-01 sshd[2072]: Accepted password for s.benali from 10.20.0.32 port 58120 ssh2\nOct 30 08:44:26 srv-fic-01 sshd[2015]: Accepted password for a.moreau from 10.20.0.81 port 53175 ssh2\nOct 30 08:20:55 srv-fic-01 sshd[2117]: Accepted password for l.garcia from 10.20.0.49 port 42761 ssh2\nOct 30 07:16:38 srv-fic-01 sshd[2021]: Accepted password for j.petit from 10.20.0.75 port 48481 ssh2\nOct 30 06:31:47 srv-fic-01 sshd[2111]: Accepted password for j.petit from 10.20.0.88 port 53586 ssh2\nOct 30 06:33:32 srv-fic-01 sshd[2077]: Accepted password for j.petit from 10.20.0.68 port 54993 ssh2\nOct 30 07:17:43 srv-fic-01 sshd[2045]: Accepted password for a.moreau from 10.20.0.77 port 48972 ssh2\nOct 30 07:16:38 srv-fic-01 sshd[2003]: Accepted password for m.durand from 10.20.0.11 port 56065 ssh2\nOct 30 06:52:10 srv-fic-01 sshd[2074]: Accepted password for j.petit from 10.20.0.90 port 47956 ssh2\nOct 30 08:29:51 srv-fic-01 sshd[2094]: Accepted password for j.petit from 10.20.0.25 port 51396 ssh2\nOct 30 07:14:10 srv-fic-01 sshd[2055]: Accepted password for j.petit from 10.20.0.62 port 48422 ssh2\nOct 30 03:20:28 srv-fic-01 sshd[3031]: Failed password for svc-backup from 10.20.0.66 port 51967 ssh2\nOct 30 03:17:45 srv-fic-01 sshd[3021]: Failed password for svc-backup from 10.20.0.66 port 59877 ssh2\nOct 30 06:51:43 srv-fic-01 sshd[2040]: Accepted password for m.durand from 10.20.0.37 port 56936 ssh2\nOct 30 08:51:51 srv-fic-01 sshd[2066]: Accepted password for j.petit from 10.20.0.48 port 40943 ssh2\nOct 30 08:21:10 srv-fic-01 sshd[2110]: Accepted password for a.moreau from 10.20.0.44 port 58314 ssh2\nOct 30 03:13:20 srv-fic-01 sshd[3009]: Failed password for svc-backup from 10.20.0.66 port 56490 ssh2\nOct 30 08:24:53 srv-fic-01 sshd[2037]: Accepted password for a.moreau from 10.20.0.18 port 57935 ssh2\nOct 30 03:22:18 srv-fic-01 sshd[3036]: Failed password for svc-backup from 10.20.0.66 port 43521 ssh2\nOct 30 03:16:39 srv-fic-01 sshd[3018]: Failed password for svc-backup from 10.20.0.66 port 51901 ssh2\nOct 30 07:48:23 srv-fic-01 sshd[2059]: Accepted password for a.moreau from 10.20.0.86 port 55160 ssh2\nOct 30 07:28:32 srv-fic-01 sshd[3108]: Failed password for j.petit from 10.20.0.31 port 57894 ssh2\nOct 30 03:14:25 srv-fic-01 sshd[3013]: Failed password for svc-backup from 10.20.0.66 port 47361 ssh2\nOct 30 07:41:16 srv-fic-01 sshd[2093]: Accepted password for m.durand from 10.20.0.19 port 52491 ssh2\nOct 30 06:49:55 srv-fic-01 sshd[2049]: Accepted password for s.benali from 10.20.0.45 port 58212 ssh2\nOct 30 03:20:35 srv-fic-01 sshd[3032]: Failed password for svc-backup from 10.20.0.66 port 40312 ssh2\nOct 30 06:14:45 srv-fic-01 sshd[2128]: Accepted password for j.petit from 10.20.0.32 port 48437 ssh2\nOct 30 03:13:22 srv-fic-01 sshd[3010]: Failed password for svc-backup from 10.20.0.66 port 42950 ssh2\nOct 30 08:38:25 srv-fic-01 sshd[2002]: Accepted password for a.moreau from 10.20.0.10 port 42645 ssh2\nOct 30 08:18:32 srv-fic-01 sshd[2067]: Accepted password for a.moreau from 10.20.0.63 port 52586 ssh2\nOct 30 07:24:42 srv-fic-01 sshd[2139]: Accepted password for m.durand from 10.20.0.56 port 57784 ssh2\nOct 30 06:41:59 srv-fic-01 sshd[2097]: Accepted password for m.durand from 10.20.0.49 port 48693 ssh2\nOct 30 07:32:30 srv-fic-01 sshd[2121]: Accepted password for j.petit from 10.20.0.87 port 55718 ssh2\nOct 30 08:18:48 srv-fic-01 sshd[2029]: Accepted password for a.moreau from 10.20.0.74 port 49525 ssh2\nOct 30 06:32:45 srv-fic-01 sshd[2048]: Accepted password for j.petit from 10.20.0.83 port 57641 ssh2\nOct 30 07:31:10 srv-fic-01 sshd[2112]: Accepted password for a.moreau from 10.20.0.14 port 47204 ssh2\nOct 30 07:44:52 srv-fic-01 sshd[2047]: Accepted password for j.petit from 10.20.0.33 port 40890 ssh2\nOct 30 07:30:47 srv-fic-01 sshd[2063]: Accepted password for j.petit from 10.20.0.12 port 57765 ssh2\nOct 30 08:13:36 srv-fic-01 sshd[2125]: Accepted password for s.benali from 10.20.0.18 port 56677 ssh2\nOct 30 07:20:19 srv-fic-01 sshd[3100]: Failed password for j.petit from 10.20.0.31 port 58338 ssh2\nOct 30 08:55:31 srv-fic-01 sshd[2107]: Accepted password for m.durand from 10.20.0.62 port 51037 ssh2\nOct 30 08:54:36 srv-fic-01 sshd[2080]: Accepted password for j.petit from 10.20.0.14 port 45654 ssh2\nOct 30 08:18:42 srv-fic-01 sshd[2131]: Accepted password for l.garcia from 10.20.0.37 port 48869 ssh2\nOct 30 03:21:40 srv-fic-01 sshd[3033]: Failed password for svc-backup from 10.20.0.66 port 57072 ssh2\nOct 30 08:46:52 srv-fic-01 sshd[2102]: Accepted password for a.moreau from 10.20.0.26 port 54132 ssh2\nOct 30 07:54:31 srv-fic-01 sshd[2062]: Accepted password for m.durand from 10.20.0.47 port 44008 ssh2\nOct 30 06:11:27 srv-fic-01 sshd[2119]: Accepted password for s.benali from 10.20.0.63 port 41457 ssh2\nOct 30 06:44:23 srv-fic-01 sshd[2082]: Accepted password for m.durand from 10.20.0.84 port 50050 ssh2\nOct 30 07:28:32 srv-fic-01 sshd[2061]: Accepted password for j.petit from 10.20.0.17 port 54311 ssh2\nOct 30 08:56:42 srv-fic-01 sshd[2120]: Accepted password for s.benali from 10.20.0.39 port 55426 ssh2\nOct 30 07:53:47 srv-fic-01 sshd[2078]: Accepted password for l.garcia from 10.20.0.49 port 46157 ssh2\nOct 30 03:17:23 srv-fic-01 sshd[3023]: Failed password for svc-backup from 10.20.0.66 port 46404 ssh2\nOct 30 08:26:29 srv-fic-01 sshd[2085]: Accepted password for j.petit from 10.20.0.15 port 59422 ssh2\nOct 30 07:52:20 srv-fic-01 sshd[2030]: Accepted password for m.durand from 10.20.0.27 port 59203 ssh2\nOct 30 08:49:56 srv-fic-01 sshd[2133]: Accepted password for a.moreau from 10.20.0.79 port 46194 ssh2\nOct 30 08:48:39 srv-fic-01 sshd[2018]: Accepted password for s.benali from 10.20.0.76 port 56040 ssh2\nOct 30 07:36:46 srv-fic-01 sshd[2011]: Accepted password for l.garcia from 10.20.0.71 port 56808 ssh2\nOct 30 06:35:26 srv-fic-01 sshd[2004]: Accepted password for j.petit from 10.20.0.54 port 51686 ssh2\nOct 30 06:17:12 srv-fic-01 sshd[2065]: Accepted password for l.garcia from 10.20.0.26 port 57124 ssh2\nOct 30 06:18:27 srv-fic-01 sshd[2136]: Accepted password for j.petit from 10.20.0.79 port 51686 ssh2\nOct 30 07:21:26 srv-fic-01 sshd[2043]: Accepted password for s.benali from 10.20.0.69 port 56305 ssh2\nOct 30 07:33:16 srv-fic-01 sshd[2023]: Accepted password for j.petit from 10.20.0.34 port 53477 ssh2\nOct 30 06:22:39 srv-fic-01 sshd[2100]: Accepted password for j.petit from 10.20.0.38 port 51421 ssh2\nOct 30 08:12:58 srv-fic-01 sshd[2026]: Accepted password for m.durand from 10.20.0.79 port 48799 ssh2\nOct 30 08:44:28 srv-fic-01 sshd[2006]: Accepted password for m.durand from 10.20.0.46 port 54989 ssh2\nOct 30 07:30:53 srv-fic-01 sshd[2034]: Accepted password for l.garcia from 10.20.0.48 port 54750 ssh2\nOct 30 07:33:44 srv-fic-01 sshd[2081]: Accepted password for m.durand from 10.20.0.43 port 44520 ssh2\nOct 30 06:38:58 srv-fic-01 sshd[2039]: Accepted password for l.garcia from 10.20.0.34 port 55854 ssh2\nOct 30 08:42:50 srv-fic-01 sshd[2005]: Accepted password for a.moreau from 10.20.0.19 port 51154 ssh2\nOct 30 07:51:49 srv-fic-01 sshd[2138]: Accepted password for s.benali from 10.20.0.72 port 57893 ssh2\nOct 30 07:30:26 srv-fic-01 sshd[2122]: Accepted password for j.petit from 10.20.0.14 port 56056 ssh2\nOct 30 03:15:37 srv-fic-01 sshd[3017]: Failed password for svc-backup from 10.20.0.66 port 53866 ssh2\nOct 30 06:31:24 srv-fic-01 sshd[2116]: Accepted password for m.durand from 10.20.0.69 port 46762 ssh2\nOct 30 03:12:47 srv-fic-01 sshd[3007]: Failed password for svc-backup from 10.20.0.66 port 48428 ssh2\nOct 30 03:18:32 srv-fic-01 sshd[3025]: Failed password for svc-backup from 10.20.0.66 port 45179 ssh2\nOct 30 06:30:37 srv-fic-01 sshd[2098]: Accepted password for s.benali from 10.20.0.74 port 58401 ssh2\nOct 30 06:10:30 srv-fic-01 sshd[2027]: Accepted password for j.petit from 10.20.0.84 port 58818 ssh2\nOct 30 03:11:12 srv-fic-01 sshd[3004]: Failed password for svc-backup from 10.20.0.66 port 55428 ssh2\nOct 30 08:54:22 srv-fic-01 sshd[2115]: Accepted password for m.durand from 10.20.0.78 port 40373 ssh2\nOct 30 07:27:39 srv-fic-01 sshd[3107]: Failed password for j.petit from 10.20.0.31 port 55353 ssh2\nOct 30 06:28:27 srv-fic-01 sshd[2017]: Accepted password for a.moreau from 10.20.0.11 port 41084 ssh2\nOct 30 08:58:48 srv-fic-01 sshd[2010]: Accepted password for a.moreau from 10.20.0.72 port 53046 ssh2\nOct 30 03:13:37 srv-fic-01 sshd[3011]: Failed password for svc-backup from 10.20.0.66 port 54192 ssh2\nOct 30 07:37:45 srv-fic-01 sshd[2020]: Accepted password for l.garcia from 10.20.0.14 port 49504 ssh2\nOct 30 07:47:45 srv-fic-01 sshd[2009]: Accepted password for m.durand from 10.20.0.73 port 43815 ssh2\nOct 30 06:24:53 srv-fic-01 sshd[2075]: Accepted password for a.moreau from 10.20.0.75 port 44942 ssh2\nOct 30 07:19:24 srv-fic-01 sshd[2070]: Accepted password for a.moreau from 10.20.0.12 port 40543 ssh2\nOct 30 08:15:49 srv-fic-01 sshd[2025]: Accepted password for l.garcia from 10.20.0.35 port 48121 ssh2\nOct 30 08:46:13 srv-fic-01 sshd[2135]: Accepted password for s.benali from 10.20.0.14 port 49187 ssh2\nOct 30 08:45:55 srv-fic-01 sshd[2134]: Accepted password for s.benali from 10.20.0.29 port 44717 ssh2\n",
+     "/var/log/app/app.log": "2026-10-30 08:00 INFO requête traitée\n2026-10-30 08:01 INFO requête traitée\n2026-10-30 08:02 INFO requête traitée\n2026-10-30 08:03 INFO requête traitée\n2026-10-30 08:04 INFO requête traitée\n2026-10-30 08:05 INFO requête traitée\n2026-10-30 08:06 INFO requête traitée\n2026-10-30 08:07 INFO requête traitée\n2026-10-30 08:08 INFO requête traitée\n2026-10-30 08:09 INFO requête traitée\n2026-10-30 08:10 INFO requête traitée\n2026-10-30 08:11 INFO requête traitée\n2026-10-30 08:12 INFO requête traitée\n2026-10-30 08:13 INFO requête traitée\n2026-10-30 08:14 INFO requête traitée\n2026-10-30 08:15 INFO requête traitée\n2026-10-30 08:16 INFO requête traitée\n2026-10-30 08:17 INFO requête traitée\n2026-10-30 08:18 INFO requête traitée\n2026-10-30 08:19 INFO requête traitée\n2026-10-30 08:20 INFO requête traitée\n2026-10-30 08:21 INFO requête traitée\n2026-10-30 08:22 INFO requête traitée\n2026-10-30 08:23 INFO requête traitée\n2026-10-30 08:24 INFO requête traitée\n2026-10-30 08:25 INFO requête traitée\n2026-10-30 08:26 INFO requête traitée\n2026-10-30 08:27 INFO requête traitée\n2026-10-30 08:28 INFO requête traitée\n2026-10-30 08:29 INFO requête traitée\n2026-10-30 08:30 INFO requête traitée\n2026-10-30 08:31 INFO requête traitée\n2026-10-30 08:32 INFO requête traitée\n2026-10-30 08:33 INFO requête traitée\n2026-10-30 08:34 INFO requête traitée\n2026-10-30 08:35 INFO requête traitée\n2026-10-30 08:36 INFO requête traitée\n2026-10-30 08:37 INFO requête traitée\n2026-10-30 08:38 INFO requête traitée\n2026-10-30 08:39 INFO requête traitée\n",
+     "/var/log/app/app.log.1": "2026-10-29 17:00 INFO requête traitée\n2026-10-29 17:01 INFO requête traitée\n2026-10-29 17:02 INFO requête traitée\n2026-10-29 17:03 INFO requête traitée\n2026-10-29 17:04 INFO requête traitée\n2026-10-29 17:05 INFO requête traitée\n2026-10-29 17:06 INFO requête traitée\n2026-10-29 17:07 INFO requête traitée\n2026-10-29 17:08 INFO requête traitée\n2026-10-29 17:09 INFO requête traitée\n2026-10-29 17:10 INFO requête traitée\n2026-10-29 17:11 INFO requête traitée\n2026-10-29 17:12 INFO requête traitée\n2026-10-29 17:13 INFO requête traitée\n2026-10-29 17:14 INFO requête traitée\n2026-10-29 17:15 INFO requête traitée\n2026-10-29 17:16 INFO requête traitée\n2026-10-29 17:17 INFO requête traitée\n2026-10-29 17:18 INFO requête traitée\n2026-10-29 17:19 INFO requête traitée\n2026-10-29 17:20 INFO requête traitée\n2026-10-29 17:21 INFO requête traitée\n2026-10-29 17:22 INFO requête traitée\n2026-10-29 17:23 INFO requête traitée\n2026-10-29 17:24 INFO requête traitée\n2026-10-29 17:25 INFO requête traitée\n2026-10-29 17:26 INFO requête traitée\n2026-10-29 17:27 INFO requête traitée\n2026-10-29 17:28 INFO requête traitée\n2026-10-29 17:29 INFO requête traitée\n2026-10-29 17:30 INFO requête traitée\n2026-10-29 17:31 INFO requête traitée\n2026-10-29 17:32 INFO requête traitée\n2026-10-29 17:33 INFO requête traitée\n2026-10-29 17:34 INFO requête traitée\n2026-10-29 17:35 INFO requête traitée\n2026-10-29 17:36 INFO requête traitée\n2026-10-29 17:37 INFO requête traitée\n2026-10-29 17:38 INFO requête traitée\n2026-10-29 17:39 INFO requête traitée\n2026-10-29 17:40 INFO requête traitée\n2026-10-29 17:41 INFO requête traitée\n2026-10-29 17:42 INFO requête traitée\n2026-10-29 17:43 INFO requête traitée\n2026-10-29 17:44 INFO requête traitée\n2026-10-29 17:45 INFO requête traitée\n2026-10-29 17:46 INFO requête traitée\n2026-10-29 17:47 INFO requête traitée\n2026-10-29 17:48 INFO requête traitée\n2026-10-29 17:49 INFO requête traitée\n",
+     "/var/log/app/debug-2026-09.log.old": {
+      "content": "2026-09-01 DEBUG trace détaillée de la requête 0 ................................\n2026-09-01 DEBUG trace détaillée de la requête 1 ................................\n2026-09-01 DEBUG trace détaillée de la requête 2 ................................\n2026-09-01 DEBUG trace détaillée de la requête 3 ................................\n2026-09-01 DEBUG trace détaillée de la requête 4 ................................\n2026-09-01 DEBUG trace détaillée de la requête 5 ................................\n2026-09-01 DEBUG trace détaillée de la requête 6 ................................\n2026-09-01 DEBUG trace détaillée de la requête 7 ................................\n2026-09-01 DEBUG trace détaillée de la requête 8 ................................\n2026-09-01 DEBUG trace détaillée de la requête 9 ................................\n2026-09-01 DEBUG trace détaillée de la requête 10 ................................\n2026-09-01 DEBUG trace détaillée de la requête 11 ................................\n2026-09-01 DEBUG trace détaillée de la requête 12 ................................\n2026-09-01 DEBUG trace détaillée de la requête 13 ................................\n2026-09-01 DEBUG trace détaillée de la requête 14 ................................\n2026-09-01 DEBUG trace détaillée de la requête 15 ................................\n2026-09-01 DEBUG trace détaillée de la requête 16 ................................\n2026-09-01 DEBUG trace détaillée de la requête 17 ................................\n2026-09-01 DEBUG trace détaillée de la requête 18 ................................\n2026-09-01 DEBUG trace détaillée de la requête 19 ................................\n2026-09-01 DEBUG trace détaillée de la requête 20 ................................\n2026-09-01 DEBUG trace détaillée de la requête 21 ................................\n2026-09-01 DEBUG trace détaillée de la requête 22 ................................\n2026-09-01 DEBUG trace détaillée de la requête 23 ................................\n2026-09-01 DEBUG trace détaillée de la requête 24 ................................\n2026-09-01 DEBUG trace détaillée de la requête 25 ................................\n2026-09-01 DEBUG trace détaillée de la requête 26 ................................\n2026-09-01 DEBUG trace détaillée de la requête 27 ................................\n2026-09-01 DEBUG trace détaillée de la requête 28 ................................\n2026-09-01 DEBUG trace détaillée de la requête 29 ................................\n2026-09-02 DEBUG trace détaillée de la requête 0 ................................\n2026-09-02 DEBUG trace détaillée de la requête 1 ................................\n2026-09-02 DEBUG trace détaillée de la requête 2 ................................\n2026-09-02 DEBUG trace détaillée de la requête 3 ................................\n2026-09-02 DEBUG trace détaillée de la requête 4 ................................\n2026-09-02 DEBUG trace détaillée de la requête 5 ................................\n2026-09-02 DEBUG trace détaillée de la requête 6 ................................\n2026-09-02 DEBUG trace détaillée de la requête 7 ................................\n2026-09-02 DEBUG trace détaillée de la requête 8 ................................\n2026-09-02 DEBUG trace détaillée de la requête 9 ................................\n2026-09-02 DEBUG trace détaillée de la requête 10 ................................\n2026-09-02 DEBUG trace détaillée de la requête 11 ................................\n2026-09-02 DEBUG trace détaillée de la requête 12 ................................\n2026-09-02 DEBUG trace détaillée de la requête 13 ................................\n2026-09-02 DEBUG trace détaillée de la requête 14 ................................\n2026-09-02 DEBUG trace détaillée de la requête 15 ................................\n2026-09-02 DEBUG trace détaillée de la requête 16 ................................\n2026-09-02 DEBUG trace détaillée de la requête 17 ................................\n2026-09-02 DEBUG trace détaillée de la requête 18 ................................\n2026-09-02 DEBUG trace détaillée de la requête 19 ................................\n2026-09-02 DEBUG trace détaillée de la requête 20 ................................\n2026-09-02 DEBUG trace détaillée de la requête 21 ................................\n2026-09-02 DEBUG trace détaillée de la requête 22 ................................\n2026-09-02 DEBUG trace détaillée de la requête 23 ................................\n2026-09-02 DEBUG trace détaillée de la requête 24 ................................\n2026-09-02 DEBUG trace détaillée de la requête 25 ................................\n2026-09-02 DEBUG trace détaillée de la requête 26 ................................\n2026-09-02 DEBUG trace détaillée de la requête 27 ................................\n2026-09-02 DEBUG trace détaillée de la requête 28 ................................\n2026-09-02 DEBUG trace détaillée de la requête 29 ................................\n2026-09-03 DEBUG trace détaillée de la requête 0 ................................\n2026-09-03 DEBUG trace détaillée de la requête 1 ................................\n2026-09-03 DEBUG trace détaillée de la requête 2 ................................\n2026-09-03 DEBUG trace détaillée de la requête 3 ................................\n2026-09-03 DEBUG trace détaillée de la requête 4 ................................\n2026-09-03 DEBUG trace détaillée de la requête 5 ................................\n2026-09-03 DEBUG trace détaillée de la requête 6 ................................\n2026-09-03 DEBUG trace détaillée de la requête 7 ................................\n2026-09-03 DEBUG trace détaillée de la requête 8 ................................\n2026-09-03 DEBUG trace détaillée de la requête 9 ................................\n2026-09-03 DEBUG trace détaillée de la requête 10 ................................\n2026-09-03 DEBUG trace détaillée de la requête 11 ................................\n2026-09-03 DEBUG trace détaillée de la requête 12 ................................\n2026-09-03 DEBUG trace détaillée de la requête 13 ................................\n2026-09-03 DEBUG trace détaillée de la requête 14 ................................\n2026-09-03 DEBUG trace détaillée de la requête 15 ................................\n2026-09-03 DEBUG trace détaillée de la requête 16 ................................\n2026-09-03 DEBUG trace détaillée de la requête 17 ................................\n2026-09-03 DEBUG trace détaillée de la requête 18 ................................\n2026-09-03 DEBUG trace détaillée de la requête 19 ................................\n2026-09-03 DEBUG trace détaillée de la requête 20 ................................\n2026-09-03 DEBUG trace détaillée de la requête 21 ................................\n2026-09-03 DEBUG trace détaillée de la requête 22 ................................\n2026-09-03 DEBUG trace détaillée de la requête 23 ................................\n2026-09-03 DEBUG trace détaillée de la requête 24 ................................\n2026-09-03 DEBUG trace détaillée de la requête 25 ................................\n2026-09-03 DEBUG trace détaillée de la requête 26 ................................\n2026-09-03 DEBUG trace détaillée de la requête 27 ................................\n2026-09-03 DEBUG trace détaillée de la requête 28 ................................\n2026-09-03 DEBUG trace détaillée de la requête 29 ................................\n2026-09-04 DEBUG trace détaillée de la requête 0 ................................\n2026-09-04 DEBUG trace détaillée de la requête 1 ................................\n2026-09-04 DEBUG trace détaillée de la requête 2 ................................\n2026-09-04 DEBUG trace détaillée de la requête 3 ................................\n2026-09-04 DEBUG trace détaillée de la requête 4 ................................\n2026-09-04 DEBUG trace détaillée de la requête 5 ................................\n2026-09-04 DEBUG trace détaillée de la requête 6 ................................\n2026-09-04 DEBUG trace détaillée de la requête 7 ................................\n2026-09-04 DEBUG trace détaillée de la requête 8 ................................\n2026-09-04 DEBUG trace détaillée de la requête 9 ................................\n2026-09-04 DEBUG trace détaillée de la requête 10 ................................\n2026-09-04 DEBUG trace détaillée de la requête 11 ................................\n2026-09-04 DEBUG trace détaillée de la requête 12 ................................\n2026-09-04 DEBUG trace détaillée de la requête 13 ................................\n2026-09-04 DEBUG trace détaillée de la requête 14 ................................\n2026-09-04 DEBUG trace détaillée de la requête 15 ................................\n2026-09-04 DEBUG trace détaillée de la requête 16 ................................\n2026-09-04 DEBUG trace détaillée de la requête 17 ................................\n2026-09-04 DEBUG trace détaillée de la requête 18 ................................\n2026-09-04 DEBUG trace détaillée de la requête 19 ................................\n2026-09-04 DEBUG trace détaillée de la requête 20 ................................\n2026-09-04 DEBUG trace détaillée de la requête 21 ................................\n2026-09-04 DEBUG trace détaillée de la requête 22 ................................\n2026-09-04 DEBUG trace détaillée de la requête 23 ................................\n2026-09-04 DEBUG trace détaillée de la requête 24 ................................\n2026-09-04 DEBUG trace détaillée de la requête 25 ................................\n2026-09-04 DEBUG trace détaillée de la requête 26 ................................\n2026-09-04 DEBUG trace détaillée de la requête 27 ................................\n2026-09-04 DEBUG trace détaillée de la requête 28 ................................\n2026-09-04 DEBUG trace détaillée de la requête 29 ................................\n2026-09-05 DEBUG trace détaillée de la requête 0 ................................\n2026-09-05 DEBUG trace détaillée de la requête 1 ................................\n2026-09-05 DEBUG trace détaillée de la requête 2 ................................\n2026-09-05 DEBUG trace détaillée de la requête 3 ................................\n2026-09-05 DEBUG trace détaillée de la requête 4 ................................\n2026-09-05 DEBUG trace détaillée de la requête 5 ................................\n2026-09-05 DEBUG trace détaillée de la requête 6 ................................\n2026-09-05 DEBUG trace détaillée de la requête 7 ................................\n2026-09-05 DEBUG trace détaillée de la requête 8 ................................\n2026-09-05 DEBUG trace détaillée de la requête 9 ................................\n2026-09-05 DEBUG trace détaillée de la requête 10 ................................\n2026-09-05 DEBUG trace détaillée de la requête 11 ................................\n2026-09-05 DEBUG trace détaillée de la requête 12 ................................\n2026-09-05 DEBUG trace détaillée de la requête 13 ................................\n2026-09-05 DEBUG trace détaillée de la requête 14 ................................\n2026-09-05 DEBUG trace détaillée de la requête 15 ................................\n2026-09-05 DEBUG trace détaillée de la requête 16 ................................\n2026-09-05 DEBUG trace détaillée de la requête 17 ................................\n2026-09-05 DEBUG trace détaillée de la requête 18 ................................\n2026-09-05 DEBUG trace détaillée de la requête 19 ................................\n2026-09-05 DEBUG trace détaillée de la requête 20 ................................\n2026-09-05 DEBUG trace détaillée de la requête 21 ................................\n2026-09-05 DEBUG trace détaillée de la requête 22 ................................\n2026-09-05 DEBUG trace détaillée de la requête 23 ................................\n2026-09-05 DEBUG trace détaillée de la requête 24 ................................\n2026-09-05 DEBUG trace détaillée de la requête 25 ................................\n2026-09-05 DEBUG trace détaillée de la requête 26 ................................\n2026-09-05 DEBUG trace détaillée de la requête 27 ................................\n2026-09-05 DEBUG trace détaillée de la requête 28 ................................\n2026-09-05 DEBUG trace détaillée de la requête 29 ................................\n2026-09-06 DEBUG trace détaillée de la requête 0 ................................\n2026-09-06 DEBUG trace détaillée de la requête 1 ................................\n2026-09-06 DEBUG trace détaillée de la requête 2 ................................\n2026-09-06 DEBUG trace détaillée de la requête 3 ................................\n2026-09-06 DEBUG trace détaillée de la requête 4 ................................\n2026-09-06 DEBUG trace détaillée de la requête 5 ................................\n2026-09-06 DEBUG trace détaillée de la requête 6 ................................\n2026-09-06 DEBUG trace détaillée de la requête 7 ................................\n2026-09-06 DEBUG trace détaillée de la requête 8 ................................\n2026-09-06 DEBUG trace détaillée de la requête 9 ................................\n2026-09-06 DEBUG trace détaillée de la requête 10 ................................\n2026-09-06 DEBUG trace détaillée de la requête 11 ................................\n2026-09-06 DEBUG trace détaillée de la requête 12 ................................\n2026-09-06 DEBUG trace détaillée de la requête 13 ................................\n2026-09-06 DEBUG trace détaillée de la requête 14 ................................\n2026-09-06 DEBUG trace détaillée de la requête 15 ................................\n2026-09-06 DEBUG trace détaillée de la requête 16 ................................\n2026-09-06 DEBUG trace détaillée de la requête 17 ................................\n2026-09-06 DEBUG trace détaillée de la requête 18 ................................\n2026-09-06 DEBUG trace détaillée de la requête 19 ................................\n2026-09-06 DEBUG trace détaillée de la requête 20 ................................\n2026-09-06 DEBUG trace détaillée de la requête 21 ................................\n2026-09-06 DEBUG trace détaillée de la requête 22 ................................\n2026-09-06 DEBUG trace détaillée de la requête 23 ................................\n2026-09-06 DEBUG trace détaillée de la requête 24 ................................\n2026-09-06 DEBUG trace détaillée de la requête 25 ................................\n2026-09-06 DEBUG trace détaillée de la requête 26 ................................\n2026-09-06 DEBUG trace détaillée de la requête 27 ................................\n2026-09-06 DEBUG trace détaillée de la requête 28 ................................\n2026-09-06 DEBUG trace détaillée de la requête 29 ................................\n2026-09-07 DEBUG trace détaillée de la requête 0 ................................\n2026-09-07 DEBUG trace détaillée de la requête 1 ................................\n2026-09-07 DEBUG trace détaillée de la requête 2 ................................\n2026-09-07 DEBUG trace détaillée de la requête 3 ................................\n2026-09-07 DEBUG trace détaillée de la requête 4 ................................\n2026-09-07 DEBUG trace détaillée de la requête 5 ................................\n2026-09-07 DEBUG trace détaillée de la requête 6 ................................\n2026-09-07 DEBUG trace détaillée de la requête 7 ................................\n2026-09-07 DEBUG trace détaillée de la requête 8 ................................\n2026-09-07 DEBUG trace détaillée de la requête 9 ................................\n2026-09-07 DEBUG trace détaillée de la requête 10 ................................\n2026-09-07 DEBUG trace détaillée de la requête 11 ................................\n2026-09-07 DEBUG trace détaillée de la requête 12 ................................\n2026-09-07 DEBUG trace détaillée de la requête 13 ................................\n2026-09-07 DEBUG trace détaillée de la requête 14 ................................\n2026-09-07 DEBUG trace détaillée de la requête 15 ................................\n2026-09-07 DEBUG trace détaillée de la requête 16 ................................\n2026-09-07 DEBUG trace détaillée de la requête 17 ................................\n2026-09-07 DEBUG trace détaillée de la requête 18 ................................\n2026-09-07 DEBUG trace détaillée de la requête 19 ................................\n2026-09-07 DEBUG trace détaillée de la requête 20 ................................\n2026-09-07 DEBUG trace détaillée de la requête 21 ................................\n2026-09-07 DEBUG trace détaillée de la requête 22 ................................\n2026-09-07 DEBUG trace détaillée de la requête 23 ................................\n2026-09-07 DEBUG trace détaillée de la requête 24 ................................\n2026-09-07 DEBUG trace détaillée de la requête 25 ................................\n2026-09-07 DEBUG trace détaillée de la requête 26 ................................\n2026-09-07 DEBUG trace détaillée de la requête 27 ................................\n2026-09-07 DEBUG trace détaillée de la requête 28 ................................\n2026-09-07 DEBUG trace détaillée de la requête 29 ................................\n2026-09-08 DEBUG trace détaillée de la requête 0 ................................\n2026-09-08 DEBUG trace détaillée de la requête 1 ................................\n2026-09-08 DEBUG trace détaillée de la requête 2 ................................\n2026-09-08 DEBUG trace détaillée de la requête 3 ................................\n2026-09-08 DEBUG trace détaillée de la requête 4 ................................\n2026-09-08 DEBUG trace détaillée de la requête 5 ................................\n2026-09-08 DEBUG trace détaillée de la requête 6 ................................\n2026-09-08 DEBUG trace détaillée de la requête 7 ................................\n2026-09-08 DEBUG trace détaillée de la requête 8 ................................\n2026-09-08 DEBUG trace détaillée de la requête 9 ................................\n2026-09-08 DEBUG trace détaillée de la requête 10 ................................\n2026-09-08 DEBUG trace détaillée de la requête 11 ................................\n2026-09-08 DEBUG trace détaillée de la requête 12 ................................\n2026-09-08 DEBUG trace détaillée de la requête 13 ................................\n2026-09-08 DEBUG trace détaillée de la requête 14 ................................\n2026-09-08 DEBUG trace détaillée de la requête 15 ................................\n2026-09-08 DEBUG trace détaillée de la requête 16 ................................\n2026-09-08 DEBUG trace détaillée de la requête 17 ................................\n2026-09-08 DEBUG trace détaillée de la requête 18 ................................\n2026-09-08 DEBUG trace détaillée de la requête 19 ................................\n2026-09-08 DEBUG trace détaillée de la requête 20 ................................\n2026-09-08 DEBUG trace détaillée de la requête 21 ................................\n2026-09-08 DEBUG trace détaillée de la requête 22 ................................\n2026-09-08 DEBUG trace détaillée de la requête 23 ................................\n2026-09-08 DEBUG trace détaillée de la requête 24 ................................\n2026-09-08 DEBUG trace détaillée de la requête 25 ................................\n2026-09-08 DEBUG trace détaillée de la requête 26 ................................\n2026-09-08 DEBUG trace détaillée de la requête 27 ................................\n2026-09-08 DEBUG trace détaillée de la requête 28 ................................\n2026-09-08 DEBUG trace détaillée de la requête 29 ................................\n2026-09-09 DEBUG trace détaillée de la requête 0 ................................\n2026-09-09 DEBUG trace détaillée de la requête 1 ................................\n2026-09-09 DEBUG trace détaillée de la requête 2 ................................\n2026-09-09 DEBUG trace détaillée de la requête 3 ................................\n2026-09-09 DEBUG trace détaillée de la requête 4 ................................\n2026-09-09 DEBUG trace détaillée de la requête 5 ................................\n2026-09-09 DEBUG trace détaillée de la requête 6 ................................\n2026-09-09 DEBUG trace détaillée de la requête 7 ................................\n2026-09-09 DEBUG trace détaillée de la requête 8 ................................\n2026-09-09 DEBUG trace détaillée de la requête 9 ................................\n2026-09-09 DEBUG trace détaillée de la requête 10 ................................\n2026-09-09 DEBUG trace détaillée de la requête 11 ................................\n2026-09-09 DEBUG trace détaillée de la requête 12 ................................\n2026-09-09 DEBUG trace détaillée de la requête 13 ................................\n2026-09-09 DEBUG trace détaillée de la requête 14 ................................\n2026-09-09 DEBUG trace détaillée de la requête 15 ................................\n2026-09-09 DEBUG trace détaillée de la requête 16 ................................\n2026-09-09 DEBUG trace détaillée de la requête 17 ................................\n2026-09-09 DEBUG trace détaillée de la requête 18 ................................\n2026-09-09 DEBUG trace détaillée de la requête 19 ................................\n2026-09-09 DEBUG trace détaillée de la requête 20 ................................\n2026-09-09 DEBUG trace détaillée de la requête 21 ................................\n2026-09-09 DEBUG trace détaillée de la requête 22 ................................\n2026-09-09 DEBUG trace détaillée de la requête 23 ................................\n2026-09-09 DEBUG trace détaillée de la requête 24 ................................\n2026-09-09 DEBUG trace détaillée de la requête 25 ................................\n2026-09-09 DEBUG trace détaillée de la requête 26 ................................\n2026-09-09 DEBUG trace détaillée de la requête 27 ................................\n2026-09-09 DEBUG trace détaillée de la requête 28 ................................\n2026-09-09 DEBUG trace détaillée de la requête 29 ................................\n2026-09-10 DEBUG trace détaillée de la requête 0 ................................\n2026-09-10 DEBUG trace détaillée de la requête 1 ................................\n2026-09-10 DEBUG trace détaillée de la requête 2 ................................\n2026-09-10 DEBUG trace détaillée de la requête 3 ................................\n2026-09-10 DEBUG trace détaillée de la requête 4 ................................\n2026-09-10 DEBUG trace détaillée de la requête 5 ................................\n2026-09-10 DEBUG trace détaillée de la requête 6 ................................\n2026-09-10 DEBUG trace détaillée de la requête 7 ................................\n2026-09-10 DEBUG trace détaillée de la requête 8 ................................\n2026-09-10 DEBUG trace détaillée de la requête 9 ................................\n2026-09-10 DEBUG trace détaillée de la requête 10 ................................\n2026-09-10 DEBUG trace détaillée de la requête 11 ................................\n2026-09-10 DEBUG trace détaillée de la requête 12 ................................\n2026-09-10 DEBUG trace détaillée de la requête 13 ................................\n2026-09-10 DEBUG trace détaillée de la requête 14 ................................\n2026-09-10 DEBUG trace détaillée de la requête 15 ................................\n2026-09-10 DEBUG trace détaillée de la requête 16 ................................\n2026-09-10 DEBUG trace détaillée de la requête 17 ................................\n2026-09-10 DEBUG trace détaillée de la requête 18 ................................\n2026-09-10 DEBUG trace détaillée de la requête 19 ................................\n2026-09-10 DEBUG trace détaillée de la requête 20 ................................\n2026-09-10 DEBUG trace détaillée de la requête 21 ................................\n2026-09-10 DEBUG trace détaillée de la requête 22 ................................\n2026-09-10 DEBUG trace détaillée de la requête 23 ................................\n2026-09-10 DEBUG trace détaillée de la requête 24 ................................\n2026-09-10 DEBUG trace détaillée de la requête 25 ................................\n2026-09-10 DEBUG trace détaillée de la requête 26 ................................\n2026-09-10 DEBUG trace détaillée de la requête 27 ................................\n2026-09-10 DEBUG trace détaillée de la requête 28 ................................\n2026-09-10 DEBUG trace détaillée de la requête 29 ................................\n2026-09-11 DEBUG trace détaillée de la requête 0 ................................\n2026-09-11 DEBUG trace détaillée de la requête 1 ................................\n2026-09-11 DEBUG trace détaillée de la requête 2 ................................\n2026-09-11 DEBUG trace détaillée de la requête 3 ................................\n2026-09-11 DEBUG trace détaillée de la requête 4 ................................\n2026-09-11 DEBUG trace détaillée de la requête 5 ................................\n2026-09-11 DEBUG trace détaillée de la requête 6 ................................\n2026-09-11 DEBUG trace détaillée de la requête 7 ................................\n2026-09-11 DEBUG trace détaillée de la requête 8 ................................\n2026-09-11 DEBUG trace détaillée de la requête 9 ................................\n2026-09-11 DEBUG trace détaillée de la requête 10 ................................\n2026-09-11 DEBUG trace détaillée de la requête 11 ................................\n2026-09-11 DEBUG trace détaillée de la requête 12 ................................\n2026-09-11 DEBUG trace détaillée de la requête 13 ................................\n2026-09-11 DEBUG trace détaillée de la requête 14 ................................\n2026-09-11 DEBUG trace détaillée de la requête 15 ................................\n2026-09-11 DEBUG trace détaillée de la requête 16 ................................\n2026-09-11 DEBUG trace détaillée de la requête 17 ................................\n2026-09-11 DEBUG trace détaillée de la requête 18 ................................\n2026-09-11 DEBUG trace détaillée de la requête 19 ................................\n2026-09-11 DEBUG trace détaillée de la requête 20 ................................\n2026-09-11 DEBUG trace détaillée de la requête 21 ................................\n2026-09-11 DEBUG trace détaillée de la requête 22 ................................\n2026-09-11 DEBUG trace détaillée de la requête 23 ................................\n2026-09-11 DEBUG trace détaillée de la requête 24 ................................\n2026-09-11 DEBUG trace détaillée de la requête 25 ................................\n2026-09-11 DEBUG trace détaillée de la requête 26 ................................\n2026-09-11 DEBUG trace détaillée de la requête 27 ................................\n2026-09-11 DEBUG trace détaillée de la requête 28 ................................\n2026-09-11 DEBUG trace détaillée de la requête 29 ................................\n2026-09-12 DEBUG trace détaillée de la requête 0 ................................\n2026-09-12 DEBUG trace détaillée de la requête 1 ................................\n2026-09-12 DEBUG trace détaillée de la requête 2 ................................\n2026-09-12 DEBUG trace détaillée de la requête 3 ................................\n2026-09-12 DEBUG trace détaillée de la requête 4 ................................\n2026-09-12 DEBUG trace détaillée de la requête 5 ................................\n2026-09-12 DEBUG trace détaillée de la requête 6 ................................\n2026-09-12 DEBUG trace détaillée de la requête 7 ................................\n2026-09-12 DEBUG trace détaillée de la requête 8 ................................\n2026-09-12 DEBUG trace détaillée de la requête 9 ................................\n2026-09-12 DEBUG trace détaillée de la requête 10 ................................\n2026-09-12 DEBUG trace détaillée de la requête 11 ................................\n2026-09-12 DEBUG trace détaillée de la requête 12 ................................\n2026-09-12 DEBUG trace détaillée de la requête 13 ................................\n2026-09-12 DEBUG trace détaillée de la requête 14 ................................\n2026-09-12 DEBUG trace détaillée de la requête 15 ................................\n2026-09-12 DEBUG trace détaillée de la requête 16 ................................\n2026-09-12 DEBUG trace détaillée de la requête 17 ................................\n2026-09-12 DEBUG trace détaillée de la requête 18 ................................\n2026-09-12 DEBUG trace détaillée de la requête 19 ................................\n2026-09-12 DEBUG trace détaillée de la requête 20 ................................\n2026-09-12 DEBUG trace détaillée de la requête 21 ................................\n2026-09-12 DEBUG trace détaillée de la requête 22 ................................\n2026-09-12 DEBUG trace détaillée de la requête 23 ................................\n2026-09-12 DEBUG trace détaillée de la requête 24 ................................\n2026-09-12 DEBUG trace détaillée de la requête 25 ................................\n2026-09-12 DEBUG trace détaillée de la requête 26 ................................\n2026-09-12 DEBUG trace détaillée de la requête 27 ................................\n2026-09-12 DEBUG trace détaillée de la requête 28 ................................\n2026-09-12 DEBUG trace détaillée de la requête 29 ................................\n2026-09-13 DEBUG trace détaillée de la requête 0 ................................\n2026-09-13 DEBUG trace détaillée de la requête 1 ................................\n2026-09-13 DEBUG trace détaillée de la requête 2 ................................\n2026-09-13 DEBUG trace détaillée de la requête 3 ................................\n2026-09-13 DEBUG trace détaillée de la requête 4 ................................\n2026-09-13 DEBUG trace détaillée de la requête 5 ................................\n2026-09-13 DEBUG trace détaillée de la requête 6 ................................\n2026-09-13 DEBUG trace détaillée de la requête 7 ................................\n2026-09-13 DEBUG trace détaillée de la requête 8 ................................\n2026-09-13 DEBUG trace détaillée de la requête 9 ................................\n2026-09-13 DEBUG trace détaillée de la requête 10 ................................\n2026-09-13 DEBUG trace détaillée de la requête 11 ................................\n2026-09-13 DEBUG trace détaillée de la requête 12 ................................\n2026-09-13 DEBUG trace détaillée de la requête 13 ................................\n2026-09-13 DEBUG trace détaillée de la requête 14 ................................\n2026-09-13 DEBUG trace détaillée de la requête 15 ................................\n2026-09-13 DEBUG trace détaillée de la requête 16 ................................\n2026-09-13 DEBUG trace détaillée de la requête 17 ................................\n2026-09-13 DEBUG trace détaillée de la requête 18 ................................\n2026-09-13 DEBUG trace détaillée de la requête 19 ................................\n2026-09-13 DEBUG trace détaillée de la requête 20 ................................\n2026-09-13 DEBUG trace détaillée de la requête 21 ................................\n2026-09-13 DEBUG trace détaillée de la requête 22 ................................\n2026-09-13 DEBUG trace détaillée de la requête 23 ................................\n2026-09-13 DEBUG trace détaillée de la requête 24 ................................\n2026-09-13 DEBUG trace détaillée de la requête 25 ................................\n2026-09-13 DEBUG trace détaillée de la requête 26 ................................\n2026-09-13 DEBUG trace détaillée de la requête 27 ................................\n2026-09-13 DEBUG trace détaillée de la requête 28 ................................\n2026-09-13 DEBUG trace détaillée de la requête 29 ................................\n2026-09-14 DEBUG trace détaillée de la requête 0 ................................\n2026-09-14 DEBUG trace détaillée de la requête 1 ................................\n2026-09-14 DEBUG trace détaillée de la requête 2 ................................\n2026-09-14 DEBUG trace détaillée de la requête 3 ................................\n2026-09-14 DEBUG trace détaillée de la requête 4 ................................\n2026-09-14 DEBUG trace détaillée de la requête 5 ................................\n2026-09-14 DEBUG trace détaillée de la requête 6 ................................\n2026-09-14 DEBUG trace détaillée de la requête 7 ................................\n2026-09-14 DEBUG trace détaillée de la requête 8 ................................\n2026-09-14 DEBUG trace détaillée de la requête 9 ................................\n2026-09-14 DEBUG trace détaillée de la requête 10 ................................\n2026-09-14 DEBUG trace détaillée de la requête 11 ................................\n2026-09-14 DEBUG trace détaillée de la requête 12 ................................\n2026-09-14 DEBUG trace détaillée de la requête 13 ................................\n2026-09-14 DEBUG trace détaillée de la requête 14 ................................\n2026-09-14 DEBUG trace détaillée de la requête 15 ................................\n2026-09-14 DEBUG trace détaillée de la requête 16 ................................\n2026-09-14 DEBUG trace détaillée de la requête 17 ................................\n2026-09-14 DEBUG trace détaillée de la requête 18 ................................\n2026-09-14 DEBUG trace détaillée de la requête 19 ................................\n2026-09-14 DEBUG trace détaillée de la requête 20 ................................\n2026-09-14 DEBUG trace détaillée de la requête 21 ................................\n2026-09-14 DEBUG trace détaillée de la requête 22 ................................\n2026-09-14 DEBUG trace détaillée de la requête 23 ................................\n2026-09-14 DEBUG trace détaillée de la requête 24 ................................\n2026-09-14 DEBUG trace détaillée de la requête 25 ................................\n2026-09-14 DEBUG trace détaillée de la requête 26 ................................\n2026-09-14 DEBUG trace détaillée de la requête 27 ................................\n2026-09-14 DEBUG trace détaillée de la requête 28 ................................\n2026-09-14 DEBUG trace détaillée de la requête 29 ................................\n2026-09-15 DEBUG trace détaillée de la requête 0 ................................\n2026-09-15 DEBUG trace détaillée de la requête 1 ................................\n2026-09-15 DEBUG trace détaillée de la requête 2 ................................\n2026-09-15 DEBUG trace détaillée de la requête 3 ................................\n2026-09-15 DEBUG trace détaillée de la requête 4 ................................\n2026-09-15 DEBUG trace détaillée de la requête 5 ................................\n2026-09-15 DEBUG trace détaillée de la requête 6 ................................\n2026-09-15 DEBUG trace détaillée de la requête 7 ................................\n2026-09-15 DEBUG trace détaillée de la requête 8 ................................\n2026-09-15 DEBUG trace détaillée de la requête 9 ................................\n2026-09-15 DEBUG trace détaillée de la requête 10 ................................\n2026-09-15 DEBUG trace détaillée de la requête 11 ................................\n2026-09-15 DEBUG trace détaillée de la requête 12 ................................\n2026-09-15 DEBUG trace détaillée de la requête 13 ................................\n2026-09-15 DEBUG trace détaillée de la requête 14 ................................\n2026-09-15 DEBUG trace détaillée de la requête 15 ................................\n2026-09-15 DEBUG trace détaillée de la requête 16 ................................\n2026-09-15 DEBUG trace détaillée de la requête 17 ................................\n2026-09-15 DEBUG trace détaillée de la requête 18 ................................\n2026-09-15 DEBUG trace détaillée de la requête 19 ................................\n2026-09-15 DEBUG trace détaillée de la requête 20 ................................\n2026-09-15 DEBUG trace détaillée de la requête 21 ................................\n2026-09-15 DEBUG trace détaillée de la requête 22 ................................\n2026-09-15 DEBUG trace détaillée de la requête 23 ................................\n2026-09-15 DEBUG trace détaillée de la requête 24 ................................\n2026-09-15 DEBUG trace détaillée de la requête 25 ................................\n2026-09-15 DEBUG trace détaillée de la requête 26 ................................\n2026-09-15 DEBUG trace détaillée de la requête 27 ................................\n2026-09-15 DEBUG trace détaillée de la requête 28 ................................\n2026-09-15 DEBUG trace détaillée de la requête 29 ................................\n2026-09-16 DEBUG trace détaillée de la requête 0 ................................\n2026-09-16 DEBUG trace détaillée de la requête 1 ................................\n2026-09-16 DEBUG trace détaillée de la requête 2 ................................\n2026-09-16 DEBUG trace détaillée de la requête 3 ................................\n2026-09-16 DEBUG trace détaillée de la requête 4 ................................\n2026-09-16 DEBUG trace détaillée de la requête 5 ................................\n2026-09-16 DEBUG trace détaillée de la requête 6 ................................\n2026-09-16 DEBUG trace détaillée de la requête 7 ................................\n2026-09-16 DEBUG trace détaillée de la requête 8 ................................\n2026-09-16 DEBUG trace détaillée de la requête 9 ................................\n2026-09-16 DEBUG trace détaillée de la requête 10 ................................\n2026-09-16 DEBUG trace détaillée de la requête 11 ................................\n2026-09-16 DEBUG trace détaillée de la requête 12 ................................\n2026-09-16 DEBUG trace détaillée de la requête 13 ................................\n2026-09-16 DEBUG trace détaillée de la requête 14 ................................\n2026-09-16 DEBUG trace détaillée de la requête 15 ................................\n2026-09-16 DEBUG trace détaillée de la requête 16 ................................\n2026-09-16 DEBUG trace détaillée de la requête 17 ................................\n2026-09-16 DEBUG trace détaillée de la requête 18 ................................\n2026-09-16 DEBUG trace détaillée de la requête 19 ................................\n2026-09-16 DEBUG trace détaillée de la requête 20 ................................\n2026-09-16 DEBUG trace détaillée de la requête 21 ................................\n2026-09-16 DEBUG trace détaillée de la requête 22 ................................\n2026-09-16 DEBUG trace détaillée de la requête 23 ................................\n2026-09-16 DEBUG trace détaillée de la requête 24 ................................\n2026-09-16 DEBUG trace détaillée de la requête 25 ................................\n2026-09-16 DEBUG trace détaillée de la requête 26 ................................\n2026-09-16 DEBUG trace détaillée de la requête 27 ................................\n2026-09-16 DEBUG trace détaillée de la requête 28 ................................\n2026-09-16 DEBUG trace détaillée de la requête 29 ................................\n2026-09-17 DEBUG trace détaillée de la requête 0 ................................\n2026-09-17 DEBUG trace détaillée de la requête 1 ................................\n2026-09-17 DEBUG trace détaillée de la requête 2 ................................\n2026-09-17 DEBUG trace détaillée de la requête 3 ................................\n2026-09-17 DEBUG trace détaillée de la requête 4 ................................\n2026-09-17 DEBUG trace détaillée de la requête 5 ................................\n2026-09-17 DEBUG trace détaillée de la requête 6 ................................\n2026-09-17 DEBUG trace détaillée de la requête 7 ................................\n2026-09-17 DEBUG trace détaillée de la requête 8 ................................\n2026-09-17 DEBUG trace détaillée de la requête 9 ................................\n2026-09-17 DEBUG trace détaillée de la requête 10 ................................\n2026-09-17 DEBUG trace détaillée de la requête 11 ................................\n2026-09-17 DEBUG trace détaillée de la requête 12 ................................\n2026-09-17 DEBUG trace détaillée de la requête 13 ................................\n2026-09-17 DEBUG trace détaillée de la requête 14 ................................\n2026-09-17 DEBUG trace détaillée de la requête 15 ................................\n2026-09-17 DEBUG trace détaillée de la requête 16 ................................\n2026-09-17 DEBUG trace détaillée de la requête 17 ................................\n2026-09-17 DEBUG trace détaillée de la requête 18 ................................\n2026-09-17 DEBUG trace détaillée de la requête 19 ................................\n2026-09-17 DEBUG trace détaillée de la requête 20 ................................\n2026-09-17 DEBUG trace détaillée de la requête 21 ................................\n2026-09-17 DEBUG trace détaillée de la requête 22 ................................\n2026-09-17 DEBUG trace détaillée de la requête 23 ................................\n2026-09-17 DEBUG trace détaillée de la requête 24 ................................\n2026-09-17 DEBUG trace détaillée de la requête 25 ................................\n2026-09-17 DEBUG trace détaillée de la requête 26 ................................\n2026-09-17 DEBUG trace détaillée de la requête 27 ................................\n2026-09-17 DEBUG trace détaillée de la requête 28 ................................\n2026-09-17 DEBUG trace détaillée de la requête 29 ................................\n2026-09-18 DEBUG trace détaillée de la requête 0 ................................\n2026-09-18 DEBUG trace détaillée de la requête 1 ................................\n2026-09-18 DEBUG trace détaillée de la requête 2 ................................\n2026-09-18 DEBUG trace détaillée de la requête 3 ................................\n2026-09-18 DEBUG trace détaillée de la requête 4 ................................\n2026-09-18 DEBUG trace détaillée de la requête 5 ................................\n2026-09-18 DEBUG trace détaillée de la requête 6 ................................\n2026-09-18 DEBUG trace détaillée de la requête 7 ................................\n2026-09-18 DEBUG trace détaillée de la requête 8 ................................\n2026-09-18 DEBUG trace détaillée de la requête 9 ................................\n2026-09-18 DEBUG trace détaillée de la requête 10 ................................\n2026-09-18 DEBUG trace détaillée de la requête 11 ................................\n2026-09-18 DEBUG trace détaillée de la requête 12 ................................\n2026-09-18 DEBUG trace détaillée de la requête 13 ................................\n2026-09-18 DEBUG trace détaillée de la requête 14 ................................\n2026-09-18 DEBUG trace détaillée de la requête 15 ................................\n2026-09-18 DEBUG trace détaillée de la requête 16 ................................\n2026-09-18 DEBUG trace détaillée de la requête 17 ................................\n2026-09-18 DEBUG trace détaillée de la requête 18 ................................\n2026-09-18 DEBUG trace détaillée de la requête 19 ................................\n2026-09-18 DEBUG trace détaillée de la requête 20 ................................\n2026-09-18 DEBUG trace détaillée de la requête 21 ................................\n2026-09-18 DEBUG trace détaillée de la requête 22 ................................\n2026-09-18 DEBUG trace détaillée de la requête 23 ................................\n2026-09-18 DEBUG trace détaillée de la requête 24 ................................\n2026-09-18 DEBUG trace détaillée de la requête 25 ................................\n2026-09-18 DEBUG trace détaillée de la requête 26 ................................\n2026-09-18 DEBUG trace détaillée de la requête 27 ................................\n2026-09-18 DEBUG trace détaillée de la requête 28 ................................\n2026-09-18 DEBUG trace détaillée de la requête 29 ................................\n2026-09-19 DEBUG trace détaillée de la requête 0 ................................\n2026-09-19 DEBUG trace détaillée de la requête 1 ................................\n2026-09-19 DEBUG trace détaillée de la requête 2 ................................\n2026-09-19 DEBUG trace détaillée de la requête 3 ................................\n2026-09-19 DEBUG trace détaillée de la requête 4 ................................\n2026-09-19 DEBUG trace détaillée de la requête 5 ................................\n2026-09-19 DEBUG trace détaillée de la requête 6 ................................\n2026-09-19 DEBUG trace détaillée de la requête 7 ................................\n2026-09-19 DEBUG trace détaillée de la requête 8 ................................\n2026-09-19 DEBUG trace détaillée de la requête 9 ................................\n2026-09-19 DEBUG trace détaillée de la requête 10 ................................\n2026-09-19 DEBUG trace détaillée de la requête 11 ................................\n2026-09-19 DEBUG trace détaillée de la requête 12 ................................\n2026-09-19 DEBUG trace détaillée de la requête 13 ................................\n2026-09-19 DEBUG trace détaillée de la requête 14 ................................\n2026-09-19 DEBUG trace détaillée de la requête 15 ................................\n2026-09-19 DEBUG trace détaillée de la requête 16 ................................\n2026-09-19 DEBUG trace détaillée de la requête 17 ................................\n2026-09-19 DEBUG trace détaillée de la requête 18 ................................\n2026-09-19 DEBUG trace détaillée de la requête 19 ................................\n2026-09-19 DEBUG trace détaillée de la requête 20 ................................\n2026-09-19 DEBUG trace détaillée de la requête 21 ................................\n2026-09-19 DEBUG trace détaillée de la requête 22 ................................\n2026-09-19 DEBUG trace détaillée de la requête 23 ................................\n2026-09-19 DEBUG trace détaillée de la requête 24 ................................\n2026-09-19 DEBUG trace détaillée de la requête 25 ................................\n2026-09-19 DEBUG trace détaillée de la requête 26 ................................\n2026-09-19 DEBUG trace détaillée de la requête 27 ................................\n2026-09-19 DEBUG trace détaillée de la requête 28 ................................\n2026-09-19 DEBUG trace détaillée de la requête 29 ................................\n2026-09-20 DEBUG trace détaillée de la requête 0 ................................\n2026-09-20 DEBUG trace détaillée de la requête 1 ................................\n2026-09-20 DEBUG trace détaillée de la requête 2 ................................\n2026-09-20 DEBUG trace détaillée de la requête 3 ................................\n2026-09-20 DEBUG trace détaillée de la requête 4 ................................\n2026-09-20 DEBUG trace détaillée de la requête 5 ................................\n2026-09-20 DEBUG trace détaillée de la requête 6 ................................\n2026-09-20 DEBUG trace détaillée de la requête 7 ................................\n2026-09-20 DEBUG trace détaillée de la requête 8 ................................\n2026-09-20 DEBUG trace détaillée de la requête 9 ................................\n2026-09-20 DEBUG trace détaillée de la requête 10 ................................\n2026-09-20 DEBUG trace détaillée de la requête 11 ................................\n2026-09-20 DEBUG trace détaillée de la requête 12 ................................\n2026-09-20 DEBUG trace détaillée de la requête 13 ................................\n2026-09-20 DEBUG trace détaillée de la requête 14 ................................\n2026-09-20 DEBUG trace détaillée de la requête 15 ................................\n2026-09-20 DEBUG trace détaillée de la requête 16 ................................\n2026-09-20 DEBUG trace détaillée de la requête 17 ................................\n2026-09-20 DEBUG trace détaillée de la requête 18 ................................\n2026-09-20 DEBUG trace détaillée de la requête 19 ................................\n2026-09-20 DEBUG trace détaillée de la requête 20 ................................\n2026-09-20 DEBUG trace détaillée de la requête 21 ................................\n2026-09-20 DEBUG trace détaillée de la requête 22 ................................\n2026-09-20 DEBUG trace détaillée de la requête 23 ................................\n2026-09-20 DEBUG trace détaillée de la requête 24 ................................\n2026-09-20 DEBUG trace détaillée de la requête 25 ................................\n2026-09-20 DEBUG trace détaillée de la requête 26 ................................\n2026-09-20 DEBUG trace détaillée de la requête 27 ................................\n2026-09-20 DEBUG trace détaillée de la requête 28 ................................\n2026-09-20 DEBUG trace détaillée de la requête 29 ................................\n2026-09-21 DEBUG trace détaillée de la requête 0 ................................\n2026-09-21 DEBUG trace détaillée de la requête 1 ................................\n2026-09-21 DEBUG trace détaillée de la requête 2 ................................\n2026-09-21 DEBUG trace détaillée de la requête 3 ................................\n2026-09-21 DEBUG trace détaillée de la requête 4 ................................\n2026-09-21 DEBUG trace détaillée de la requête 5 ................................\n2026-09-21 DEBUG trace détaillée de la requête 6 ................................\n2026-09-21 DEBUG trace détaillée de la requête 7 ................................\n2026-09-21 DEBUG trace détaillée de la requête 8 ................................\n2026-09-21 DEBUG trace détaillée de la requête 9 ................................\n2026-09-21 DEBUG trace détaillée de la requête 10 ................................\n2026-09-21 DEBUG trace détaillée de la requête 11 ................................\n2026-09-21 DEBUG trace détaillée de la requête 12 ................................\n2026-09-21 DEBUG trace détaillée de la requête 13 ................................\n2026-09-21 DEBUG trace détaillée de la requête 14 ................................\n2026-09-21 DEBUG trace détaillée de la requête 15 ................................\n2026-09-21 DEBUG trace détaillée de la requête 16 ................................\n2026-09-21 DEBUG trace détaillée de la requête 17 ................................\n2026-09-21 DEBUG trace détaillée de la requête 18 ................................\n2026-09-21 DEBUG trace détaillée de la requête 19 ................................\n2026-09-21 DEBUG trace détaillée de la requête 20 ................................\n2026-09-21 DEBUG trace détaillée de la requête 21 ................................\n2026-09-21 DEBUG trace détaillée de la requête 22 ................................\n2026-09-21 DEBUG trace détaillée de la requête 23 ................................\n2026-09-21 DEBUG trace détaillée de la requête 24 ................................\n2026-09-21 DEBUG trace détaillée de la requête 25 ................................\n2026-09-21 DEBUG trace détaillée de la requête 26 ................................\n2026-09-21 DEBUG trace détaillée de la requête 27 ................................\n2026-09-21 DEBUG trace détaillée de la requête 28 ................................\n2026-09-21 DEBUG trace détaillée de la requête 29 ................................\n2026-09-22 DEBUG trace détaillée de la requête 0 ................................\n2026-09-22 DEBUG trace détaillée de la requête 1 ................................\n2026-09-22 DEBUG trace détaillée de la requête 2 ................................\n2026-09-22 DEBUG trace détaillée de la requête 3 ................................\n2026-09-22 DEBUG trace détaillée de la requête 4 ................................\n2026-09-22 DEBUG trace détaillée de la requête 5 ................................\n2026-09-22 DEBUG trace détaillée de la requête 6 ................................\n2026-09-22 DEBUG trace détaillée de la requête 7 ................................\n2026-09-22 DEBUG trace détaillée de la requête 8 ................................\n2026-09-22 DEBUG trace détaillée de la requête 9 ................................\n2026-09-22 DEBUG trace détaillée de la requête 10 ................................\n2026-09-22 DEBUG trace détaillée de la requête 11 ................................\n2026-09-22 DEBUG trace détaillée de la requête 12 ................................\n2026-09-22 DEBUG trace détaillée de la requête 13 ................................\n2026-09-22 DEBUG trace détaillée de la requête 14 ................................\n2026-09-22 DEBUG trace détaillée de la requête 15 ................................\n2026-09-22 DEBUG trace détaillée de la requête 16 ................................\n2026-09-22 DEBUG trace détaillée de la requête 17 ................................\n2026-09-22 DEBUG trace détaillée de la requête 18 ................................\n2026-09-22 DEBUG trace détaillée de la requête 19 ................................\n2026-09-22 DEBUG trace détaillée de la requête 20 ................................\n2026-09-22 DEBUG trace détaillée de la requête 21 ................................\n2026-09-22 DEBUG trace détaillée de la requête 22 ................................\n2026-09-22 DEBUG trace détaillée de la requête 23 ................................\n2026-09-22 DEBUG trace détaillée de la requête 24 ................................\n2026-09-22 DEBUG trace détaillée de la requête 25 ................................\n2026-09-22 DEBUG trace détaillée de la requête 26 ................................\n2026-09-22 DEBUG trace détaillée de la requête 27 ................................\n2026-09-22 DEBUG trace détaillée de la requête 28 ................................\n2026-09-22 DEBUG trace détaillée de la requête 29 ................................\n2026-09-23 DEBUG trace détaillée de la requête 0 ................................\n2026-09-23 DEBUG trace détaillée de la requête 1 ................................\n2026-09-23 DEBUG trace détaillée de la requête 2 ................................\n2026-09-23 DEBUG trace détaillée de la requête 3 ................................\n2026-09-23 DEBUG trace détaillée de la requête 4 ................................\n2026-09-23 DEBUG trace détaillée de la requête 5 ................................\n2026-09-23 DEBUG trace détaillée de la requête 6 ................................\n2026-09-23 DEBUG trace détaillée de la requête 7 ................................\n2026-09-23 DEBUG trace détaillée de la requête 8 ................................\n2026-09-23 DEBUG trace détaillée de la requête 9 ................................\n2026-09-23 DEBUG trace détaillée de la requête 10 ................................\n2026-09-23 DEBUG trace détaillée de la requête 11 ................................\n2026-09-23 DEBUG trace détaillée de la requête 12 ................................\n2026-09-23 DEBUG trace détaillée de la requête 13 ................................\n2026-09-23 DEBUG trace détaillée de la requête 14 ................................\n2026-09-23 DEBUG trace détaillée de la requête 15 ................................\n2026-09-23 DEBUG trace détaillée de la requête 16 ................................\n2026-09-23 DEBUG trace détaillée de la requête 17 ................................\n2026-09-23 DEBUG trace détaillée de la requête 18 ................................\n2026-09-23 DEBUG trace détaillée de la requête 19 ................................\n2026-09-23 DEBUG trace détaillée de la requête 20 ................................\n2026-09-23 DEBUG trace détaillée de la requête 21 ................................\n2026-09-23 DEBUG trace détaillée de la requête 22 ................................\n2026-09-23 DEBUG trace détaillée de la requête 23 ................................\n2026-09-23 DEBUG trace détaillée de la requête 24 ................................\n2026-09-23 DEBUG trace détaillée de la requête 25 ................................\n2026-09-23 DEBUG trace détaillée de la requête 26 ................................\n2026-09-23 DEBUG trace détaillée de la requête 27 ................................\n2026-09-23 DEBUG trace détaillée de la requête 28 ................................\n2026-09-23 DEBUG trace détaillée de la requête 29 ................................\n2026-09-24 DEBUG trace détaillée de la requête 0 ................................\n2026-09-24 DEBUG trace détaillée de la requête 1 ................................\n2026-09-24 DEBUG trace détaillée de la requête 2 ................................\n2026-09-24 DEBUG trace détaillée de la requête 3 ................................\n2026-09-24 DEBUG trace détaillée de la requête 4 ................................\n2026-09-24 DEBUG trace détaillée de la requête 5 ................................\n2026-09-24 DEBUG trace détaillée de la requête 6 ................................\n2026-09-24 DEBUG trace détaillée de la requête 7 ................................\n2026-09-24 DEBUG trace détaillée de la requête 8 ................................\n2026-09-24 DEBUG trace détaillée de la requête 9 ................................\n2026-09-24 DEBUG trace détaillée de la requête 10 ................................\n2026-09-24 DEBUG trace détaillée de la requête 11 ................................\n2026-09-24 DEBUG trace détaillée de la requête 12 ................................\n2026-09-24 DEBUG trace détaillée de la requête 13 ................................\n2026-09-24 DEBUG trace détaillée de la requête 14 ................................\n2026-09-24 DEBUG trace détaillée de la requête 15 ................................\n2026-09-24 DEBUG trace détaillée de la requête 16 ................................\n2026-09-24 DEBUG trace détaillée de la requête 17 ................................\n2026-09-24 DEBUG trace détaillée de la requête 18 ................................\n2026-09-24 DEBUG trace détaillée de la requête 19 ................................\n2026-09-24 DEBUG trace détaillée de la requête 20 ................................\n2026-09-24 DEBUG trace détaillée de la requête 21 ................................\n2026-09-24 DEBUG trace détaillée de la requête 22 ................................\n2026-09-24 DEBUG trace détaillée de la requête 23 ................................\n2026-09-24 DEBUG trace détaillée de la requête 24 ................................\n2026-09-24 DEBUG trace détaillée de la requête 25 ................................\n2026-09-24 DEBUG trace détaillée de la requête 26 ................................\n2026-09-24 DEBUG trace détaillée de la requête 27 ................................\n2026-09-24 DEBUG trace détaillée de la requête 28 ................................\n2026-09-24 DEBUG trace détaillée de la requête 29 ................................\n2026-09-25 DEBUG trace détaillée de la requête 0 ................................\n2026-09-25 DEBUG trace détaillée de la requête 1 ................................\n2026-09-25 DEBUG trace détaillée de la requête 2 ................................\n2026-09-25 DEBUG trace détaillée de la requête 3 ................................\n2026-09-25 DEBUG trace détaillée de la requête 4 ................................\n2026-09-25 DEBUG trace détaillée de la requête 5 ................................\n2026-09-25 DEBUG trace détaillée de la requête 6 ................................\n2026-09-25 DEBUG trace détaillée de la requête 7 ................................\n2026-09-25 DEBUG trace détaillée de la requête 8 ................................\n2026-09-25 DEBUG trace détaillée de la requête 9 ................................\n2026-09-25 DEBUG trace détaillée de la requête 10 ................................\n2026-09-25 DEBUG trace détaillée de la requête 11 ................................\n2026-09-25 DEBUG trace détaillée de la requête 12 ................................\n2026-09-25 DEBUG trace détaillée de la requête 13 ................................\n2026-09-25 DEBUG trace détaillée de la requête 14 ................................\n2026-09-25 DEBUG trace détaillée de la requête 15 ................................\n2026-09-25 DEBUG trace détaillée de la requête 16 ................................\n2026-09-25 DEBUG trace détaillée de la requête 17 ................................\n2026-09-25 DEBUG trace détaillée de la requête 18 ................................\n2026-09-25 DEBUG trace détaillée de la requête 19 ................................\n2026-09-25 DEBUG trace détaillée de la requête 20 ................................\n2026-09-25 DEBUG trace détaillée de la requête 21 ................................\n2026-09-25 DEBUG trace détaillée de la requête 22 ................................\n2026-09-25 DEBUG trace détaillée de la requête 23 ................................\n2026-09-25 DEBUG trace détaillée de la requête 24 ................................\n2026-09-25 DEBUG trace détaillée de la requête 25 ................................\n2026-09-25 DEBUG trace détaillée de la requête 26 ................................\n2026-09-25 DEBUG trace détaillée de la requête 27 ................................\n2026-09-25 DEBUG trace détaillée de la requête 28 ................................\n2026-09-25 DEBUG trace détaillée de la requête 29 ................................\n2026-09-26 DEBUG trace détaillée de la requête 0 ................................\n2026-09-26 DEBUG trace détaillée de la requête 1 ................................\n2026-09-26 DEBUG trace détaillée de la requête 2 ................................\n2026-09-26 DEBUG trace détaillée de la requête 3 ................................\n2026-09-26 DEBUG trace détaillée de la requête 4 ................................\n2026-09-26 DEBUG trace détaillée de la requête 5 ................................\n2026-09-26 DEBUG trace détaillée de la requête 6 ................................\n2026-09-26 DEBUG trace détaillée de la requête 7 ................................\n2026-09-26 DEBUG trace détaillée de la requête 8 ................................\n2026-09-26 DEBUG trace détaillée de la requête 9 ................................\n2026-09-26 DEBUG trace détaillée de la requête 10 ................................\n2026-09-26 DEBUG trace détaillée de la requête 11 ................................\n2026-09-26 DEBUG trace détaillée de la requête 12 ................................\n2026-09-26 DEBUG trace détaillée de la requête 13 ................................\n2026-09-26 DEBUG trace détaillée de la requête 14 ................................\n2026-09-26 DEBUG trace détaillée de la requête 15 ................................\n2026-09-26 DEBUG trace détaillée de la requête 16 ................................\n2026-09-26 DEBUG trace détaillée de la requête 17 ................................\n2026-09-26 DEBUG trace détaillée de la requête 18 ................................\n2026-09-26 DEBUG trace détaillée de la requête 19 ................................\n2026-09-26 DEBUG trace détaillée de la requête 20 ................................\n2026-09-26 DEBUG trace détaillée de la requête 21 ................................\n2026-09-26 DEBUG trace détaillée de la requête 22 ................................\n2026-09-26 DEBUG trace détaillée de la requête 23 ................................\n2026-09-26 DEBUG trace détaillée de la requête 24 ................................\n2026-09-26 DEBUG trace détaillée de la requête 25 ................................\n2026-09-26 DEBUG trace détaillée de la requête 26 ................................\n2026-09-26 DEBUG trace détaillée de la requête 27 ................................\n2026-09-26 DEBUG trace détaillée de la requête 28 ................................\n2026-09-26 DEBUG trace détaillée de la requête 29 ................................\n2026-09-27 DEBUG trace détaillée de la requête 0 ................................\n2026-09-27 DEBUG trace détaillée de la requête 1 ................................\n2026-09-27 DEBUG trace détaillée de la requête 2 ................................\n2026-09-27 DEBUG trace détaillée de la requête 3 ................................\n2026-09-27 DEBUG trace détaillée de la requête 4 ................................\n2026-09-27 DEBUG trace détaillée de la requête 5 ................................\n2026-09-27 DEBUG trace détaillée de la requête 6 ................................\n2026-09-27 DEBUG trace détaillée de la requête 7 ................................\n2026-09-27 DEBUG trace détaillée de la requête 8 ................................\n2026-09-27 DEBUG trace détaillée de la requête 9 ................................\n2026-09-27 DEBUG trace détaillée de la requête 10 ................................\n2026-09-27 DEBUG trace détaillée de la requête 11 ................................\n2026-09-27 DEBUG trace détaillée de la requête 12 ................................\n2026-09-27 DEBUG trace détaillée de la requête 13 ................................\n2026-09-27 DEBUG trace détaillée de la requête 14 ................................\n2026-09-27 DEBUG trace détaillée de la requête 15 ................................\n2026-09-27 DEBUG trace détaillée de la requête 16 ................................\n2026-09-27 DEBUG trace détaillée de la requête 17 ................................\n2026-09-27 DEBUG trace détaillée de la requête 18 ................................\n2026-09-27 DEBUG trace détaillée de la requête 19 ................................\n2026-09-27 DEBUG trace détaillée de la requête 20 ................................\n2026-09-27 DEBUG trace détaillée de la requête 21 ................................\n2026-09-27 DEBUG trace détaillée de la requête 22 ................................\n2026-09-27 DEBUG trace détaillée de la requête 23 ................................\n2026-09-27 DEBUG trace détaillée de la requête 24 ................................\n2026-09-27 DEBUG trace détaillée de la requête 25 ................................\n2026-09-27 DEBUG trace détaillée de la requête 26 ................................\n2026-09-27 DEBUG trace détaillée de la requête 27 ................................\n2026-09-27 DEBUG trace détaillée de la requête 28 ................................\n2026-09-27 DEBUG trace détaillée de la requête 29 ................................\n2026-09-28 DEBUG trace détaillée de la requête 0 ................................\n2026-09-28 DEBUG trace détaillée de la requête 1 ................................\n2026-09-28 DEBUG trace détaillée de la requête 2 ................................\n2026-09-28 DEBUG trace détaillée de la requête 3 ................................\n2026-09-28 DEBUG trace détaillée de la requête 4 ................................\n2026-09-28 DEBUG trace détaillée de la requête 5 ................................\n2026-09-28 DEBUG trace détaillée de la requête 6 ................................\n2026-09-28 DEBUG trace détaillée de la requête 7 ................................\n2026-09-28 DEBUG trace détaillée de la requête 8 ................................\n2026-09-28 DEBUG trace détaillée de la requête 9 ................................\n2026-09-28 DEBUG trace détaillée de la requête 10 ................................\n2026-09-28 DEBUG trace détaillée de la requête 11 ................................\n2026-09-28 DEBUG trace détaillée de la requête 12 ................................\n2026-09-28 DEBUG trace détaillée de la requête 13 ................................\n2026-09-28 DEBUG trace détaillée de la requête 14 ................................\n2026-09-28 DEBUG trace détaillée de la requête 15 ................................\n2026-09-28 DEBUG trace détaillée de la requête 16 ................................\n2026-09-28 DEBUG trace détaillée de la requête 17 ................................\n2026-09-28 DEBUG trace détaillée de la requête 18 ................................\n2026-09-28 DEBUG trace détaillée de la requête 19 ................................\n2026-09-28 DEBUG trace détaillée de la requête 20 ................................\n2026-09-28 DEBUG trace détaillée de la requête 21 ................................\n2026-09-28 DEBUG trace détaillée de la requête 22 ................................\n2026-09-28 DEBUG trace détaillée de la requête 23 ................................\n2026-09-28 DEBUG trace détaillée de la requête 24 ................................\n2026-09-28 DEBUG trace détaillée de la requête 25 ................................\n2026-09-28 DEBUG trace détaillée de la requête 26 ................................\n2026-09-28 DEBUG trace détaillée de la requête 27 ................................\n2026-09-28 DEBUG trace détaillée de la requête 28 ................................\n2026-09-28 DEBUG trace détaillée de la requête 29 ................................\n",
+      "owner": "tech",
+      "mode": "644"
+     },
+     "/var/log/app/error.log.1": "2026-10-29 16:02 ERROR délai dépassé\n",
+     "/srv/partage/compta/bilan-2026.xlsx": {
+      "content": "(classeur)",
+      "owner": "tech",
+      "mode": "660"
+     },
+     "/srv/partage/rh/README.txt": {
+      "content": "Dossier RH\n",
+      "owner": "tech",
+      "mode": "640"
+     },
+     "/etc/hostname": "srv-fic-01\n",
+     "/etc/passwd": "root:x:0:0:root:/root:/bin/bash\ntech:x:1000:1000:Technicien:/home/tech:/bin/bash\nstagiaire:x:1001:1001:Stagiaire:/home/stagiaire:/bin/bash\nsvc-backup:x:1002:1002:Sauvegarde:/var/backups:/bin/bash\n"
+    },
+    "dirs": [
+     {
+      "path": "/srv/partage/compta",
+      "mode": "777",
+      "owner": "tech"
+     },
+     {
+      "path": "/var/log/app",
+      "owner": "tech",
+      "mode": "755"
+     },
+     {
+      "path": "/home/stagiaire",
+      "mode": "700",
+      "owner": "stagiaire"
+     }
+    ],
+    "denied": [
+     "/root",
+     "/home/stagiaire"
+    ],
+    "processes": [
+     {
+      "pid": 1,
+      "user": "root",
+      "cmd": "/sbin/init",
+      "cpu": 0.0,
+      "mem": 0.1
+     },
+     {
+      "pid": 388,
+      "user": "root",
+      "cmd": "/usr/sbin/sshd -D",
+      "cpu": 0.0,
+      "mem": 0.3
+     },
+     {
+      "pid": 902,
+      "user": "root",
+      "cmd": "/usr/sbin/smbd --foreground",
+      "cpu": 1.2,
+      "mem": 2.0
+     },
+     {
+      "pid": 1450,
+      "user": "tech",
+      "cmd": "/usr/bin/python3 /home/stagiaire/test_boucle.py",
+      "cpu": 99.1,
+      "mem": 3.4
+     },
+     {
+      "pid": 1502,
+      "user": "tech",
+      "cmd": "-bash",
+      "cpu": 0.0,
+      "mem": 0.2
+     }
+    ],
+    "listen": [
+     {
+      "port": 22,
+      "process": "sshd"
+     },
+     {
+      "port": 445,
+      "process": "smbd"
+     }
+    ],
+    "interfaces": [
+     {
+      "name": "eth0",
+      "ip": "10.20.0.5/24"
+     }
+    ],
+    "objectives": [
+     {
+      "id": "cpu",
+      "title": "Arrêter le processus qui sature le processeur",
+      "check": {
+       "type": "process_absent",
+       "name": "test_boucle.py"
+      }
+     },
+     {
+      "id": "disk",
+      "title": "Supprimer l'archive de logs la plus lourde",
+      "check": {
+       "type": "absent",
+       "path": "/var/log/app/debug-2026-09.log.old"
+      }
+     },
+     {
+      "id": "acl",
+      "title": "Mettre /srv/partage/compta en 770",
+      "check": {
+       "type": "mode",
+       "path": "/srv/partage/compta",
+       "mode": "770"
+      }
+     },
+     {
+      "id": "auth",
+      "title": "Noter le compte attaqué dans ~/rapport.txt",
+      "check": {
+       "type": "equals",
+       "path": "/home/tech/rapport.txt",
+       "text": "svc-backup"
+      }
+     }
+    ]
+   },
+   "explanation": "Missions vérifiées automatiquement sur l'état de la machine simulée."
   }
  ]
 }

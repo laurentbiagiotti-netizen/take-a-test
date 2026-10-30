@@ -55,6 +55,7 @@ export default function ExamRoom(props: {
   const [violations, setViolations] = useState(0);
   const [banner, setBanner] = useState<string | null>(null);
   const [endMessage, setEndMessage] = useState<string>("");
+  const [receipt, setReceipt] = useState<{ reference: string; submitted_at: string; answered: number; questions: number } | null>(null);
   const [saving, setSaving] = useState<"idle" | "saving" | "error">("idle");
 
   const setPhase = (p: Phase) => { phaseRef.current = p; setPhaseState(p); };
@@ -85,6 +86,7 @@ export default function ExamRoom(props: {
       const next = r.headers.get("X-Exam-Nonce");
       if (next) nonceRef.current = next;
       const j = await r.json().catch(() => ({}));
+      if (j?.receipt) setReceipt(j.receipt);
       if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
       if (typeof j?.violation_count === "number") setViolations(j.violation_count);
       if (!r.ok && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
@@ -342,6 +344,18 @@ export default function ExamRoom(props: {
       <main className="max-w-xl mx-auto p-10 text-center">
         <h1 className="h1">{phase === "ended" ? "Épreuve terminée" : "Accès bloqué"}</h1>
         <p className="text-muted mt-3" role="status">{phase === "ended" ? endMessage : banner}</p>
+        {phase === "ended" && receipt && (
+          <div className="card mt-6 text-left" aria-label="Accusé de réception">
+            <div className="text-sm font-medium text-ok">Accusé de réception : votre copie a bien été transmise.</div>
+            <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted">Référence</dt><dd className="font-mono text-lg tracking-wider">{receipt.reference}</dd>
+              <dt className="text-muted">Reçue le</dt><dd>{new Date(receipt.submitted_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}</dd>
+              <dt className="text-muted">Réponses</dt><dd>{receipt.answered} question{receipt.answered > 1 ? "s" : ""} répondue{receipt.answered > 1 ? "s" : ""} sur {receipt.questions}</dd>
+            </dl>
+            <p className="text-xs text-muted mt-3">Notez ou photographiez cette référence : elle prouve le dépôt de votre copie si vous contactez l&apos;école. Les résultats vous seront communiqués par l&apos;équipe admissions.</p>
+            <button className="btn-secondary mt-3" onClick={() => window.print()}>Imprimer</button>
+          </div>
+        )}
         <a href="/dashboard" className="btn mt-6 inline-flex">Retour</a>
       </main>
     );
