@@ -178,7 +178,12 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   };
 
   const finish = async () => {
-    setResult(await api.grade(answers, flag));
+    const r = await api.grade(answers, flag).catch(() => null);
+    if (!r || !Array.isArray(r.results)) {
+      setBanner("La correction n'a pas pu être chargée. Vérifiez la connexion puis cliquez à nouveau sur « Valider ».");
+      return;
+    }
+    setResult(r);
     setStage("done");
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     window.scrollTo({ top: 0 });
