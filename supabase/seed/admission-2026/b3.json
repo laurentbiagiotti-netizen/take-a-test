@@ -1,6 +1,6 @@
 {
  "title": "Admission Bachelor 3 Cybersécurité 2026",
- "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50.",
+ "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50.",
  "duration_minutes": 50,
  "pass_mark": 25,
  "questions": [
@@ -70,7 +70,7 @@
    "options": [
     {
      "id": "a",
-     "text": "Oui, car ils sont sur le même switch"
+     "text": "Oui, car un switch transmet les trames à tous les postes qui y sont branchés"
     },
     {
      "id": "b",
@@ -78,11 +78,11 @@
     },
     {
      "id": "c",
-     "text": "Non, car les adresses en 10.x sont privées"
+     "text": "Non, car les adresses en 10.x sont privées et ne se routent pas entre elles"
     },
     {
      "id": "d",
-     "text": "Oui, car ils sont dans le même VLAN"
+     "text": "Oui, car deux postes d'un même VLAN partagent le même domaine de diffusion"
     }
    ],
    "correct": [
@@ -187,7 +187,7 @@
    "options": [
     {
      "id": "a",
-     "text": "Le DNS"
+     "text": "Le DNS, qui traduit l'adresse privée en nom public"
     },
     {
      "id": "b",
@@ -195,11 +195,11 @@
     },
     {
      "id": "c",
-     "text": "Le DHCP"
+     "text": "Le DHCP, qui attribue une adresse publique au poste"
     },
     {
      "id": "d",
-     "text": "Le VLAN"
+     "text": "Le VLAN, qui isole le poste du réseau Internet"
     }
    ],
    "correct": [
@@ -303,7 +303,7 @@
    "options": [
     {
      "id": "a",
-     "text": "Donner les droits au groupe « Tout le monde »"
+     "text": "Donner les droits au groupe « Tout le monde », puis restreindre si besoin"
     },
     {
      "id": "b",
@@ -311,11 +311,11 @@
     },
     {
      "id": "c",
-     "text": "Donner le compte administrateur à la responsable comptable"
+     "text": "Partager le compte de la responsable comptable avec toute l'équipe"
     },
     {
      "id": "d",
-     "text": "Ajouter chaque utilisateur individuellement sur le dossier"
+     "text": "Ajouter chaque utilisateur individuellement sur les droits du dossier"
     }
    ],
    "correct": [
@@ -361,7 +361,7 @@
    "options": [
     {
      "id": "a",
-     "text": "À tous les objets du domaine"
+     "text": "À tous les objets du domaine, quelle que soit leur unité d'organisation"
     },
     {
      "id": "b",
@@ -369,11 +369,11 @@
     },
     {
      "id": "c",
-     "text": "Uniquement aux contrôleurs de domaine"
+     "text": "Uniquement aux contrôleurs de domaine présents dans cette OU"
     },
     {
      "id": "d",
-     "text": "Uniquement aux groupes contenus dans cette OU"
+     "text": "Uniquement aux groupes de sécurité contenus dans cette OU"
     }
    ],
    "correct": [
@@ -448,11 +448,11 @@
    "options": [
     {
      "id": "a",
-     "text": "Créer un deuxième compte avec l'UID 0"
+     "text": "Lui créer un deuxième compte avec l'UID 0 pour éviter de partager root"
     },
     {
      "id": "b",
-     "text": "Faire un chmod 777 sur /etc"
+     "text": "Faire un chmod 777 sur /etc pour qu'il puisse modifier la configuration"
     },
     {
      "id": "c",
@@ -460,7 +460,7 @@
     },
     {
      "id": "d",
-     "text": "Lui communiquer le mot de passe root"
+     "text": "Lui communiquer le mot de passe root et le changer après son intervention"
     }
    ],
    "correct": [
@@ -539,15 +539,15 @@
     },
     {
      "id": "b",
-     "text": "Le supprimer immédiatement"
+     "text": "Le supprimer immédiatement pour libérer la licence et l'adresse mail"
     },
     {
      "id": "c",
-     "text": "Le laisser actif pour son successeur"
+     "text": "Le laisser actif pour que son successeur récupère ses accès"
     },
     {
      "id": "d",
-     "text": "Le renommer au nom de son successeur"
+     "text": "Le renommer au nom de son successeur pour conserver les droits"
     }
    ],
    "correct": [
@@ -597,15 +597,15 @@
     },
     {
      "id": "b",
-     "text": "Supprimer le mail de sa boîte"
+     "text": "Supprimer le mail de sa boîte et de celles des autres destinataires"
     },
     {
      "id": "c",
-     "text": "Formater son poste"
+     "text": "Formater son poste pour éliminer un éventuel logiciel malveillant"
     },
     {
      "id": "d",
-     "text": "Attendre de constater une activité suspecte"
+     "text": "Surveiller le compte et attendre de constater une activité suspecte"
     }
    ],
    "correct": [
@@ -740,11 +740,11 @@
    "options": [
     {
      "id": "a",
-     "text": "L'IDS bloque, l'IPS se contente d'alerter"
+     "text": "L'IDS bloque le trafic malveillant, l'IPS se contente d'alerter"
     },
     {
      "id": "b",
-     "text": "L'IDS est un antivirus, l'IPS un pare-feu"
+     "text": "L'IDS analyse les fichiers comme un antivirus, l'IPS filtre les ports comme un pare-feu"
     },
     {
      "id": "c",
@@ -752,7 +752,7 @@
     },
     {
      "id": "d",
-     "text": "Il n'y a aucune différence"
+     "text": "Aucune : ce sont deux noms commerciaux pour le même équipement"
     }
    ],
    "correct": [
@@ -800,15 +800,15 @@
    "options": [
     {
      "id": "a",
-     "text": "Chiffrés avec une clé stockée sur le serveur"
+     "text": "Chiffrés en AES avec une clé stockée sur le même serveur"
     },
     {
      "id": "b",
-     "text": "En clair dans une base de données protégée"
+     "text": "En clair, dans une base de données accessible uniquement à l'application"
     },
     {
      "id": "c",
-     "text": "Encodés en Base64"
+     "text": "Encodés en Base64 pour qu'ils ne soient pas lisibles directement"
     },
     {
      "id": "d",
@@ -829,7 +829,7 @@
    "options": [
     {
      "id": "a",
-     "text": "D'une procédure normale de support"
+     "text": "D'une procédure normale de support à distance de l'éditeur"
     },
     {
      "id": "b",
@@ -837,11 +837,11 @@
     },
     {
      "id": "c",
-     "text": "D'un audit de sécurité mené par le RSSI"
+     "text": "D'un audit de sécurité mené par le RSSI pour tester les postes"
     },
     {
      "id": "d",
-     "text": "D'une mise à jour automatique de Windows"
+     "text": "D'une mise à jour de Windows qui nécessite une intervention manuelle"
     }
    ],
    "correct": [
@@ -862,15 +862,15 @@
     },
     {
      "id": "b",
-     "text": "Ne rien faire tant qu'aucun incident n'est constaté"
+     "text": "Attendre qu'un incident soit constaté avant de toucher à un équipement critique"
     },
     {
      "id": "c",
-     "text": "L'installer immédiatement en production, sans prévenir personne"
+     "text": "L'installer immédiatement en production, sans prévenir ni prévoir de retour arrière"
     },
     {
      "id": "d",
-     "text": "Attendre la prochaine maintenance annuelle"
+     "text": "Attendre la prochaine maintenance annuelle prévue pour le pare-feu"
     }
    ],
    "correct": [
@@ -882,12 +882,12 @@
   {
    "position": 31,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Que produit ce script Bash ?\nfor i in 1 2 3; do\n    echo \"Serveur$i\"\ndone",
    "options": [
     {
      "id": "a",
-     "text": "Serveur$i, trois fois"
+     "text": "Serveur$i, trois fois, sur trois lignes"
     },
     {
      "id": "b",
@@ -895,11 +895,11 @@
     },
     {
      "id": "c",
-     "text": "Une erreur de syntaxe"
+     "text": "Une erreur de syntaxe à cause des guillemets"
     },
     {
      "id": "d",
-     "text": "Serveur123 sur une seule ligne"
+     "text": "Serveur123, sur une seule ligne"
     }
    ],
    "correct": [
@@ -911,7 +911,7 @@
   {
    "position": 32,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nx = 5\nif x > 3:\n    print(\"A\")\nelif x > 1:\n    print(\"B\")\nelse:\n    print(\"C\")",
    "options": [
     {
@@ -940,7 +940,7 @@
   {
    "position": 33,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nserveurs = [\"web\", \"dns\", \"mail\"]\nprint(len(serveurs), serveurs[1])",
    "options": [
     {
@@ -969,7 +969,7 @@
   {
    "position": 34,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Que fait cette commande PowerShell ?\nGet-ADUser -Filter * | Where-Object { $_.Enabled -eq $false }",
    "options": [
     {
@@ -998,7 +998,7 @@
   {
    "position": 35,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "À quoi sert la ligne #!/bin/bash au début d'un script ?",
    "options": [
     {
@@ -1007,15 +1007,15 @@
     },
     {
      "id": "b",
-     "text": "C'est un simple commentaire, sans effet"
+     "text": "C'est un simple commentaire, ignoré à l'exécution"
     },
     {
      "id": "c",
-     "text": "Elle rend le script exécutable"
+     "text": "Elle donne au script le droit d'être exécuté"
     },
     {
      "id": "d",
-     "text": "Elle importe les commandes de Bash"
+     "text": "Elle charge les commandes de Bash dans le script"
     }
    ],
    "correct": [
@@ -1027,20 +1027,20 @@
   {
    "position": 36,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Que fait cette commande ?\ngrep \"Failed password\" /var/log/auth.log | wc -l",
    "options": [
     {
      "id": "a",
-     "text": "Elle compte le nombre d'utilisateurs du système"
+     "text": "Elle compte le nombre d'utilisateurs ayant un compte sur le système"
     },
     {
      "id": "b",
-     "text": "Elle affiche les mots de passe saisis"
+     "text": "Elle affiche les mots de passe saisis par erreur lors des connexions"
     },
     {
      "id": "c",
-     "text": "Elle supprime les tentatives échouées du journal"
+     "text": "Elle supprime du journal les lignes des connexions échouées"
     },
     {
      "id": "d",
@@ -1056,7 +1056,7 @@
   {
    "position": 37,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\ntentatives = 0\nwhile tentatives < 3:\n    tentatives += 1\nprint(tentatives)",
    "options": [
     {
@@ -1085,20 +1085,20 @@
   {
    "position": 38,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Un script de création de comptes contient en clair le mot de passe d'un administrateur du domaine. Quel est le problème ?",
    "options": [
     {
      "id": "a",
-     "text": "Le script sera plus lent à s'exécuter"
+     "text": "Le script sera plus lent, car il doit vérifier le mot de passe à chaque compte créé"
     },
     {
      "id": "b",
-     "text": "Le mot de passe expirera plus vite"
+     "text": "Le mot de passe expirera plus vite, car il est utilisé par un script automatique"
     },
     {
      "id": "c",
-     "text": "Aucun, si le script est stocké sur un serveur"
+     "text": "Aucun, tant que le script est stocké sur un serveur dont l'accès est protégé par mot de passe"
     },
     {
      "id": "d",
@@ -1114,7 +1114,7 @@
   {
    "position": 39,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Que fait ce script Bash ?\nif [ -f /etc/backup.conf ]; then\n    echo \"OK\"\nfi",
    "options": [
     {
@@ -1143,7 +1143,7 @@
   {
    "position": 40,
    "type": "mcq_single",
-   "domain": "Scripting & programmation",
+   "domain": "Scripting et programmation",
    "prompt": "Qu'affiche ce code Python ?\nports = [22, 80, 443]\nfor p in ports:\n    if p != 80:\n        print(p)",
    "options": [
     {
@@ -1172,7 +1172,7 @@
   {
    "position": 41,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Sur un poste, ping 8.8.8.8 fonctionne, mais ping www.google.fr renvoie « hôte inconnu ». Où se situe le problème ?",
    "options": [
     {
@@ -1201,16 +1201,16 @@
   {
    "position": 42,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Un poste ne parvient pas à joindre sa passerelle, alors que les autres postes branchés sur le même switch fonctionnent. Où cherchez-vous en priorité ?",
    "options": [
     {
      "id": "a",
-     "text": "Sur le pare-feu Internet"
+     "text": "Sur le pare-feu Internet, qui filtre peut-être le trafic de ce poste"
     },
     {
      "id": "b",
-     "text": "Sur le serveur DNS"
+     "text": "Sur le serveur DNS, qui ne résout peut-être plus l'adresse de la passerelle"
     },
     {
      "id": "c",
@@ -1218,7 +1218,7 @@
     },
     {
      "id": "d",
-     "text": "Chez le fournisseur d'accès à Internet"
+     "text": "Chez le fournisseur d'accès à Internet, qui coupe peut-être ce poste"
     }
    ],
    "correct": [
@@ -1230,16 +1230,16 @@
   {
    "position": 43,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Tous les utilisateurs d'un étage perdent le réseau, alors que le reste du bâtiment fonctionne. Quelle est la cause la plus probable ?",
    "options": [
     {
      "id": "a",
-     "text": "Une panne du serveur DNS"
+     "text": "Une panne du serveur DNS central de l'entreprise"
     },
     {
      "id": "b",
-     "text": "Une panne du fournisseur d'accès à Internet"
+     "text": "Une coupure chez le fournisseur d'accès à Internet"
     },
     {
      "id": "c",
@@ -1247,7 +1247,7 @@
     },
     {
      "id": "d",
-     "text": "Des mots de passe expirés"
+     "text": "Des mots de passe expirés pour les utilisateurs de cet étage"
     }
    ],
    "correct": [
@@ -1259,7 +1259,7 @@
   {
    "position": 44,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Une GPO ne semble pas s'appliquer sur un poste. Quelle commande permet de voir les GPO effectivement appliquées ?",
    "options": [
     {
@@ -1288,7 +1288,7 @@
   {
    "position": 45,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Vous recevez ces demandes en même temps. Laquelle traitez-vous en premier ?",
    "options": [
     {
@@ -1317,20 +1317,20 @@
   {
    "position": 46,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Au démarrage de session, un poste affiche : « The trust relationship between this workstation and the primary domain failed. » Que signifie ce message ?",
    "options": [
     {
      "id": "a",
-     "text": "Le serveur DNS est injoignable"
+     "text": "Le serveur DNS est injoignable depuis le poste au moment de la connexion"
     },
     {
      "id": "b",
-     "text": "Le mot de passe de l'utilisateur a expiré"
+     "text": "Le mot de passe de l'utilisateur a expiré et doit être changé"
     },
     {
      "id": "c",
-     "text": "La licence Windows a expiré"
+     "text": "La licence Windows du poste a expiré et doit être réactivée"
     },
     {
      "id": "d",
@@ -1346,7 +1346,7 @@
   {
    "position": 47,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Une connexion SSH vers un serveur échoue avec le message « Connection refused ». Que peut-on en déduire ?",
    "options": [
     {
@@ -1355,11 +1355,11 @@
     },
     {
      "id": "b",
-     "text": "Le serveur n'existe pas"
+     "text": "Le serveur n'existe pas ou est éteint"
     },
     {
      "id": "c",
-     "text": "Le mot de passe est incorrect"
+     "text": "Le mot de passe ou la clé SSH sont incorrects"
     },
     {
      "id": "d",
@@ -1375,7 +1375,7 @@
   {
    "position": 48,
    "type": "mcq_multi",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Avant de modifier la configuration d'un switch en production, quelles précautions prenez-vous (plusieurs réponses possibles) ?",
    "options": [
     {
@@ -1406,7 +1406,7 @@
   {
    "position": 49,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Les utilisateurs signalent que le serveur de fichiers est très lent tous les jours entre 12 h et 13 h, et seulement sur ce créneau. Quelle hypothèse vérifiez-vous en premier ?",
    "options": [
     {
@@ -1415,15 +1415,15 @@
     },
     {
      "id": "b",
-     "text": "Une infection par un virus"
+     "text": "Une infection par un virus qui se déclenche sur le serveur"
     },
     {
      "id": "c",
-     "text": "Une panne du serveur DNS"
+     "text": "Une panne intermittente du serveur DNS de l'entreprise"
     },
     {
      "id": "d",
-     "text": "Un câble réseau défectueux"
+     "text": "Un câble réseau défectueux entre le serveur et le switch"
     }
    ],
    "correct": [
@@ -1435,20 +1435,20 @@
   {
    "position": 50,
    "type": "mcq_single",
-   "domain": "Logique & diagnostic",
+   "domain": "Logique et diagnostic",
    "prompt": "Un utilisateur ne peut plus ouvrir sa session : « Votre compte a été verrouillé ». Que faites-vous ?",
    "options": [
     {
      "id": "a",
-     "text": "Supprimer et recréer son compte"
+     "text": "Supprimer son compte et lui en recréer un nouveau avec un mot de passe provisoire"
     },
     {
      "id": "b",
-     "text": "Le déverrouiller immédiatement, sans autre vérification"
+     "text": "Le déverrouiller immédiatement pour qu'il puisse travailler, sans autre vérification"
     },
     {
      "id": "c",
-     "text": "Désactiver le verrouillage des comptes pour tout le monde"
+     "text": "Désactiver le verrouillage des comptes pour tout le monde afin d'éviter que cela se reproduise"
     },
     {
      "id": "d",

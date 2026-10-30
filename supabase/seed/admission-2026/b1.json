@@ -1,13 +1,13 @@
 {
  "title": "Admission Bachelor 1 Cybersécurité 2026",
- "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Seuil d'admissibilité proposé : 25/50.",
- "duration_minutes": 50,
- "pass_mark": 25,
+ "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 55 questions dont 5 énigmes CYBEROKU, 55 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Seuil d'admissibilité proposé : 28/55 (50 %).",
+ "duration_minutes": 55,
+ "pass_mark": 28,
  "questions": [
   {
    "position": 1,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Quel nombre complète la suite : 2, 6, 12, 20, 30, … ?",
    "options": [
     {
@@ -36,7 +36,7 @@
   {
    "position": 2,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Quel nombre complète la suite : 3, 9, 27, 81, … ?",
    "options": [
     {
@@ -65,7 +65,7 @@
   {
    "position": 3,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Quel nombre complète la suite : 5, 10, 20, 40, … ?",
    "options": [
     {
@@ -94,7 +94,7 @@
   {
    "position": 4,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Quel nombre complète la suite : 1, 1, 2, 3, 5, 8, … ?",
    "options": [
     {
@@ -123,7 +123,7 @@
   {
    "position": 5,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Tous les serveurs de la salle B sont sauvegardés. Le serveur X n'est pas sauvegardé. Que peut-on en conclure ?",
    "options": [
     {
@@ -152,7 +152,7 @@
   {
    "position": 6,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "« Si l'alarme sonne, alors la porte est ouverte. » La porte est ouverte. Que peut-on en conclure ?",
    "options": [
     {
@@ -181,7 +181,7 @@
   {
    "position": 7,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Le serveur A est plus rapide que le serveur B. Le serveur C est plus lent que le serveur A. Lequel est le plus lent ?",
    "options": [
     {
@@ -210,7 +210,7 @@
   {
    "position": 8,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Combien de codes différents peut-on former avec 4 chiffres (de 0 à 9) ?",
    "options": [
     {
@@ -239,7 +239,7 @@
   {
    "position": 9,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Il est 22 h 45. Une sauvegarde dure 2 h 30. À quelle heure se termine-t-elle ?",
    "options": [
     {
@@ -268,7 +268,7 @@
   {
    "position": 10,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Un programme teste 1 000 codes par seconde. Combien de temps lui faut-il, au maximum, pour tester tous les codes à 4 chiffres ?",
    "options": [
     {
@@ -297,7 +297,7 @@
   {
    "position": 11,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Une sauvegarde de 120 Go est copiée à la vitesse de 2 Go par minute. Combien de temps dure la copie ?",
    "options": [
     {
@@ -326,7 +326,7 @@
   {
    "position": 12,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Sur 200 mails reçus, 15 % sont des spams. Combien de spams avez-vous reçus ?",
    "options": [
     {
@@ -355,7 +355,7 @@
   {
    "position": 13,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Un technicien installe un poste en 15 minutes. Combien de postes trois techniciens installent-ils en 1 heure, au même rythme ?",
    "options": [
     {
@@ -384,7 +384,7 @@
   {
    "position": 14,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Avec le chiffrement de César à décalage de 3, chaque lettre est remplacée par celle située 3 rangs plus loin (A devient D, B devient E…). Comment s'écrit le mot CHAT ?",
    "options": [
     {
@@ -413,7 +413,7 @@
   {
    "position": 15,
    "type": "mcq_single",
-   "domain": "Logique & raisonnement",
+   "domain": "Logique et raisonnement",
    "prompt": "Avec le même chiffrement de César (décalage de 3), quel mot se cache derrière le message chiffré FOH ?",
    "options": [
     {
@@ -913,11 +913,11 @@
    "options": [
     {
      "id": "a",
-     "text": "À chiffrer les communications"
+     "text": "À chiffrer les données qui circulent pour que personne ne puisse les lire"
     },
     {
      "id": "b",
-     "text": "À stocker les mots de passe"
+     "text": "À enregistrer les sites visités pour les retrouver plus vite ensuite"
     },
     {
      "id": "c",
@@ -925,7 +925,7 @@
     },
     {
      "id": "d",
-     "text": "À mesurer la vitesse de la connexion"
+     "text": "À mesurer la vitesse de la connexion entre l'appareil et la box"
     }
    ],
    "correct": [
@@ -971,15 +971,15 @@
    "options": [
     {
      "id": "a",
-     "text": "Le site est officiel et sans danger"
+     "text": "Le site est officiel et ne présente aucun danger pour vos données"
     },
     {
      "id": "b",
-     "text": "Le site a été vérifié par l'État"
+     "text": "Le site a été contrôlé et validé par un organisme de l'État"
     },
     {
      "id": "c",
-     "text": "Le site ne contient pas de publicité"
+     "text": "Le site ne contient ni publicité ni logiciel espion"
     },
     {
      "id": "d",
@@ -1118,15 +1118,15 @@
    "options": [
     {
      "id": "a",
-     "text": "Votre mot de passe est changé automatiquement partout"
+     "text": "Le site prévient tous les autres sites, qui changent votre mot de passe"
     },
     {
      "id": "b",
-     "text": "Aucun, seul ce site est concerné"
+     "text": "Aucun : seul le compte sur ce site est concerné par la fuite"
     },
     {
      "id": "c",
-     "text": "Votre ordinateur est automatiquement infecté"
+     "text": "Votre ordinateur est infecté dès la prochaine connexion à Internet"
     },
     {
      "id": "d",
@@ -1147,15 +1147,15 @@
    "options": [
     {
      "id": "a",
-     "text": "À accélérer la connexion"
+     "text": "À accélérer la connexion en évitant de retaper le mot de passe"
     },
     {
      "id": "b",
-     "text": "À sauvegarder vos données"
+     "text": "À sauvegarder automatiquement vos données sur votre téléphone"
     },
     {
      "id": "c",
-     "text": "À remplacer l'antivirus"
+     "text": "À remplacer l'antivirus en bloquant les logiciels dangereux"
     },
     {
      "id": "d",
@@ -1180,15 +1180,15 @@
     },
     {
      "id": "b",
-     "text": "Le Wi-Fi va ralentir votre téléphone"
+     "text": "Aucun : le réseau le plus rapide des deux est forcément le vrai"
     },
     {
      "id": "c",
-     "text": "Aucun, tous les Wi-Fi publics sont contrôlés"
+     "text": "Aucun : tous les Wi-Fi publics sont contrôlés par l'opérateur"
     },
     {
      "id": "d",
-     "text": "Les deux réseaux vont se brouiller"
+     "text": "Les deux réseaux vont se brouiller et couper la connexion de tout le monde"
     }
    ],
    "correct": [
@@ -1234,11 +1234,11 @@
    "options": [
     {
      "id": "a",
-     "text": "Elles suppriment les publicités"
+     "text": "Elles suppriment les publicités et les applications inutiles"
     },
     {
      "id": "b",
-     "text": "Elles libèrent de l'espace de stockage"
+     "text": "Elles libèrent de l'espace de stockage pour installer d'autres applications"
     },
     {
      "id": "c",
@@ -1246,7 +1246,7 @@
     },
     {
      "id": "d",
-     "text": "Elles sont obligatoires par la loi"
+     "text": "Elles sont obligatoires par la loi pour tous les appareils connectés"
     }
    ],
    "correct": [
@@ -1267,15 +1267,15 @@
     },
     {
      "id": "b",
-     "text": "Un logiciel de sauvegarde payant"
+     "text": "Un logiciel payant qui sauvegarde vos fichiers dans le cloud"
     },
     {
      "id": "c",
-     "text": "Un antivirus gratuit"
+     "text": "Un antivirus gratuit qui bloque les sites dangereux"
     },
     {
      "id": "d",
-     "text": "Un programme qui affiche des publicités"
+     "text": "Un programme qui affiche des publicités pour gagner de l'argent"
     }
    ],
    "correct": [
@@ -1457,6 +1457,151 @@
    ],
    "points": 1,
    "explanation": "« May harm » = pourrait nuire ; « keep anyway » = conserver quand même. Dans le doute, on ne le conserve pas."
+  },
+  {
+   "position": 51,
+   "type": "mcq_single",
+   "domain": "Énigmes CYBEROKU",
+   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les chiffres 1, 2, 3 et 4.\n1 . 3 4\n. 4 . 2\n2 ? 4 .\n4 3 . 1\nQuel chiffre remplace le « ? » ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "1"
+    },
+    {
+     "id": "b",
+     "text": "2"
+    },
+    {
+     "id": "c",
+     "text": "3"
+    },
+    {
+     "id": "d",
+     "text": "4"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Sur sa ligne, il manque 1 et 3. Dans sa colonne, il y a déjà 4 et 3. Il ne reste que 1."
+  },
+  {
+   "position": 52,
+   "type": "mcq_single",
+   "domain": "Énigmes CYBEROKU",
+   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les symboles #, @ et $.\n# @ $\n@ $ #\n$ ? @\nQuel symbole remplace le « ? » ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "#"
+    },
+    {
+     "id": "b",
+     "text": "@"
+    },
+    {
+     "id": "c",
+     "text": "$"
+    },
+    {
+     "id": "d",
+     "text": "On ne peut pas savoir"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "La ligne contient déjà $ et @, la colonne contient déjà @ et $ : il ne reste que #."
+  },
+  {
+   "position": 53,
+   "type": "mcq_single",
+   "domain": "Énigmes CYBEROKU",
+   "prompt": "Énigme CYBEROKU. Un message est codé : chaque lettre est remplacée par son rang dans l'alphabet (A = 1, B = 2…). Que signifie 6 12 1 7 ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "FLAG"
+    },
+    {
+     "id": "b",
+     "text": "GLAG"
+    },
+    {
+     "id": "c",
+     "text": "FKAG"
+    },
+    {
+     "id": "d",
+     "text": "ELAG"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "6 = F, 12 = L, 1 = A, 7 = G."
+  },
+  {
+   "position": 54,
+   "type": "mcq_single",
+   "domain": "Énigmes CYBEROKU",
+   "prompt": "Énigme CYBEROKU. Un mot de passe est caché dans ce journal : prenez la première lettre de chaque ligne.\nPare-feu activé\nAccès refusé\nSession ouverte\nSauvegarde terminée\nQuel est le mot caché ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "PASS"
+    },
+    {
+     "id": "b",
+     "text": "PAOS"
+    },
+    {
+     "id": "c",
+     "text": "SAPS"
+    },
+    {
+     "id": "d",
+     "text": "PARS"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Les premières lettres des lignes donnent P, A, S, S."
+  },
+  {
+   "position": 55,
+   "type": "mcq_single",
+   "domain": "Énigmes CYBEROKU",
+   "prompt": "Énigme CYBEROKU. Ana, Bilal et Chloé ont chacun trouvé un flag différent : web, réseau ou crypto. Ana n'a pas trouvé le flag web. Chloé a trouvé le flag crypto. Qui a trouvé le flag réseau ?",
+   "options": [
+    {
+     "id": "a",
+     "text": "Ana"
+    },
+    {
+     "id": "b",
+     "text": "Bilal"
+    },
+    {
+     "id": "c",
+     "text": "Chloé"
+    },
+    {
+     "id": "d",
+     "text": "On ne peut pas savoir"
+    }
+   ],
+   "correct": [
+    "a"
+   ],
+   "points": 1,
+   "explanation": "Chloé a crypto. Ana n'a pas web, donc elle a réseau, et Bilal a web."
   }
  ]
 }

@@ -131,15 +131,27 @@ Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `ab
 
 ## Épreuves d'admission 2026
 
-Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 ») sont prêts à charger :
+Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 »), relus :
 
-| Épreuve | Questions | Domaines (10 points chacun, sauf mention) |
-|---|---|---|
-| Bachelor 1 Cybersécurité | 50 | Logique et raisonnement (15), algorithmique, fonctionnement du numérique, réflexes cyber, anglais (5) |
-| Bachelor 3 Cybersécurité | 50 | Réseaux, systèmes, cybersécurité, scripting et programmation, logique et diagnostic |
-| Mastère Cybersécurité (M1) | 50 | Réseaux, systèmes, cybersécurité, programmation et scripting, analyse et diagnostic |
+| Épreuve | Questions | Durée | Seuil proposé |
+|---|---|---|---|
+| Bachelor 1 Cybersécurité | 55, dont 5 énigmes CYBEROKU | 55 min | 28/55 |
+| Bachelor 3 Cybersécurité | 50 | 50 min | 25/50 |
+| Mastère Cybersécurité (M1) | 50 | 50 min | 25/50 |
 
-Barème repris tel quel : 50 minutes, 1 point par question, tout ou rien sur les questions à plusieurs réponses, seuil d'admissibilité proposé à 25/50. Après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql` : les épreuves sont créées non publiées et sur invitation. Les explications de chaque réponse sont dans `supabase/seed/admission-2026/*.json`. Les grilles d'entretien oral restent dans le dossier Drive.
+1 point par question, tout ou rien sur les questions à plusieurs réponses, réponses mélangées pour chaque candidat. Le détail de la relecture (mauvaises réponses réécrites pour que la bonne ne se repère plus à sa longueur, énigmes ajoutées) est dans `supabase/seed/admission-2026/RELECTURE.md`.
+
+- Charger les épreuves : après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql`. Elles sont créées non publiées et sur invitation.
+- Modifier une question : éditer `supabase/seed/admission-2026/src/*.py`, puis lancer `python3 supabase/seed/admission-2026/src/gen.py` (régénère le SQL et les JSON, avec les explications de chaque réponse).
+- Les grilles d'entretien oral restent dans le dossier Drive.
+
+## Tests
+
+- `npm test` : correction, terminal simulé, mise en forme des énoncés, cohérence des QCM d'admission.
+- `npm run test:sql` : rejoue les suites d'attaque sur une base neuve (variable `PSQL` pour adapter la commande, par exemple `PSQL="sudo -u postgres psql"`).
+- `npm run typecheck`.
+
+La CI GitHub (`.github/workflows/ci.yml`) lance tout cela à chaque push, ainsi que le build et une vérification que les QCM générés correspondent à leurs sources.
 
 ## Démo en ligne (GitHub Pages)
 

@@ -1,8 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Terminal, { type Objective } from "@/components/Terminal";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
+import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraAnomaly, type CameraStatus } from "@/lib/proctor/camera-monitor";
+import { faceReady, formatClock, fullscreenSupported, useAutoCamera } from "@/lib/exam/client";
 
 /**
  * Épreuve d'essai publique : vérifie le poste (caméra avec détection de
@@ -56,16 +58,18 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const [result, setResult] = useState<{ results: { id: string; score: number; points: number }[]; flag: boolean } | null>(null);
   const [left, setLeft] = useState(25 * 60);
   const [cam, setCam] = useState<CameraStatus | null>(null);
-  const [camOn, setCamOn] = useState(false);
-  const [camDenied, setCamDenied] = useState(false);
   const [confirmNext, setConfirmNext] = useState(false);
   const [camAlerts, setCamAlerts] = useState<string[]>([]);
   const [anomalies, setAnomalies] = useState<{ kind: CameraAnomaly; at: string }[]>([]);
   const [isFull, setIsFull] = useState(true);
   const [fullExits, setFullExits] = useState(0);
   const [banner, setBanner] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const [canFull, setCanFull] = useState(true);
+  const camera = useAutoCamera(() => {
+    setCam(null);
+    setCamAlerts((a) => [...a, `${new Date().toLocaleTimeString("fr-FR")} · caméra coupée`]);
+  });
+  const camOn = camera.state === "live", camDenied = camera.state === "denied";
   const inSeb = typeof navigator !== "undefined" && /SEB\//.test(navigator.userAgent);
   const total = questions.length + 1;
 
@@ -77,10 +81,17 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     set("screens", extended === true ? "ko" : extended === false ? "ok" : "info",
       extended === true ? "Écran secondaire détecté : débranchez-le le jour de l'épreuve." : extended === false ? undefined : "Non vérifiable avec ce navigateur.");
     set("seb", inSeb ? "ok" : "info", inSeb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
-    set("fullscreen", "info", inSeb ? "Géré par Safe Exam Browser." : "Obligatoire : il s'active au démarrage, l'épreuve ne commence pas sans lui.");
-    openCamera();
-    return () => streamRef.current?.getTracks().forEach((t) => t.stop());
+    const fs = inSeb || fullscreenSupported();
+    setCanFull(fs);
+    set("fullscreen", fs ? "info" : "ko", inSeb ? "Géré par Safe Exam Browser." : fs ? "Obligatoire : il s'active au démarrage, l'épreuve ne commence pas sans lui."
+      : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette) : passez l'épreuve sur un ordinateur.");
   }, []);
+
+  useEffect(() => {
+    if (camera.state === "pending") set("camera", "info", "Ouverture de la caméra : autorisez l'accès quand le navigateur le demande.");
+    else if (camera.state === "denied") set("camera", "ko", "Caméra refusée ou coupée : autorisez-la (icône dans la barre d'adresse) puis réessayez, ou commencez sans, ce sera signalé.");
+    else set("camera", "info", "Caméra active : analyse du visage en cours…");
+  }, [camera.state]);
 
   // Chrono d'essai
   useEffect(() => {
@@ -89,19 +100,11 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     return () => clearInterval(i);
   }, [stage]);
 
-  // Le flux vidéo suit le composant <video> affiché (vérifications puis en-tête)
-  useEffect(() => {
-    if (videoRef.current && streamRef.current && videoRef.current.srcObject !== streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  });
-
   // Analyse caméra en continu
   useEffect(() => {
-    if (!camOn || !videoRef.current) return;
+    if (!camOn || !camera.videoRef.current) return;
     return startCameraMonitor({
-      video: videoRef.current, modelUrl,
+      video: camera.videoRef.current, modelUrl,
       onStatus: (s) => {
         setCam(s);
         if (stage === "checks" && s.faces !== null) {
@@ -115,7 +118,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
         setBanner(`Anomalie caméra : ${ANOMALY_LABEL[kind]}. Dans un vrai examen, le surveillant en est informé avec une photo.`);
       },
     });
-  }, [camOn, stage, modelUrl]);
+  }, [camOn, stage, modelUrl, camera.videoRef]);
 
   // Plein écran : épreuve masquée tant que le candidat n'y est pas
   // Tout clic ou touche hors plein écran le redemande
@@ -139,39 +142,17 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     };
   }, [stage]);
 
-  // Caméra ouverte automatiquement à l'arrivée sur la page
-  async function openCamera() {
-    if (streamRef.current?.getVideoTracks().some((t) => t.readyState === "live")) return;
-    set("camera", "info", "Ouverture de la caméra : autorisez l'accès quand le navigateur le demande.");
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
-      streamRef.current = s;
-      s.getVideoTracks().forEach((t) => t.addEventListener("ended", () => {
-        setCamOn(false); setCam(null); setCamDenied(true);
-        set("camera", "ko", "La caméra a été coupée.");
-        setCamAlerts((a) => [...a, `${new Date().toLocaleTimeString("fr-FR")} · caméra coupée`]);
-      }));
-      if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play().catch(() => {}); }
-      set("camera", "info", "Caméra active : analyse du visage en cours…");
-      setCamDenied(false);
-      setCamOn(true);
-    } catch {
-      setCamDenied(true);
-      set("camera", "ko", "Caméra refusée ou absente : autorisez-la dans le navigateur (icône dans la barre d'adresse) puis réessayez.");
-    }
-  }
-
   const goFull = async () => {
     if (inSeb) return true;
     try { await document.documentElement.requestFullscreen(); setIsFull(true); return true; }
     catch { setBanner("Le navigateur a refusé le plein écran : cliquez à nouveau."); return false; }
   };
 
-  const faceOk = camOn && !!cam && !cam.anomaly
-    && (cam.faces === 1 || (cam.ready && cam.faces === null && cam.brightness >= 18));
+  const faceOk = faceReady(camOn, cam);
 
   const begin = async () => {
     setBanner(null);
+    if (!canFull) { setBanner("Ce navigateur ne permet pas le plein écran : passez l'épreuve sur un ordinateur."); return; }
     if (!faceOk && !camDenied) { setBanner("Patientez : la caméra doit détecter un seul visage avant de commencer."); return; }
     if (!(await goFull()) || (!inSeb && !document.fullscreenElement)) {
       setBanner("Le plein écran est obligatoire : l'épreuve ne peut pas commencer sans lui.");
@@ -206,7 +187,6 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const termDone = objectives.filter((o) => o.done).length;
   const score = result ? result.results.reduce((s, r) => s + r.score, 0) + termDone + (result.flag ? 1 : 0) : 0;
   const totalPts = result ? result.results.reduce((s, r) => s + r.points, 0) + objectives.length + 1 : 0;
-  const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
   const q = step > 0 ? questions[step - 1] : null;
 
   const Badge = ({ s }: { s: Check["state"] }) => (
@@ -231,7 +211,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
       )}
       {stage === "exam" && !camOn && (
         <div className="bg-warn/15 border-b border-warn/40 text-warn text-center py-2 text-sm px-4">
-          Caméra désactivée : signalé au surveillant dans un vrai examen. <button className="underline ml-2" onClick={openCamera}>Réactiver la caméra</button>
+          Caméra désactivée : signalé au surveillant dans un vrai examen. <button className="underline ml-2" onClick={camera.open}>Réactiver la caméra</button>
         </div>
       )}
 
@@ -242,11 +222,11 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             <span className="badge-warn">Épreuve d&apos;essai</span>
             {stage === "exam" && camOn && (
               <div className="relative">
-                <video ref={videoRef} className={`w-24 h-14 rounded bg-black object-cover border ${camBad ? "border-danger" : "border-line"}`} muted playsInline />
+                <video ref={camera.attach} className={`w-24 h-14 rounded bg-black object-cover border ${camBad ? "border-danger" : "border-line"}`} muted playsInline />
                 <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${camBad ? "bg-danger text-white" : "bg-ok text-bg"}`}>{camLabel}</span>
               </div>
             )}
-            {stage === "exam" && <span className="font-mono text-lg">{mm}:{ss}</span>}
+            {stage === "exam" && <span className="font-mono text-lg">{formatClock(left)}</span>}
           </div>
         </div>
         {stage === "exam" && <div className="h-1 bg-surface-2"><div className="h-full bg-accent transition-all" style={{ width: `${((step + 1) / total) * 100}%` }} /></div>}
@@ -275,7 +255,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
                       {c.detail && <div className="text-xs text-muted mt-0.5">{c.detail}</div>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {c.id === "camera" && camDenied && <button className="btn-secondary !py-1 text-xs" onClick={openCamera}>Réessayer</button>}
+                      {c.id === "camera" && camDenied && <button className="btn-secondary !py-1 text-xs" onClick={camera.open}>Réessayer</button>}
                       <Badge s={c.state} />
                     </div>
                   </div>
@@ -286,7 +266,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
                   <div className="h2">Aperçu caméra</div>
                   {camOn && <span className={`badge ${camBad ? "badge-danger" : cam?.faces === 1 ? "badge-ok" : "badge-muted"}`}>{camLabel}</span>}
                 </div>
-                <video ref={stage === "checks" ? videoRef : undefined} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
+                <video ref={stage === "checks" ? camera.attach : undefined} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
                 <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, la caméra est analysée en continu : absence de visage, plusieurs personnes, caméra masquée ou image figée sont signalées.</p>
               </div>
             </section>
@@ -297,7 +277,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             </div>
             {banner && <p className="text-danger text-sm">{banner}</p>}
             <div className="flex items-center gap-4">
-              <button className="btn" onClick={begin} disabled={!faceOk && !camDenied}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
+              <button className="btn" onClick={begin} disabled={!canFull || (!faceOk && !camDenied)}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
               {!faceOk && !camDenied && <span className="text-xs text-muted">Disponible dès que la caméra détecte votre visage.</span>}
               {camDenied && <span className="text-xs text-warn">Sans caméra, vous pouvez commencer, mais ce sera signalé au surveillant.</span>}
             </div>
@@ -324,7 +304,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             ) : q && (
               <section className="card">
                 <div className="text-xs text-muted">{HINT[q.type]} · {q.points} pt{q.points > 1 ? "s" : ""}</div>
-                <div className="text-lg font-medium mt-1 whitespace-pre-wrap">{q.prompt}</div>
+                <div className="mt-1"><QuestionPrompt prompt={q.prompt} className="text-lg font-medium" /></div>
                 <div className="mt-4">
                   <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setAnswers((a) => ({ ...a, [q.id]: r }))} />
                 </div>

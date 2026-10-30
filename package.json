@@ -13,7 +13,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:pages": "node site/build.mjs"
+    "build:pages": "node site/build.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:sql": "bash tests/sql/run.sh"
   },
   "dependencies": {
     "@fontsource/archivo-black": "^5.3.0",
@@ -38,6 +41,7 @@
     "js-sha256": "^1.0.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^3.2.7"
   }
 }

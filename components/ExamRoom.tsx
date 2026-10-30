@@ -1,15 +1,20 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
+import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proctor/camera-monitor";
+import { EVENT_LABEL, TYPE_HINT, faceReady, formatClock, fullscreenSupported, isAnswered, useAutoCamera, useTimeAlerts } from "@/lib/exam/client";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
  * d'infractions, clôture et correction sont décidés par le serveur.
  * Aucune bonne réponse n'est jamais envoyée au navigateur.
+ *
+ * Règles fixes : une question à la fois sans retour, plein écran obligatoire,
+ * caméra ouverte automatiquement (refusée ou coupée : le candidat continue,
+ * le surveillant est alerté).
  */
 
-type Opt = { id: string; text: string; image_url?: string | null };
 type Q = PublicQ;
 type Phase = "prep" | "starting" | "active" | "ended" | "blocked";
 
@@ -21,20 +26,17 @@ export default function ExamRoom(props: {
   testId: string; title: string; description?: string | null; durationMinutes: number;
   maxViolations: number; requireWebcam?: boolean; resuming: boolean; watermark: string; linearHint?: boolean;
 }) {
-  // Caméra, plein écran et question par question : toujours imposés
   const { testId, title, description, durationMinutes, maxViolations, resuming, watermark } = props;
-  const requireWebcam = true;
   const api = useCallback((p: string) => `/api/exam/${testId}/${p}`, [testId]);
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const prepVideoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const lastViolationAt = useRef(0);
   const clockOffset = useRef(0);
   const textTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const phaseRef = useRef<Phase>("prep");
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   // SEB verrouille déjà tout l'écran (mode kiosque) : pas d'API plein écran à exiger
   const inSeb = typeof navigator !== "undefined" && /SEB\//.test(navigator.userAgent);
+  const [canFull, setCanFull] = useState(true);
   // Jeton de requête tournant : chaque appel renvoie le suivant. Les appels
   // sont sérialisés (file d'attente) pour ne jamais désynchroniser la chaîne.
   const nonceRef = useRef<string | null>(null);
@@ -48,7 +50,6 @@ export default function ExamRoom(props: {
   const [idx, setIdx] = useState(0);
   const [isFull, setIsFull] = useState(true);
   const [cam, setCam] = useState<CameraStatus | null>(null);
-  const [camState, setCamState] = useState<"pending" | "live" | "denied">("pending");
   const [confirming, setConfirming] = useState<"next" | "submit" | null>(null);
   const [advancing, setAdvancing] = useState(false);
   const [violations, setViolations] = useState(0);
@@ -57,19 +58,20 @@ export default function ExamRoom(props: {
   const [saving, setSaving] = useState<"idle" | "saving" | "error">("idle");
 
   const setPhase = (p: Phase) => { phaseRef.current = p; setPhaseState(p); };
+  const camera = useAutoCamera();
 
-  const stopMedia = () => streamRef.current?.getTracks().forEach((t) => t.stop());
+  useEffect(() => { setCanFull(inSeb || fullscreenSupported()); }, [inSeb]);
 
   const end = useCallback((status: string) => {
     if (phaseRef.current === "ended") return;
-    stopMedia();
+    camera.stop();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     setEndMessage(
       status === "terminated" ? "L'épreuve a été interrompue : nombre maximal d'infractions atteint." :
       status === "expired" ? "Le temps est écoulé. Vos réponses enregistrées ont été transmises." :
       "Vos réponses ont été transmises. Vous pouvez fermer cette fenêtre.");
     setPhase("ended");
-  }, []);
+  }, [camera.stop]);
 
   const post = useCallback((path: string, body?: unknown, form?: FormData): Promise<{ ok: boolean; data: any }> => {
     const task = async () => {
@@ -86,7 +88,7 @@ export default function ExamRoom(props: {
       if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
       if (typeof j?.violation_count === "number") setViolations(j.violation_count);
       if (!r.ok && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
-        stopMedia();
+        camera.stop();
         setBanner(j.message); setPhase("blocked");
       }
       return { ok: r.ok, data: j };
@@ -94,7 +96,7 @@ export default function ExamRoom(props: {
     const p = queueRef.current.then(task, task);
     queueRef.current = p.catch(() => {});
     return p;
-  }, [api, end]);
+  }, [api, end, camera.stop]);
 
   const report = useCallback((kind: string, detail?: Record<string, unknown>, isViolation = false) => {
     if (phaseRef.current !== "active") return;
@@ -102,7 +104,7 @@ export default function ExamRoom(props: {
       const t = Date.now();
       if (t - lastViolationAt.current < VIOLATION_DEBOUNCE_MS) return; // un seul geste = une infraction
       lastViolationAt.current = t;
-      setBanner(`Infraction signalée : ${LABELS[kind] || kind}. Au bout de ${maxViolations}, l'épreuve s'arrête.`);
+      setBanner(`Infraction signalée : ${EVENT_LABEL[kind] || kind}. Au bout de ${maxViolations}, l'épreuve s'arrête.`);
     }
     post("event", { kind, detail });
   }, [post, maxViolations]);
@@ -138,75 +140,36 @@ export default function ExamRoom(props: {
     setViolations(data.violation_count || 0);
     setPhase("active");
     // Caméra refusée : le candidat passe quand même, le surveillant est alerté
-    if (!streamLive()) {
+    if (!camera.live()) {
       post("event", { kind: "camera_refused" });
       setBanner("Caméra non autorisée : l'épreuve continue, mais c'est signalé au surveillant.");
     }
   };
 
-  // ---------- Caméra : ouverte automatiquement dès l'arrivée sur la page ----------
-  const streamLive = () => !!streamRef.current?.getVideoTracks().some((t) => t.readyState === "live");
-
-  const openCamera = useCallback(async () => {
-    if (streamLive()) return true;
-    setCamState("pending");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
-      streamRef.current = stream;
-      stream.getVideoTracks().forEach((t) => t.addEventListener("ended", () => {
-        if (phaseRef.current === "active" || phaseRef.current === "prep") setCamState("denied");
-      }));
-      const v = phaseRef.current === "active" ? videoRef.current : prepVideoRef.current;
-      if (v) { v.srcObject = stream; v.play().catch(() => {}); }
-      setCamState("live");
-      return true;
-    } catch {
-      setCamState("denied");
-      return false;
-    }
-  }, []);
-
-  useEffect(() => { openCamera(); }, [openCamera]);
-
-  useEffect(() => {
-    if (phase === "prep" && camState === "live" && prepVideoRef.current && streamRef.current) {
-      prepVideoRef.current.srcObject = streamRef.current;
-      prepVideoRef.current.play().catch(() => {});
-    }
-  }, [phase, camState]);
-
+  // ---------- Caméra ----------
   // Contrôle du visage avant le départ (rien n'est envoyé au serveur)
   useEffect(() => {
-    if (phase !== "prep" || camState !== "live" || !prepVideoRef.current) return;
-    return startCameraMonitor({ video: prepVideoRef.current, onStatus: setCam });
-  }, [phase, camState]);
+    if (phase !== "prep" || camera.state !== "live" || !camera.videoRef.current) return;
+    return startCameraMonitor({ video: camera.videoRef.current, onStatus: setCam });
+  }, [phase, camera.state, camera.videoRef]);
 
-  // Caméra coupée en cours d'épreuve : infraction et épreuve masquée
+  // Caméra coupée en cours d'épreuve : signalée, l'épreuve continue
   useEffect(() => {
-    if (phase === "active" && camState === "denied" && streamRef.current) {
+    if (phase === "active" && camera.state === "denied" && camera.streamRef.current) {
       report("camera_off");
       setBanner("Caméra coupée : l'épreuve continue, mais c'est signalé au surveillant.");
     }
-  }, [phase, camState, report]);
-
-  useEffect(() => {
-    if (phase === "active" && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [phase]);
+  }, [phase, camera.state, camera.streamRef, report]);
 
   // ---------- Surveillance ----------
   useEffect(() => {
     if (phase !== "active") return;
-    // Plein écran obligatoire : tout clic hors plein écran le redemande
+    // Plein écran obligatoire : tout clic ou touche hors plein écran le redemande
     const refull = () => {
       if (!inSeb && !document.fullscreenElement) {
         document.documentElement.requestFullscreen().then(() => setIsFull(true)).catch(() => {});
       }
     };
-    document.addEventListener("pointerdown", refull, true);
-    document.addEventListener("keydown", refull, true);
     const onFs = () => {
       if (inSeb) return;
       const full = !!document.fullscreenElement;
@@ -220,6 +183,8 @@ export default function ExamRoom(props: {
     const onContext = (e: Event) => e.preventDefault();
     const onPrint = () => report("print_attempt", undefined, true);
     const onLeave = (e: MouseEvent) => { if (!e.relatedTarget) report("mouse_left"); };
+    // Recharger ou fermer la page coûte une reprise de session : on prévient
+    const onUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     const onKey = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       const mod = e.ctrlKey || e.metaKey;
@@ -229,16 +194,14 @@ export default function ExamRoom(props: {
         report("shortcut_blocked", { key: (mod ? "mod+" : "") + (e.shiftKey ? "shift+" : "") + k });
       }
     };
-    document.addEventListener("fullscreenchange", onFs);
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("blur", onBlur);
-    document.addEventListener("copy", onCopy);
-    document.addEventListener("paste", onPaste);
-    document.addEventListener("cut", onCut);
-    document.addEventListener("contextmenu", onContext);
-    document.addEventListener("keydown", onKey, true);
-    window.addEventListener("beforeprint", onPrint);
-    document.documentElement.addEventListener("mouseleave", onLeave);
+    const listeners: [EventTarget, string, any, boolean?][] = [
+      [document, "pointerdown", refull, true], [document, "keydown", refull, true],
+      [document, "fullscreenchange", onFs], [document, "visibilitychange", onVis], [window, "blur", onBlur],
+      [document, "copy", onCopy], [document, "paste", onPaste], [document, "cut", onCut],
+      [document, "contextmenu", onContext], [document, "keydown", onKey, true], [window, "beforeprint", onPrint],
+      [document.documentElement, "mouseleave", onLeave], [window, "beforeunload", onUnload],
+    ];
+    listeners.forEach(([t, n, f, c]) => t.addEventListener(n, f, c));
 
     // Écran secondaire branché en cours d'épreuve, outils de développement
     const probe = setInterval(() => {
@@ -248,21 +211,10 @@ export default function ExamRoom(props: {
     }, 5000);
 
     return () => {
-      document.removeEventListener("pointerdown", refull, true);
-      document.removeEventListener("keydown", refull, true);
-      document.removeEventListener("fullscreenchange", onFs);
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("blur", onBlur);
-      document.removeEventListener("copy", onCopy);
-      document.removeEventListener("paste", onPaste);
-      document.removeEventListener("cut", onCut);
-      document.removeEventListener("contextmenu", onContext);
-      document.removeEventListener("keydown", onKey, true);
-      window.removeEventListener("beforeprint", onPrint);
-      document.documentElement.removeEventListener("mouseleave", onLeave);
+      listeners.forEach(([t, n, f, c]) => t.removeEventListener(n, f, c));
       clearInterval(probe);
     };
-  }, [phase, report]);
+  }, [phase, report, inSeb]);
 
   // Battement de cœur : présence, IP, chrono serveur
   useEffect(() => {
@@ -277,28 +229,26 @@ export default function ExamRoom(props: {
     return () => clearInterval(i);
   }, [phase, post]);
 
-  // Captures webcam (déposées par le serveur dans un espace privé)
+  const sendFrame = useCallback(async (name: string, quality: number) => {
+    const v = camera.videoRef.current; if (!v || !v.videoWidth) return;
+    const c = document.createElement("canvas");
+    c.width = 320; c.height = Math.round(320 * v.videoHeight / v.videoWidth);
+    c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
+    const blob: Blob | null = await new Promise((res) => c.toBlob(res, "image/jpeg", quality));
+    if (blob) { const fd = new FormData(); fd.append("image", blob, name); await post("snapshot", undefined, fd); }
+  }, [camera.videoRef, post]);
+
+  // Captures webcam régulières (déposées par le serveur dans un espace privé)
   useEffect(() => {
-    if (phase !== "active" || !requireWebcam) return;
-    const i = setInterval(async () => {
-      const track = streamRef.current?.getVideoTracks?.()[0];
-      if (!track || track.readyState !== "live" || track.muted) return; // déjà signalé une fois
-      const v = videoRef.current; if (!v || !v.videoWidth) return;
-      const canvas = document.createElement("canvas");
-      canvas.width = 320; canvas.height = Math.round(320 * v.videoHeight / v.videoWidth);
-      canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.6));
-      if (!blob) return;
-      const fd = new FormData(); fd.append("image", blob, "snap.jpg");
-      await post("snapshot", undefined, fd);
-    }, SNAPSHOT_MS);
+    if (phase !== "active") return;
+    const i = setInterval(() => { if (camera.live()) sendFrame("snap.jpg", 0.6); }, SNAPSHOT_MS);
     return () => clearInterval(i);
-  }, [phase, requireWebcam, report, post]);
+  }, [phase, camera.live, sendFrame]);
 
   // Analyse caméra : anomalies signalées au serveur avec une photo immédiate
   useEffect(() => {
-    if (phase !== "active" || !requireWebcam || !videoRef.current) return;
-    const v = videoRef.current;
+    const v = camera.videoRef.current;
+    if (phase !== "active" || camera.state !== "live" || !v) return;
     return startCameraMonitor({
       video: v,
       onStatus: setCam,
@@ -306,31 +256,14 @@ export default function ExamRoom(props: {
         if (phaseRef.current !== "active") return;
         setBanner(`Anomalie caméra : ${ANOMALY_LABEL[kind]}. Le surveillant en est informé.`);
         await post("event", { kind, detail });
-        if (!v.videoWidth) return;
-        const c = document.createElement("canvas");
-        c.width = 320; c.height = Math.round(320 * v.videoHeight / v.videoWidth);
-        c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
-        const blob: Blob | null = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.7));
-        if (blob) { const fd = new FormData(); fd.append("image", blob, "anomalie.jpg"); await post("snapshot", undefined, fd); }
+        await sendFrame("anomalie.jpg", 0.7);
       },
     });
-  }, [phase, requireWebcam, post]);
+  }, [phase, camera.state, camera.videoRef, post, sendFrame]);
 
   const goFull = async () => {
     try { await document.documentElement.requestFullscreen(); setIsFull(true); }
     catch { setBanner("Plein écran refusé par le navigateur : cliquez à nouveau."); }
-  };
-
-  // Navigation linéaire : enregistre la réponse, puis le serveur verrouille la question
-  const next = async () => {
-    const q = questions[idx]; if (!q) return;
-    setConfirming(null);
-    setAdvancing(true);
-    clearTimeout(textTimers.current[q.id]);
-    if (answers[q.id]) await save(q, answers[q.id]);
-    const { ok, data } = await post("next", { from: idx });
-    setAdvancing(false);
-    if (ok && typeof data.current_index === "number") setIdx(data.current_index);
   };
 
   // Chrono (affichage) ; la vraie limite est appliquée par le serveur
@@ -348,7 +281,11 @@ export default function ExamRoom(props: {
     return () => clearInterval(i);
   }, [phase, deadline, post, end]);
 
-  useEffect(() => () => stopMedia(), []);
+  const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+  const timeAlert = useTimeAlerts(remaining, phase === "active" && deadline > 0);
+
+  // Le focus suit la question affichée (lecteurs d'écran, clavier)
+  useEffect(() => { if (phase === "active") headingRef.current?.focus(); }, [idx, phase]);
 
   // ---------- Réponses ----------
   const save = useCallback(async (q: Q, response: any) => {
@@ -370,13 +307,29 @@ export default function ExamRoom(props: {
     textTimers.current[q.id] = setTimeout(() => save(q, response), 700);
   };
 
-  const submit = async () => {
-    setConfirming(null);
+  const flushPending = async () => {
     await Promise.all(Object.entries(textTimers.current).map(async ([qid, t]) => {
       clearTimeout(t);
+      delete textTimers.current[qid];
       const q = questions.find((x) => x.id === qid);
       if (q && answers[qid]) await save(q, answers[qid]);
     }));
+  };
+
+  // Navigation linéaire : enregistre la réponse, puis le serveur verrouille la question
+  const next = async () => {
+    const q = questions[idx]; if (!q) return;
+    setConfirming(null);
+    setAdvancing(true);
+    await flushPending();
+    const { ok, data } = await post("next", { from: idx });
+    setAdvancing(false);
+    if (ok && typeof data.current_index === "number") setIdx(data.current_index);
+  };
+
+  const submit = async () => {
+    setConfirming(null);
+    await flushPending();
     const { data } = await post("submit");
     end(data?.status || "submitted");
   };
@@ -388,49 +341,56 @@ export default function ExamRoom(props: {
     return (
       <main className="max-w-xl mx-auto p-10 text-center">
         <h1 className="h1">{phase === "ended" ? "Épreuve terminée" : "Accès bloqué"}</h1>
-        <p className="text-muted mt-3">{phase === "ended" ? endMessage : banner}</p>
+        <p className="text-muted mt-3" role="status">{phase === "ended" ? endMessage : banner}</p>
         <a href="/dashboard" className="btn mt-6 inline-flex">Retour</a>
       </main>
     );
   }
 
   if (phase === "prep" || phase === "starting") {
-    const faceOk = camState === "live" && !!cam && !cam.anomaly
-      && (cam.faces === 1 || (cam.ready && cam.faces === null && cam.brightness >= 18));
-    const canStart = faceOk || camState === "denied";
-    const camMsg = camState === "denied" ? "Caméra refusée ou absente. Vous pouvez l'autoriser (icône dans la barre d'adresse) puis cliquer sur Réessayer, ou commencer sans : ce sera signalé au surveillant."
-      : camState === "pending" ? "Ouverture de la caméra… autorisez l'accès quand le navigateur le demande."
+    const faceOk = faceReady(camera.state === "live", cam);
+    const canStart = canFull && (faceOk || camera.state === "denied");
+    const camMsg = camera.state === "denied" ? "Caméra refusée ou absente. Vous pouvez l'autoriser (icône dans la barre d'adresse) puis cliquer sur Réessayer, ou commencer sans : ce sera signalé au surveillant."
+      : camera.state === "pending" ? "Ouverture de la caméra… autorisez l'accès quand le navigateur le demande."
       : !cam ? "Analyse de l'image…"
       : cam.anomaly ? `${ANOMALY_LABEL[cam.anomaly]} : placez-vous seul, face à la caméra, dans un endroit éclairé.`
       : faceOk ? "Visage détecté, tout est prêt."
       : cam.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra." : cam.faces && cam.faces > 1 ? "Plusieurs visages détectés : vous devez être seul." : "Analyse de l'image…";
+    const checks: { label: string; ok: boolean | null; detail: string }[] = [
+      { label: "Caméra", ok: camera.state === "pending" ? null : faceOk, detail: camMsg },
+      { label: "Plein écran", ok: canFull, detail: canFull ? "Il s'activera au clic sur « Commencer »." : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette). Utilisez un ordinateur avec Chrome, Edge, Firefox ou Safari." },
+    ];
     return (
-      <main className="max-w-2xl mx-auto p-10">
+      <main className="max-w-2xl mx-auto p-6 sm:p-10">
         <h1 className="h1">{title}</h1>
         {description && <p className="text-muted mt-2 whitespace-pre-wrap">{description}</p>}
         <div className="card mt-6 space-y-2 text-sm">
           <p><b>{resuming ? "Reprise de l'épreuve." : "Avant de commencer :"}</b></p>
           <ul className="list-disc pl-5 space-y-1">
             <li>Durée : <b>{durationMinutes} minutes</b>, chronométrées par le serveur (le chrono continue si vous fermez la page).</li>
-            <li>Le <b>plein écran est obligatoire</b> : l&apos;épreuve ne démarre pas sans lui, et en sortir est une infraction qui masque l&apos;épreuve jusqu&apos;à votre retour.</li>
-            <li>La <b>caméra s&apos;active automatiquement</b> et reste allumée ; des photos sont prises régulièrement et conservées de façon sécurisée pendant la durée fixée par l&apos;école. Si vous la refusez ou la coupez, l&apos;épreuve continue mais c&apos;est signalé au surveillant.</li>
-            <li>Copier, coller, clic droit, raccourcis et changement d&apos;onglet ou de fenêtre sont bloqués et journalisés.</li>
-            <li>Un seul écran : débranchez tout écran secondaire.</li>
-            <li><b>Une question à la fois</b> : une réponse validée ne peut plus être modifiée, aucun retour en arrière.</li>
-            <li>La caméra est analysée en continu : absence de visage, plusieurs personnes, caméra masquée ou image figée sont signalées au surveillant avec une photo.</li>
+            <li><b>Une question à la fois</b> : une réponse validée est définitive, aucun retour en arrière.</li>
+            <li>Le <b>plein écran est obligatoire</b> : l&apos;épreuve ne démarre pas sans lui ; en sortir est une infraction et masque l&apos;épreuve jusqu&apos;à votre retour.</li>
+            <li>La <b>caméra s&apos;active automatiquement</b> et reste allumée : des photos sont prises régulièrement et l&apos;image est analysée (absence de visage, plusieurs personnes, caméra masquée). Si vous la refusez ou la coupez, l&apos;épreuve continue mais le surveillant est prévenu.</li>
+            <li>Copier, coller, clic droit, raccourcis et changement d&apos;onglet ou de fenêtre sont bloqués et journalisés. Un seul écran.</li>
             <li>Au bout de <b>{maxViolations} infractions</b>, l&apos;épreuve s&apos;arrête automatiquement.</li>
-            <li>L&apos;examen ne peut être ouvert que sur un seul appareil à la fois.</li>
           </ul>
         </div>
-        <div className="card mt-4 flex items-center gap-4">
-          <video ref={prepVideoRef} className={`w-40 h-28 bg-black rounded border ${faceOk ? "border-ok" : "border-danger"}`} muted playsInline />
-          <div className="text-sm">
-            <div className="font-medium">Caméra</div>
-            <p className={faceOk ? "text-ok" : "text-muted"}>{camMsg}</p>
-            {camState === "denied" && <button className="btn-secondary mt-2" onClick={openCamera}>Réessayer</button>}
-          </div>
+        <div className="card mt-4 grid sm:grid-cols-[10rem_1fr] gap-4 items-start">
+          <video ref={camera.attach} className={`w-40 h-28 bg-black rounded border ${faceOk ? "border-ok" : "border-line"}`} muted playsInline aria-label="Aperçu de la caméra" />
+          <ul className="text-sm space-y-3">
+            {checks.map((c) => (
+              <li key={c.label}>
+                <div className="font-medium flex items-center gap-2">
+                  <span aria-hidden className={`inline-block w-2 h-2 rounded-full ${c.ok === null ? "bg-faint" : c.ok ? "bg-ok" : "bg-warn"}`} />
+                  {c.label}
+                </div>
+                <p className={c.ok ? "text-ok" : "text-muted"}>{c.detail}</p>
+                {c.label === "Caméra" && camera.state === "denied" && <button className="btn-secondary mt-2" onClick={camera.open}>Réessayer</button>}
+              </li>
+            ))}
+          </ul>
         </div>
-        {banner && <p className="text-danger text-sm mt-4">{banner}</p>}
+        {banner && <p className="text-danger text-sm mt-4" role="alert">{banner}</p>}
         <button className="btn mt-6" onClick={start} disabled={phase === "starting" || !canStart}>
           {phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"}
         </button>
@@ -439,9 +399,7 @@ export default function ExamRoom(props: {
   }
 
   const q = questions[idx];
-  const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
-  const hh = Math.floor(remaining / 3600), mm = Math.floor((remaining % 3600) / 60), ss = remaining % 60;
-  const clock = `${hh ? hh + ":" : ""}${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  const isLast = idx >= questions.length - 1;
 
   return (
     <div className="min-h-screen bg-bg select-none relative overflow-auto">
@@ -453,48 +411,56 @@ export default function ExamRoom(props: {
       </div>
 
       {!isFull && !inSeb && (
-        <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6" role="alertdialog" aria-labelledby="fs-title">
           <div className="card max-w-md text-center">
-            <h2 className="h1 text-danger">Plein écran obligatoire</h2>
+            <h2 id="fs-title" className="h1 text-danger">Plein écran obligatoire</h2>
             <p className="text-muted mt-3">Vous avez quitté le plein écran : c&apos;est une infraction, et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas. Le chrono continue.</p>
             <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
           </div>
         </div>
       )}
-      {camState !== "live" && (
-        <div className="bg-warn/15 border-b border-warn/40 text-warn text-center py-2 text-sm relative z-50">
-          Caméra désactivée : c&apos;est signalé au surveillant. <button className="underline ml-2" onClick={openCamera}>Réactiver la caméra</button>
+      {camera.state !== "live" && (
+        <div className="bg-warn/15 border-b border-warn/40 text-warn text-center py-2 text-sm relative z-50" role="status">
+          Caméra désactivée : c&apos;est signalé au surveillant. <button className="underline ml-2" onClick={camera.open}>Réactiver la caméra</button>
         </div>
       )}
-      {banner && <div className="bg-danger text-white text-center py-2 text-sm relative z-50">{banner}</div>}
-      <header className="flex items-center justify-between p-4 border-b bg-surface relative z-30">
-        <div className="flex items-center gap-4"><img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" /><span className="text-faint">|</span><b className="font-display uppercase text-sm">{title}</b> <span className="text-muted text-sm">Question {idx + 1}/{questions.length}</span></div>
+      {banner && <div className="bg-danger text-white text-center py-2 text-sm relative z-50" role="alert">{banner}</div>}
+      {timeAlert && remaining <= 300 && <div className="bg-warn text-bg text-center py-1 text-sm font-medium relative z-50" role="status">{timeAlert}</div>}
+      <header className="flex flex-wrap items-center justify-between gap-3 p-4 border-b bg-surface relative z-30">
+        <div className="flex items-center gap-4 min-w-0">
+          <img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" />
+          <span className="text-faint">|</span>
+          <b className="font-display uppercase text-sm truncate">{title}</b>
+        </div>
         <div className="flex items-center gap-4">
-          <span className={`text-xs ${saving === "error" ? "text-danger" : "text-faint"}`}>
+          <span className={`text-xs ${saving === "error" ? "text-danger" : "text-faint"}`} role="status">
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
           <span className="text-xs text-muted">Infractions : {violations}/{maxViolations}</span>
-          {requireWebcam && (
-            <div className="relative">
-              <video ref={videoRef} className={`w-24 h-16 bg-black rounded border ${cam?.anomaly ? "border-danger" : "border-line"}`} muted playsInline />
+          <div className="relative">
+            <video ref={camera.attach} className={`w-24 h-16 bg-black rounded border ${cam?.anomaly ? "border-danger" : "border-line"}`} muted playsInline aria-label="Caméra" />
+            {camera.state === "live" && (
               <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${cam?.anomaly ? "bg-danger text-white" : cam?.faces === 1 ? "bg-ok text-bg" : "bg-surface-2 text-muted"}`}>
                 {cam?.anomaly ? ANOMALY_LABEL[cam.anomaly] : cam?.faces === 1 ? "visage OK" : cam?.ready ? "analyse…" : "chargement…"}
               </span>
-            </div>
-          )}
-          <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`}>{clock}</div>
+            )}
+          </div>
+          <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`} aria-label={`Temps restant ${formatClock(remaining)}`}>{formatClock(remaining)}</div>
         </div>
       </header>
 
-      <div className="h-1 bg-surface-2 relative z-30"><div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} /></div>
+      <div className="h-1 bg-surface-2 relative z-30" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={idx + 1} aria-label="Progression">
+        <div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} />
+      </div>
 
-      <main className="max-w-3xl mx-auto p-6 relative z-30">
+      <main className="max-w-3xl mx-auto p-4 sm:p-6 relative z-30">
+        <div className="text-sm text-muted mb-3">Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</div>
         {q && (
           <div className="card">
             <div className="text-sm text-muted">
               {TYPE_HINT[q.type] || ""} · {q.points} pt{q.points > 1 ? "s" : ""}
             </div>
-            <h2 className="text-lg font-semibold mt-1 whitespace-pre-wrap">{q.prompt}</h2>
+            <div className="mt-1"><QuestionPrompt ref={headingRef} prompt={q.prompt} /></div>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}
             <div className="mt-4">
               <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setChoice(q, r)} onText={(r) => setText(q, r)}
@@ -503,19 +469,19 @@ export default function ExamRoom(props: {
                   return ok ? data : { error: data?.message || "Commande refusée." };
                 }} />
             </div>
-            <div className="mt-6 flex items-center justify-between gap-4">
-              <span className="text-xs text-muted">Question par question : une réponse validée est définitive.</span>
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-xs text-muted">Une réponse validée est définitive.</span>
               {confirming ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Confirmation">
                   <span className="text-sm text-danger">
                     {confirming === "submit"
                       ? (() => { const n = questions.filter((x) => x.type !== "terminal" && !isAnswered(answers[x.id])).length; return n ? `${n} sans réponse. Rendre la copie ?` : "Rendre la copie définitivement ?"; })()
                       : isAnswered(answers[q.id]) || q.type === "terminal" ? "Valider ? Pas de retour possible." : "Aucune réponse. Passer quand même ?"}
                   </span>
                   <button className="btn-secondary" onClick={() => setConfirming(null)}>Annuler</button>
-                  <button className="btn" disabled={advancing} onClick={confirming === "submit" ? submit : next}>Confirmer</button>
+                  <button className="btn" disabled={advancing} onClick={confirming === "submit" ? submit : next} autoFocus>Confirmer</button>
                 </div>
-              ) : idx < questions.length - 1
+              ) : !isLast
                 ? <button className="btn" onClick={() => setConfirming("next")} disabled={advancing}>Valider et continuer →</button>
                 : <button className="btn" onClick={() => setConfirming("submit")}>Valider et rendre la copie</button>}
             </div>
@@ -524,29 +490,4 @@ export default function ExamRoom(props: {
       </main>
     </div>
   );
-}
-
-const LABELS: Record<string, string> = {
-  multiple_faces: "plusieurs visages",
-  camera_covered: "caméra masquée",
-  camera_frozen: "image figée",
-  fullscreen_exit: "sortie du plein écran",
-  tab_hidden: "changement d'onglet",
-  window_blur: "changement de fenêtre",
-  multiple_screens: "écran secondaire détecté",
-  devtools_open: "outils de développement ouverts",
-  camera_off: "caméra coupée",
-  print_attempt: "tentative d'impression",
-};
-
-const TYPE_HINT: Record<string, string> = {
-  mcq_single: "Une seule réponse", mcq_multi: "Plusieurs réponses possibles", long_text: "Réponse rédigée",
-  terminal: "Défi terminal", ordering: "Remettre dans l'ordre", matching: "Associer",
-  hotspot: "Repérer dans le document", short_answer: "Réponse courte",
-};
-
-function isAnswered(a: any): boolean {
-  if (!a) return false;
-  return !!((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim())
-    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length));
 }
