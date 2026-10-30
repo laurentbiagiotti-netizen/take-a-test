@@ -18,6 +18,12 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
     .select("id, status, score, max_score, violation_count, identity_status, last_seen_at, submitted_at, started_at, candidate:profiles(email, full_name)")
     .eq("test_id", id).order("created_at", { ascending: false });
 
+  const ids = (attempts || []).map((a: any) => a.id);
+  const { data: camEv } = ids.length
+    ? await supabase.from("proctor_events").select("attempt_id").in("attempt_id", ids).in("kind", ["no_face", "multiple_faces", "camera_covered", "camera_frozen", "snapshots_missing"])
+    : { data: [] as any[] };
+  const camCount = new Map<string, number>();
+  for (const e of camEv || []) camCount.set(e.attempt_id, (camCount.get(e.attempt_id) || 0) + 1);
   const now = Date.now();
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
@@ -28,7 +34,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
       </div>
       <table className="mt-6 w-full text-sm">
         <thead className="text-left text-muted">
-          <tr><th className="py-2">Candidat</th><th>Statut</th><th>Note</th><th>Infractions</th><th>Identité</th><th>Connexion</th><th>Rendu</th><th></th></tr>
+          <tr><th className="py-2">Candidat</th><th>Statut</th><th>Note</th><th>Infractions</th><th>Caméra</th><th>Identité</th><th>Connexion</th><th>Rendu</th><th></th></tr>
         </thead>
         <tbody>
           {(attempts || []).map((a: any) => {
@@ -39,6 +45,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
                 <td>{STATUS[a.status] || a.status}</td>
                 <td>{a.score ?? "-"}{a.max_score != null ? ` / ${a.max_score}` : ""}</td>
                 <td className={a.violation_count ? "text-danger font-semibold" : ""}>{a.violation_count}</td>
+                <td>{camCount.get(a.id) ? <span className="badge-warn">{camCount.get(a.id)} anomalie(s)</span> : <span className="text-faint">-</span>}</td>
                 <td className={a.identity_status === "submitted" ? "text-warn font-semibold" : a.identity_status === "rejected" ? "text-danger" : ""}>
                   {a.identity_status === "submitted" ? "à vérifier" : a.identity_status}
                 </td>

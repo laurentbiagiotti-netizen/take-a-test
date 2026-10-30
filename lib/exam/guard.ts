@@ -40,6 +40,7 @@ const MESSAGES: Record<string, [number, string]> = {
   test_not_open: [403, "Cet examen n'est pas encore ouvert."],
   no_questions: [409, "Cet examen ne contient aucune question."],
   time_over: [409, "Le temps est écoulé."],
+  question_locked: [409, "Cette question est verrouillée (navigation question par question)."],
   bad_question: [400, "Question invalide."],
   bad_response: [400, "Réponse invalide."],
   unknown_event: [400, "Événement inconnu."],

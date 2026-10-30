@@ -36,5 +36,6 @@ createRoot(document.getElementById("root")!).render(
     api={localApi}
     staticSite
     logoSrc="./cybersup-logo-blanc.svg"
+    modelUrl="./models"
   />,
 );

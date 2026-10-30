@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
+import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proctor/camera-monitor";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
@@ -18,9 +19,9 @@ const VIOLATION_DEBOUNCE_MS = 1500;
 
 export default function ExamRoom(props: {
   testId: string; title: string; description?: string | null; durationMinutes: number;
-  maxViolations: number; requireWebcam: boolean; resuming: boolean; watermark: string;
+  maxViolations: number; requireWebcam: boolean; resuming: boolean; watermark: string; linearHint?: boolean;
 }) {
-  const { testId, title, description, durationMinutes, maxViolations, requireWebcam, resuming, watermark } = props;
+  const { testId, title, description, durationMinutes, maxViolations, requireWebcam, resuming, watermark, linearHint } = props;
   const api = useCallback((p: string) => `/api/exam/${testId}/${p}`, [testId]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -29,6 +30,8 @@ export default function ExamRoom(props: {
   const clockOffset = useRef(0);
   const textTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const phaseRef = useRef<Phase>("prep");
+  // SEB verrouille déjà tout l'écran (mode kiosque) : pas d'API plein écran à exiger
+  const inSeb = typeof navigator !== "undefined" && /SEB\//.test(navigator.userAgent);
   // Jeton de requête tournant : chaque appel renvoie le suivant. Les appels
   // sont sérialisés (file d'attente) pour ne jamais désynchroniser la chaîne.
   const nonceRef = useRef<string | null>(null);
@@ -40,6 +43,10 @@ export default function ExamRoom(props: {
   const [deadline, setDeadline] = useState<number>(0);
   const [now, setNow] = useState<number>(Date.now());
   const [idx, setIdx] = useState(0);
+  const [linear, setLinear] = useState(!!linearHint);
+  const [isFull, setIsFull] = useState(true);
+  const [cam, setCam] = useState<CameraStatus | null>(null);
+  const [advancing, setAdvancing] = useState(false);
   const [violations, setViolations] = useState(0);
   const [banner, setBanner] = useState<string | null>(null);
   const [endMessage, setEndMessage] = useState<string>("");
@@ -112,8 +119,10 @@ export default function ExamRoom(props: {
         return;
       }
     }
-    try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); }
-    catch { setBanner("Le plein écran est obligatoire."); stopMedia(); return; }
+    if (!inSeb) {
+      try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); }
+      catch { setBanner("Le plein écran est obligatoire : autorisez-le puis cliquez à nouveau."); stopMedia(); return; }
+    }
 
     setPhase("starting");
     const { ok, data } = await post("begin");
@@ -128,6 +137,8 @@ export default function ExamRoom(props: {
     clockOffset.current = new Date(data.server_now).getTime() - Date.now();
     setDeadline(new Date(data.deadline_at).getTime());
     setQuestions(data.questions || []);
+    setLinear(!!data.linear);
+    setIdx(Math.min(data.current_index || 0, Math.max(0, (data.questions || []).length - 1)));
     setAnswers(data.answers || {});
     setViolations(data.violation_count || 0);
     setPhase("active");
@@ -143,7 +154,12 @@ export default function ExamRoom(props: {
   // ---------- Surveillance ----------
   useEffect(() => {
     if (phase !== "active") return;
-    const onFs = () => { if (!document.fullscreenElement) report("fullscreen_exit", undefined, true); };
+    const onFs = () => {
+      if (inSeb) return;
+      const full = !!document.fullscreenElement;
+      setIsFull(full);
+      if (!full) report("fullscreen_exit", undefined, true); else report("fullscreen_return");
+    };
     const onVis = () => { if (document.hidden) report("tab_hidden", undefined, true); };
     const onBlur = () => report("window_blur", undefined, true);
     const block = (kind: string) => (e: Event) => { e.preventDefault(); report(kind); };
@@ -224,6 +240,45 @@ export default function ExamRoom(props: {
     return () => clearInterval(i);
   }, [phase, requireWebcam, report, post]);
 
+  // Analyse caméra : anomalies signalées au serveur avec une photo immédiate
+  useEffect(() => {
+    if (phase !== "active" || !requireWebcam || !videoRef.current) return;
+    const v = videoRef.current;
+    return startCameraMonitor({
+      video: v,
+      onStatus: setCam,
+      onAnomaly: async (kind, detail) => {
+        if (phaseRef.current !== "active") return;
+        setBanner(`Anomalie caméra : ${ANOMALY_LABEL[kind]}. Le surveillant en est informé.`);
+        await post("event", { kind, detail });
+        if (!v.videoWidth) return;
+        const c = document.createElement("canvas");
+        c.width = 320; c.height = Math.round(320 * v.videoHeight / v.videoWidth);
+        c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
+        const blob: Blob | null = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.7));
+        if (blob) { const fd = new FormData(); fd.append("image", blob, "anomalie.jpg"); await post("snapshot", undefined, fd); }
+      },
+    });
+  }, [phase, requireWebcam, post]);
+
+  const goFull = async () => {
+    try { await document.documentElement.requestFullscreen(); setIsFull(true); }
+    catch { setBanner("Plein écran refusé par le navigateur : cliquez à nouveau."); }
+  };
+
+  // Navigation linéaire : enregistre la réponse, puis le serveur verrouille la question
+  const next = async () => {
+    const q = questions[idx]; if (!q) return;
+    if (!linear) { setIdx((i) => i + 1); return; }
+    if (!confirm("Valider cette réponse ? Vous ne pourrez plus revenir sur cette question.")) return;
+    setAdvancing(true);
+    clearTimeout(textTimers.current[q.id]);
+    if (answers[q.id]) await save(q, answers[q.id]);
+    const { ok, data } = await post("next", { from: idx });
+    setAdvancing(false);
+    if (ok && typeof data.current_index === "number") setIdx(data.current_index);
+  };
+
   // Chrono (affichage) ; la vraie limite est appliquée par le serveur
   useEffect(() => {
     if (phase !== "active") return;
@@ -299,6 +354,9 @@ export default function ExamRoom(props: {
             {requireWebcam && <li>La <b>caméra</b> reste allumée ; des photos sont prises régulièrement et conservées de façon sécurisée pendant la durée fixée par l&apos;école.</li>}
             <li>Copier, coller, clic droit, raccourcis et changement d&apos;onglet ou de fenêtre sont bloqués et journalisés.</li>
             <li>Un seul écran : débranchez tout écran secondaire.</li>
+            {linear && <li><b>Une question à la fois</b> : une réponse validée ne peut plus être modifiée.</li>}
+            {requireWebcam && <li>La caméra est analysée en continu : absence de visage, plusieurs personnes, caméra masquée ou image figée sont signalées au surveillant avec une photo.</li>}
+            <li>Le plein écran s&apos;active au démarrage ; si vous en sortez, l&apos;épreuve est masquée jusqu&apos;à votre retour.</li>
             <li>Au bout de <b>{maxViolations} infractions</b>, l&apos;épreuve s&apos;arrête automatiquement.</li>
             <li>L&apos;examen ne peut être ouvert que sur un seul appareil à la fois.</li>
           </ul>
@@ -325,6 +383,15 @@ export default function ExamRoom(props: {
         </div>
       </div>
 
+      {!isFull && !inSeb && (
+        <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
+          <div className="card max-w-md text-center">
+            <h2 className="h1 text-danger">Plein écran requis</h2>
+            <p className="text-muted mt-3">Vous avez quitté le plein écran : c&apos;est une infraction, et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas. Le chrono continue.</p>
+            <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
+          </div>
+        </div>
+      )}
       {banner && <div className="bg-danger text-white text-center py-2 text-sm relative z-50">{banner}</div>}
       <header className="flex items-center justify-between p-4 border-b bg-surface relative z-30">
         <div className="flex items-center gap-4"><img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" /><span className="text-faint">|</span><b className="font-display uppercase text-sm">{title}</b> <span className="text-muted text-sm">Question {idx + 1}/{questions.length}</span></div>
@@ -333,19 +400,27 @@ export default function ExamRoom(props: {
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
           <span className="text-xs text-muted">Infractions : {violations}/{maxViolations}</span>
-          {requireWebcam && <video ref={videoRef} className="w-24 h-16 bg-black rounded" muted playsInline />}
+          {requireWebcam && (
+            <div className="relative">
+              <video ref={videoRef} className={`w-24 h-16 bg-black rounded border ${cam?.anomaly ? "border-danger" : "border-line"}`} muted playsInline />
+              <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${cam?.anomaly ? "bg-danger text-white" : cam?.faces === 1 ? "bg-ok text-bg" : "bg-surface-2 text-muted"}`}>
+                {cam?.anomaly ? ANOMALY_LABEL[cam.anomaly] : cam?.faces === 1 ? "visage OK" : cam?.ready ? "analyse…" : "chargement…"}
+              </span>
+            </div>
+          )}
           <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`}>{clock}</div>
           <button className="btn" onClick={submit}>Rendre la copie</button>
         </div>
       </header>
 
+      <div className="h-1 bg-surface-2 relative z-30"><div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} /></div>
       <nav className="max-w-3xl mx-auto px-6 pt-4 flex flex-wrap gap-1 relative z-30">
         {questions.map((qq, i) => {
           const a = answers[qq.id];
           const done = isAnswered(a);
           return (
-            <button key={qq.id} onClick={() => setIdx(i)}
-              className={`w-8 h-8 text-xs rounded border ${i === idx ? "border-accent font-bold" : "border-line"} ${done ? "bg-surface-2" : "bg-surface"}`}>
+            <button key={qq.id} onClick={() => !linear && setIdx(i)} disabled={linear && i !== idx}
+              className={`w-8 h-8 text-xs rounded border ${i === idx ? "border-accent font-bold" : "border-line"} ${linear && i < idx ? "bg-surface-2 text-faint" : done ? "bg-surface-2" : "bg-surface"} ${linear && i !== idx ? "cursor-not-allowed opacity-60" : ""}`}>
               {i + 1}
             </button>
           );
@@ -368,9 +443,10 @@ export default function ExamRoom(props: {
                 }} />
             </div>
             <div className="mt-6 flex justify-between">
-              <button className="btn-secondary" disabled={idx === 0} onClick={() => setIdx((i) => i - 1)}>← Précédente</button>
+              {linear ? <span className="text-xs text-muted self-center">Question par question : pas de retour en arrière.</span>
+                : <button className="btn-secondary" disabled={idx === 0} onClick={() => setIdx((i) => i - 1)}>← Précédente</button>}
               {idx < questions.length - 1
-                ? <button className="btn" onClick={() => setIdx((i) => i + 1)}>Suivante →</button>
+                ? <button className="btn" onClick={next} disabled={advancing}>{linear ? "Valider et continuer →" : "Suivante →"}</button>
                 : <button className="btn" onClick={submit}>Terminer et rendre</button>}
             </div>
           </div>
@@ -381,6 +457,9 @@ export default function ExamRoom(props: {
 }
 
 const LABELS: Record<string, string> = {
+  multiple_faces: "plusieurs visages",
+  camera_covered: "caméra masquée",
+  camera_frozen: "image figée",
   fullscreen_exit: "sortie du plein écran",
   tab_hidden: "changement d'onglet",
   window_blur: "changement de fenêtre",

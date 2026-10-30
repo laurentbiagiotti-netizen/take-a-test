@@ -28,6 +28,7 @@ await build({
 execSync(`npx tailwindcss -c tailwind.config.ts -i app/globals.css -o ${path.join(out, "app.css")} --minify --content "./components/**/*.tsx,./site/**/*.tsx,./site/index.html"`, { cwd: root, stdio: "inherit" });
 cpSync(path.join(root, "site/index.html"), path.join(out, "index.html"));
 cpSync(path.join(root, "public/cybersup-logo-blanc.svg"), path.join(out, "cybersup-logo-blanc.svg"));
+cpSync(path.join(root, "public/models"), path.join(out, "models"), { recursive: true });
 writeFileSync(path.join(out, ".nojekyll"), "");
 writeFileSync(path.join(out, "404.html"), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./">');
 console.log("Démo statique prête dans site/dist");

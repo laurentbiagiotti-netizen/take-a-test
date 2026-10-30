@@ -232,6 +232,10 @@ export default function EditTest() {
             <input type="checkbox" checked={!!test.shuffle_options} onChange={(e) => updateTest({ shuffle_options: e.target.checked })} />
             Mélanger l&apos;ordre des réponses
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.linear_navigation} onChange={(e) => updateTest({ linear_navigation: e.target.checked })} />
+            Une question à la fois, sans retour en arrière (vérifié par le serveur)
+          </label>
           <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
             <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />
           </label>

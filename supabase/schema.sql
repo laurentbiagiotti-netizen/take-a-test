@@ -41,6 +41,7 @@ create table tests (
   require_webcam boolean not null default true,
   id_verify_before_start boolean not null default false,
   seb_accept_config_key boolean not null default false,
+  linear_navigation boolean not null default false,
   draw_count int check (draw_count is null or draw_count > 0),
   shuffle_questions boolean not null default true,
   shuffle_options boolean not null default true,
@@ -129,6 +130,7 @@ create table attempts (
   event_seq int not null default 0,
   last_event_hash text,
   request_nonce_hash text,
+  current_index int not null default 0,
   recent_nonce_hashes text[] not null default '{}',
   resume_allowed boolean not null default false,
   unique (test_id, candidate_id)
@@ -762,7 +764,7 @@ begin
     'state', a.status, 'attempt_id', a.id, 'unlocked', a.unlocked,
     'identity_status', a.identity_status, 'title', t.title, 'description', t.description,
     'duration_minutes', t.duration_minutes + a.extra_minutes, 'max_violations', t.max_violations,
-    'require_seb', t.require_seb, 'require_webcam', t.require_webcam,
+    'require_seb', t.require_seb, 'require_webcam', t.require_webcam, 'linear', t.linear_navigation,
     'id_verify_before_start', t.id_verify_before_start, 'session_active', a.session_token_hash is not null,
     'allow_resume', t.allow_resume, 'closes_at', t.closes_at);
 end; $$;
@@ -979,6 +981,7 @@ begin
 
   return jsonb_build_object('status', 'in_progress', 'token', v_token, 'attempt_id', a.id, 'deadline_at', a.deadline_at, 'server_now', now(),
     'questions', v_questions, 'answers', v_answers,
+    'linear', t.linear_navigation, 'current_index', a.current_index,
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
 
@@ -1013,6 +1016,32 @@ begin
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
 
+-- Navigation linéaire : seule la question courante peut recevoir une réponse
+-- ou des commandes ; on ne revient jamais en arrière.
+create or replace function public._check_linear(a attempts, p_question uuid)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if (select linear_navigation from tests where id = a.test_id)
+     and array_position(a.question_order, p_question) is distinct from a.current_index + 1 then
+    raise exception 'question_locked' using errcode = 'P0001';
+  end if;
+end; $$;
+
+create or replace function public.exam_next(p_user uuid, p_attempt uuid, p_token_hash text,
+                                            p_from int, p_ip text, p_ua text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare a attempts;
+begin
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
+  if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+  -- Idempotent : rejouer « suivante » depuis la même question n'avance qu'une fois
+  if p_from = a.current_index and a.current_index < cardinality(a.question_order) - 1 then
+    update attempts set current_index = current_index + 1 where id = a.id returning * into a;
+    perform _log(a.id, 'question_validated', 'info', jsonb_build_object('index', p_from + 1), p_ip);
+  end if;
+  return jsonb_build_object('status', 'in_progress', 'current_index', a.current_index);
+end; $$;
+
 -- Enregistrement d'une réponse (forme validée, hors délai refusé).
 create or replace function public.exam_save_answer(p_user uuid, p_attempt uuid, p_token_hash text,
                                                    p_question uuid, p_response jsonb, p_ip text, p_ua text)
@@ -1027,6 +1056,7 @@ begin
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   if now() > a.deadline_at then raise exception 'time_over' using errcode = 'P0001'; end if;
   if not (p_question = any(a.question_order)) then raise exception 'bad_question' using errcode = 'P0001'; end if;
+  perform _check_linear(a, p_question);
   select * into q from questions where id = p_question;
 
   if q.type = 'long_text' then
@@ -1118,6 +1148,10 @@ begin
     when 'devtools_open' then 'violation'
     when 'camera_off' then 'violation'
     when 'no_face' then 'warning'
+    when 'multiple_faces' then 'violation'
+    when 'camera_covered' then 'violation'
+    when 'camera_frozen' then 'violation'
+    when 'fullscreen_return' then 'info'
     when 'copy_blocked' then 'warning'
     when 'paste_blocked' then 'warning'
     when 'cut_blocked' then 'warning'
@@ -1204,6 +1238,7 @@ begin
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   if now() > a.deadline_at then raise exception 'time_over' using errcode = 'P0001'; end if;
   if not (p_question = any(a.question_order)) then raise exception 'bad_question' using errcode = 'P0001'; end if;
+  perform _check_linear(a, p_question);
   select scenario into v_scn from question_terminals qt join questions q on q.id = qt.question_id
    where qt.question_id = p_question and q.type = 'terminal';
   if v_scn is null then raise exception 'bad_question' using errcode = 'P0001'; end if;

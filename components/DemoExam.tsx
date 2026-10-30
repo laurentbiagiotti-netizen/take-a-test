@@ -2,11 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import Terminal, { type Objective } from "@/components/Terminal";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
+import { ANOMALY_LABEL, startCameraMonitor, type CameraAnomaly, type CameraStatus } from "@/lib/proctor/camera-monitor";
 
 /**
- * Épreuve d'essai publique : vérifie le poste du candidat (caméra, plein
- * écran, écran unique, Safe Exam Browser) puis propose une mini-épreuve
- * avec QCM et défis en terminal Linux. Rien n'est enregistré.
+ * Épreuve d'essai publique : vérifie le poste (caméra avec détection de
+ * visage, plein écran, écran unique, Safe Exam Browser), puis propose une
+ * mini-épreuve question par question, en plein écran, caméra analysée.
+ * Rien n'est enregistré.
  */
 type Check = { id: string; label: string; state: "todo" | "ok" | "ko" | "info"; detail?: string };
 
@@ -27,27 +29,42 @@ const serverApi: DemoApi = {
   },
 };
 
-export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo-blanc.svg" }: {
+const HINT: Record<string, string> = {
+  mcq_single: "QCM", mcq_multi: "QCM", ordering: "Remettre dans l'ordre", matching: "Associer",
+  hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée",
+};
+
+export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo-blanc.svg", modelUrl = "/models" }: {
   questions: PublicQ[];
   terminal: { prompt: string; motd: string | null; objectives: Objective[] };
   api?: DemoApi;
   staticSite?: boolean;
   logoSrc?: string;
+  modelUrl?: string;
 }) {
   const [checks, setChecks] = useState<Check[]>([
-    { id: "camera", label: "Caméra", state: "todo" },
+    { id: "camera", label: "Caméra et visage", state: "todo" },
     { id: "fullscreen", label: "Plein écran", state: "todo" },
     { id: "screens", label: "Un seul écran", state: "todo" },
     { id: "seb", label: "Safe Exam Browser", state: "todo" },
   ]);
   const [stage, setStage] = useState<"checks" | "exam" | "done">("checks");
+  const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [flag, setFlag] = useState("");
   const [objectives, setObjectives] = useState<Objective[]>(terminal.objectives);
   const [result, setResult] = useState<{ results: { id: string; score: number; points: number }[]; flag: boolean } | null>(null);
   const [left, setLeft] = useState(25 * 60);
+  const [cam, setCam] = useState<CameraStatus | null>(null);
+  const [camOn, setCamOn] = useState(false);
+  const [anomalies, setAnomalies] = useState<{ kind: CameraAnomaly; at: string }[]>([]);
+  const [isFull, setIsFull] = useState(true);
+  const [fullExits, setFullExits] = useState(0);
+  const [banner, setBanner] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const inSeb = typeof navigator !== "undefined" && /SEB\//.test(navigator.userAgent);
+  const total = questions.length + 1;
 
   const set = (id: string, state: Check["state"], detail?: string) =>
     setChecks((c) => c.map((x) => x.id === id ? { ...x, state, detail } : x));
@@ -56,15 +73,55 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     const extended = (window.screen as any).isExtended;
     set("screens", extended === true ? "ko" : extended === false ? "ok" : "info",
       extended === true ? "Écran secondaire détecté : débranchez-le le jour de l'épreuve." : extended === false ? undefined : "Non vérifiable avec ce navigateur.");
-    const seb = /SEB\//.test(navigator.userAgent);
-    set("seb", seb ? "ok" : "info", seb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
+    set("seb", inSeb ? "ok" : "info", inSeb ? "Safe Exam Browser détecté." : "Navigateur classique : certains examens exigent Safe Exam Browser (fichier .seb fourni par l'école).");
     return () => streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
+  // Chrono d'essai
   useEffect(() => {
     if (stage !== "exam") return;
     const i = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(i);
+  }, [stage]);
+
+  // Le flux vidéo suit le composant <video> affiché (vérifications puis en-tête)
+  useEffect(() => {
+    if (videoRef.current && streamRef.current && videoRef.current.srcObject !== streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  });
+
+  // Analyse caméra en continu
+  useEffect(() => {
+    if (!camOn || !videoRef.current) return;
+    return startCameraMonitor({
+      video: videoRef.current, modelUrl,
+      onStatus: (s) => {
+        setCam(s);
+        if (stage === "checks" && s.faces !== null) {
+          set("camera", s.faces === 1 ? "ok" : "ko",
+            s.faces === 1 ? "Un visage détecté : parfait." : s.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra, bien éclairé." : `${s.faces} visages détectés : vous devez être seul(e) dans le champ.`);
+        }
+      },
+      onAnomaly: (kind) => {
+        if (stage !== "exam") return;
+        setAnomalies((a) => [...a, { kind, at: new Date().toLocaleTimeString("fr-FR") }]);
+        setBanner(`Anomalie caméra : ${ANOMALY_LABEL[kind]}. Dans un vrai examen, le surveillant en est informé avec une photo.`);
+      },
+    });
+  }, [camOn, stage, modelUrl]);
+
+  // Plein écran : épreuve masquée tant que le candidat n'y est pas
+  useEffect(() => {
+    if (stage !== "exam" || inSeb) return;
+    const onFs = () => {
+      const full = !!document.fullscreenElement;
+      setIsFull(full);
+      if (!full) setFullExits((n) => n + 1);
+    };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
   }, [stage]);
 
   const testCamera = async () => {
@@ -72,7 +129,8 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
       const s = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
       streamRef.current = s;
       if (videoRef.current) { videoRef.current.srcObject = s; await videoRef.current.play().catch(() => {}); }
-      set("camera", "ok", "Image reçue : vérifiez que votre visage est bien éclairé.");
+      set("camera", "info", "Caméra active : analyse du visage en cours…");
+      setCamOn(true);
     } catch { set("camera", "ko", "Accès refusé ou caméra absente. Autorisez la caméra dans votre navigateur."); }
   };
 
@@ -84,6 +142,17 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     } catch { set("fullscreen", "ko", "Le plein écran est bloqué par ce navigateur."); }
   };
 
+  const goFull = async () => {
+    if (inSeb) return true;
+    try { await document.documentElement.requestFullscreen(); setIsFull(true); return true; }
+    catch { setBanner("Le navigateur a refusé le plein écran : cliquez à nouveau."); return false; }
+  };
+
+  const begin = async () => {
+    await goFull();
+    setStage("exam"); setStep(0); window.scrollTo({ top: 0 });
+  };
+
   const run = async (command: string) => {
     const { ok, data: j } = await api.run(command);
     if (j.objectives) setObjectives(j.objectives);
@@ -93,38 +162,65 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
   const finish = async () => {
     setResult(await api.grade(answers, flag));
     setStage("done");
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     window.scrollTo({ top: 0 });
   };
 
   const termDone = objectives.filter((o) => o.done).length;
   const score = result ? result.results.reduce((s, r) => s + r.score, 0) + termDone + (result.flag ? 1 : 0) : 0;
-  const total = result ? result.results.reduce((s, r) => s + r.points, 0) + objectives.length + 1 : 0;
+  const totalPts = result ? result.results.reduce((s, r) => s + r.points, 0) + objectives.length + 1 : 0;
   const mm = String(Math.floor(left / 60)).padStart(2, "0"), ss = String(left % 60).padStart(2, "0");
+  const q = step > 0 ? questions[step - 1] : null;
 
-  const Icon = ({ s }: { s: Check["state"] }) => (
+  const Badge = ({ s }: { s: Check["state"] }) => (
     <span className={`badge ${s === "ok" ? "badge-ok" : s === "ko" ? "badge-danger" : s === "info" ? "badge-warn" : "badge-muted"}`}>
       {s === "ok" ? "OK" : s === "ko" ? "Problème" : s === "info" ? "À noter" : "À tester"}
     </span>
   );
 
+  const camLabel = cam?.anomaly ? ANOMALY_LABEL[cam.anomaly] : cam?.faces === 1 ? "visage OK" : cam?.faces === 0 ? "aucun visage" : (cam?.faces ?? 0) > 1 ? `${cam?.faces} visages` : "analyse…";
+  const camBad = !!cam?.anomaly || (cam?.faces !== null && cam?.faces !== undefined && cam.faces !== 1);
+
   return (
     <div className="min-h-screen relative">
+      {stage === "exam" && !isFull && !inSeb && (
+        <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6">
+          <div className="card max-w-md text-center">
+            <h2 className="h1 text-danger">Plein écran requis</h2>
+            <p className="text-muted mt-3">Vous avez quitté le plein écran. Dans un vrai examen, c&apos;est une infraction et l&apos;épreuve reste masquée tant que vous n&apos;y revenez pas.</p>
+            <button className="btn mt-6" onClick={goFull} autoFocus>Revenir en plein écran</button>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-line">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href={staticSite ? "https://cybersup.ai" : "/"} className="py-5"><img src={logoSrc} alt="Cybersup" className="h-6 w-auto" /></a>
           <div className="flex items-center gap-4 text-sm">
             <span className="badge-warn">Épreuve d&apos;essai</span>
+            {stage === "exam" && camOn && (
+              <div className="relative">
+                <video ref={videoRef} className={`w-24 h-14 rounded bg-black object-cover border ${camBad ? "border-danger" : "border-line"}`} muted playsInline />
+                <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] px-1.5 rounded ${camBad ? "bg-danger text-white" : "bg-ok text-bg"}`}>{camLabel}</span>
+              </div>
+            )}
             {stage === "exam" && <span className="font-mono text-lg">{mm}:{ss}</span>}
           </div>
         </div>
+        {stage === "exam" && <div className="h-1 bg-surface-2"><div className="h-full bg-accent transition-all" style={{ width: `${((step + 1) / total) * 100}%` }} /></div>}
       </header>
+      {banner && stage === "exam" && (
+        <div className="bg-danger/15 border-b border-danger/40 text-danger text-center py-2 text-sm px-4">
+          {banner} <button className="underline ml-2" onClick={() => setBanner(null)}>fermer</button>
+        </div>
+      )}
 
       <main className="max-w-5xl mx-auto px-6 py-10 space-y-8">
         {stage === "checks" && (
           <>
             <div>
               <h1 className="h1"><span className="text-accent">Démo</span> de l&apos;épreuve</h1>
-              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
+              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous, question par question : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
               {staticSite && <p className="text-xs text-faint mt-2 max-w-2xl">Version de démonstration publiée sur GitHub Pages : tout s&apos;exécute dans votre navigateur. Dans la vraie plateforme, la machine, les réponses et la correction restent sur le serveur.</p>}
             </div>
             <section className="grid md:grid-cols-2 gap-4">
@@ -137,48 +233,71 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
                       {c.detail && <div className="text-xs text-muted mt-0.5">{c.detail}</div>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {c.id === "camera" && <button className="btn-secondary !py-1 text-xs" onClick={testCamera}>Tester</button>}
+                      {c.id === "camera" && !camOn && <button className="btn-secondary !py-1 text-xs" onClick={testCamera}>Tester</button>}
                       {c.id === "fullscreen" && <button className="btn-secondary !py-1 text-xs" onClick={testFullscreen}>Tester</button>}
-                      <Icon s={c.state} />
+                      <Badge s={c.state} />
                     </div>
                   </div>
                 ))}
               </div>
               <div className="card">
-                <div className="h2">Aperçu caméra</div>
-                <video ref={videoRef} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
+                <div className="flex items-center justify-between">
+                  <div className="h2">Aperçu caméra</div>
+                  {camOn && <span className={`badge ${camBad ? "badge-danger" : cam?.faces === 1 ? "badge-ok" : "badge-muted"}`}>{camLabel}</span>}
+                </div>
+                <video ref={stage === "checks" ? videoRef : undefined} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
+                <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, la caméra est analysée en continu : absence de visage, plusieurs personnes, caméra masquée ou image figée sont signalées.</p>
               </div>
             </section>
             <div className="card text-sm text-muted space-y-1">
               <div className="h2 text-fg mb-2">Le jour de l&apos;épreuve</div>
-              <p>Plein écran obligatoire, caméra allumée, un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
-              <p>Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
+              <p>Plein écran automatique au démarrage : si vous en sortez, l&apos;épreuve est masquée. Caméra allumée et analysée, un seul écran. Copier, coller et changer de fenêtre sont bloqués et comptés comme infractions.</p>
+              <p>Une question à la fois. Le chrono est tenu par le serveur : fermer la page ne l&apos;arrête pas. Un seul appareil à la fois.</p>
             </div>
-            <button className="btn" onClick={() => setStage("exam")}>2. Commencer l&apos;épreuve d&apos;essai</button>
+            <button className="btn" onClick={begin}>2. Commencer l&apos;épreuve d&apos;essai (plein écran)</button>
           </>
         )}
 
         {stage === "exam" && (
           <>
-            <section className="space-y-4">
-              <h2 className="h2">Mission terminal : serveur compromis</h2>
-              <p className="text-sm text-muted max-w-3xl">Une vraie machine (simulée) : lisez <code className="text-fg">~/MISSION.txt</code>, enquêtez et réparez. Les missions se cochent toutes seules quand l&apos;état de la machine est correct. Tapez <code className="text-fg">help</code> pour les commandes.</p>
-              <Terminal run={run} initialPrompt={terminal.prompt} motd={terminal.motd} initialObjectives={terminal.objectives} height={380} />
-              <label className="block text-sm text-muted max-w-md">Bonus : flag caché sur la machine
-                <input className="input mt-1 font-mono" placeholder="CYBER{...}" value={flag} maxLength={200} onChange={(e) => setFlag(e.target.value)} />
-              </label>
-            </section>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted">Question <b className="text-fg">{step + 1}</b> / {total}</span>
+              <div className="flex gap-1">
+                {Array.from({ length: total }, (_, i) => (
+                  <button key={i} onClick={() => setStep(i)} aria-label={`Question ${i + 1}`}
+                    className={`w-7 h-7 text-xs rounded border ${i === step ? "border-accent font-bold text-fg" : "border-line text-muted"} ${i === 0 ? (termDone ? "bg-surface-2" : "") : answers[questions[i - 1].id] ? "bg-surface-2" : ""}`}>
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-            {questions.map((q, i) => (
-              <section key={q.id} className="card">
-                <div className="text-xs text-muted">Question {i + 1} · {HINT[q.type]} · {q.points} pt{q.points > 1 ? "s" : ""}</div>
-                <div className="font-medium mt-1 whitespace-pre-wrap">{q.prompt}</div>
+            {step === 0 ? (
+              <section className="space-y-4">
+                <div className="text-xs text-muted">Défi terminal · {objectives.length} missions + 1 bonus</div>
+                <h2 className="h2">Mission : serveur compromis</h2>
+                <p className="text-sm text-muted max-w-3xl">Une vraie machine (simulée) : lisez <code className="text-fg">~/MISSION.txt</code>, enquêtez et réparez. Les missions se cochent toutes seules quand l&apos;état de la machine est correct. Tapez <code className="text-fg">help</code> pour les commandes.</p>
+                <Terminal run={run} initialPrompt={terminal.prompt} motd={terminal.motd} initialObjectives={objectives} height={360} />
+                <label className="block text-sm text-muted max-w-md">Bonus : flag caché sur la machine
+                  <input className="input mt-1 font-mono" placeholder="CYBER{...}" value={flag} maxLength={200} onChange={(e) => setFlag(e.target.value)} />
+                </label>
+              </section>
+            ) : q && (
+              <section className="card">
+                <div className="text-xs text-muted">{HINT[q.type]} · {q.points} pt{q.points > 1 ? "s" : ""}</div>
+                <div className="text-lg font-medium mt-1 whitespace-pre-wrap">{q.prompt}</div>
                 <div className="mt-4">
                   <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setAnswers((a) => ({ ...a, [q.id]: r }))} />
                 </div>
               </section>
-            ))}
-            <button className="btn" onClick={finish}>Terminer et voir mon score</button>
+            )}
+
+            <div className="flex justify-between">
+              <button className="btn-secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>← Précédente</button>
+              {step < total - 1
+                ? <button className="btn" onClick={() => { setStep((s) => s + 1); window.scrollTo({ top: 0 }); }}>Suivante →</button>
+                : <button className="btn" onClick={finish}>Terminer et voir mon score</button>}
+            </div>
           </>
         )}
 
@@ -186,24 +305,30 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
           <section className="space-y-4">
             <div className="card">
               <h1 className="h1">Essai terminé</h1>
-              <div className="font-display text-5xl text-accent mt-4">{Math.round(score * 100) / 100}<span className="text-faint text-2xl"> / {total}</span></div>
-              <p className="text-muted mt-3">Le vrai examen fonctionne de la même façon, avec en plus la caméra, le plein écran verrouillé et le chrono tenu par le serveur.</p>
+              <div className="font-display text-5xl text-accent mt-4">{Math.round(score * 100) / 100}<span className="text-faint text-2xl"> / {totalPts}</span></div>
+              <p className="text-muted mt-3">Le vrai examen fonctionne de la même façon, avec le chrono tenu par le serveur et un surveillant qui voit les anomalies.</p>
             </div>
             <div className="card text-sm space-y-2">
               <div className="flex justify-between"><span>Missions terminal</span><span className={termDone === objectives.length ? "text-ok" : "text-warn"}>{termDone} / {objectives.length}</span></div>
               <div className="flex justify-between"><span>Flag bonus</span><span className={result.flag ? "text-ok" : "text-danger"}>{result.flag ? "trouvé" : "non trouvé"}</span></div>
               {result.results.map((r) => {
-                const q = questions.find((x) => x.id === r.id)!;
+                const qq = questions.find((x) => x.id === r.id)!;
                 return (
                   <div key={r.id} className="flex justify-between border-t border-line pt-2">
-                    <span className="truncate pr-4">{q.prompt}</span>
+                    <span className="truncate pr-4">{qq.prompt}</span>
                     <span className={r.score === r.points ? "text-ok" : r.score > 0 ? "text-warn" : "text-danger"}>{r.score} / {r.points}</span>
                   </div>
                 );
               })}
             </div>
+            <div className="card text-sm space-y-1">
+              <div className="h2 mb-2">Ce que le surveillant aurait vu</div>
+              <div className="flex justify-between"><span>Sorties du plein écran</span><span className={fullExits ? "text-danger" : "text-ok"}>{fullExits}</span></div>
+              <div className="flex justify-between"><span>Anomalies caméra</span><span className={anomalies.length ? "text-danger" : "text-ok"}>{camOn ? anomalies.length : "caméra non activée"}</span></div>
+              {anomalies.map((a, i) => <div key={i} className="text-xs text-muted">{a.at} · {ANOMALY_LABEL[a.kind]}</div>)}
+            </div>
             <div className="flex gap-3">
-              <button className="btn-secondary" onClick={() => { setStage("exam"); setResult(null); setLeft(25 * 60); }}>Revenir à l&apos;épreuve</button>
+              <button className="btn-secondary" onClick={() => { setStage("exam"); setResult(null); setStep(0); goFull(); }}>Revenir à l&apos;épreuve</button>
               {!staticSite && <a className="btn" href="/login">Accéder à mes examens</a>}
             </div>
           </section>
@@ -213,8 +338,3 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
     </div>
   );
 }
-
-const HINT: Record<string, string> = {
-  mcq_single: "QCM", mcq_multi: "QCM", ordering: "Remettre dans l'ordre", matching: "Associer",
-  hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée",
-};

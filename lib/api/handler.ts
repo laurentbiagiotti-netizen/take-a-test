@@ -117,7 +117,7 @@ export async function body<T = any>(req: NextRequest, max = 512 * 1024): Promise
 export const TEST_FIELDS = [
   "title", "description", "duration_minutes", "is_published", "require_seb", "invite_only", "require_id_check",
   "require_webcam", "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
-  "grace_seconds", "opens_at", "closes_at", "retention_days",
+  "grace_seconds", "opens_at", "closes_at", "retention_days", "linear_navigation", "id_verify_before_start", "seb_accept_config_key",
 ] as const;
 
 export function pickTestFields(input: any): Record<string, unknown> {

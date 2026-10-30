@@ -118,6 +118,7 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
       durationMinutes={st.duration_minutes}
       maxViolations={st.max_violations}
       requireWebcam={st.require_webcam !== false}
+      linearHint={!!st.linear}
       resuming={st.state === "in_progress"}
       watermark={`${user.email} · ${String(st.attempt_id).slice(0, 8)}`}
     />

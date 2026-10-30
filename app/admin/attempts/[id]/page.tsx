@@ -5,6 +5,7 @@ import StaffActions from "@/components/StaffActions";
 
 export const dynamic = "force-dynamic";
 
+const ANOM: Record<string, string> = { no_face: "aucun visage", multiple_faces: "plusieurs visages", camera_covered: "caméra masquée", camera_frozen: "image figée" };
 const SEV: Record<string, string> = { info: "text-muted", warning: "text-warn", violation: "text-danger font-semibold", critical: "text-danger font-bold" };
 const STATUS: Record<string, string> = { pending: "pas commencé", in_progress: "en cours", submitted: "rendu", terminated: "interrompu", expired: "temps écoulé" };
 
@@ -23,10 +24,17 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const { data: events } = await supabase.from("proctor_events").select("*").eq("attempt_id", id).order("id");
 
   const snaps = (events || []).filter((e: any) => e.kind === "snapshot" && e.detail?.path);
-  const signedSnapshots: { url: string; ts: string }[] = [];
+  const CAM = new Set(["no_face", "multiple_faces", "camera_covered", "camera_frozen"]);
+  const camEvents = (events || []).filter((e: any) => CAM.has(e.kind));
+  const signedSnapshots: { url: string; ts: string; anomaly?: string }[] = [];
   if (snaps.length) {
     const { data: signed } = await supabase.storage.from("snapshots").createSignedUrls(snaps.map((e: any) => e.detail.path), 900);
-    (signed || []).forEach((s, i) => { if (s.signedUrl) signedSnapshots.push({ url: s.signedUrl, ts: snaps[i].created_at }); });
+    (signed || []).forEach((s, i) => {
+      if (!s.signedUrl) return;
+      const t = new Date(snaps[i].created_at).getTime();
+      const near = camEvents.find((e: any) => Math.abs(new Date(e.created_at).getTime() - t) < 8000);
+      signedSnapshots.push({ url: s.signedUrl, ts: snaps[i].created_at, anomaly: near?.kind });
+    });
   }
   let identity: { document?: string; selfie?: string } = {};
   if (a.identity_paths) {
@@ -157,12 +165,13 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
 
       {signedSnapshots.length > 0 && (
         <section>
-          <h2 className="h2">Photos webcam ({signedSnapshots.length})</h2>
+          <h2 className="h2">Photos webcam ({signedSnapshots.length}){camEvents.length ? <span className="badge-warn ml-2 align-middle">{camEvents.length} anomalie(s) caméra</span> : null}</h2>
+          <p className="text-xs text-muted mt-1">Encadrées en orange : photos prises au moment d&apos;une anomalie détectée (à vérifier, la détection automatique peut se tromper).</p>
           <div className="mt-2 grid grid-cols-3 md:grid-cols-6 gap-2">
             {signedSnapshots.map((s, i) => (
               <a key={i} href={s.url} target="_blank" rel="noreferrer" className="block">
-                <img src={s.url} alt="" className="aspect-square object-cover rounded border" />
-                <div className="text-[10px] text-muted mt-0.5">{new Date(s.ts).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" })}</div>
+                <img src={s.url} alt="" className={`aspect-square object-cover rounded border ${s.anomaly ? "border-2 border-accent" : ""}`} />
+                <div className={`text-[10px] mt-0.5 ${s.anomaly ? "text-accent" : "text-muted"}`}>{s.anomaly ? `${ANOM[s.anomaly]} · ` : ""}{new Date(s.ts).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" })}</div>
               </a>
             ))}
           </div>
