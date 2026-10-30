@@ -10,9 +10,29 @@ import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody"
  */
 type Check = { id: string; label: string; state: "todo" | "ok" | "ko" | "info"; detail?: string };
 
-export default function DemoExam({ questions, terminal }: {
+/** Accès au serveur de la démo ; remplaçable (version GitHub Pages, sans serveur). */
+export type DemoApi = {
+  run: (command: string) => Promise<{ ok: boolean; data: any }>;
+  grade: (answers: Record<string, any>, flag: string) => Promise<any>;
+};
+
+const serverApi: DemoApi = {
+  run: async (command) => {
+    const r = await fetch("/api/demo/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
+    return { ok: r.ok, data: await r.json().catch(() => ({})) };
+  },
+  grade: async (answers, flag) => {
+    const r = await fetch("/api/demo/grade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, flag }) });
+    return r.json();
+  },
+};
+
+export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo-blanc.svg" }: {
   questions: PublicQ[];
   terminal: { prompt: string; motd: string | null; objectives: Objective[] };
+  api?: DemoApi;
+  staticSite?: boolean;
+  logoSrc?: string;
 }) {
   const [checks, setChecks] = useState<Check[]>([
     { id: "camera", label: "Caméra", state: "todo" },
@@ -65,15 +85,13 @@ export default function DemoExam({ questions, terminal }: {
   };
 
   const run = async (command: string) => {
-    const r = await fetch("/api/demo/terminal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command }) });
-    const j = await r.json().catch(() => ({}));
+    const { ok, data: j } = await api.run(command);
     if (j.objectives) setObjectives(j.objectives);
-    return r.ok ? j : { error: j.output || "Commande refusée." };
+    return ok ? j : { error: j.output || "Commande refusée." };
   };
 
   const finish = async () => {
-    const r = await fetch("/api/demo/grade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, flag }) });
-    setResult(await r.json());
+    setResult(await api.grade(answers, flag));
     setStage("done");
     window.scrollTo({ top: 0 });
   };
@@ -93,7 +111,7 @@ export default function DemoExam({ questions, terminal }: {
     <div className="min-h-screen relative">
       <header className="border-b border-line">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="py-5"><img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-6 w-auto" /></a>
+          <a href={staticSite ? "https://cybersup.ai" : "/"} className="py-5"><img src={logoSrc} alt="Cybersup" className="h-6 w-auto" /></a>
           <div className="flex items-center gap-4 text-sm">
             <span className="badge-warn">Épreuve d&apos;essai</span>
             {stage === "exam" && <span className="font-mono text-lg">{mm}:{ss}</span>}
@@ -107,6 +125,7 @@ export default function DemoExam({ questions, terminal }: {
             <div>
               <h1 className="h1"><span className="text-accent">Démo</span> de l&apos;épreuve</h1>
               <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
+              {staticSite && <p className="text-xs text-faint mt-2 max-w-2xl">Version de démonstration publiée sur GitHub Pages : tout s&apos;exécute dans votre navigateur. Dans la vraie plateforme, la machine, les réponses et la correction restent sur le serveur.</p>}
             </div>
             <section className="grid md:grid-cols-2 gap-4">
               <div className="card space-y-3">
@@ -185,7 +204,7 @@ export default function DemoExam({ questions, terminal }: {
             </div>
             <div className="flex gap-3">
               <button className="btn-secondary" onClick={() => { setStage("exam"); setResult(null); setLeft(25 * 60); }}>Revenir à l&apos;épreuve</button>
-              <a className="btn" href="/login">Accéder à mes examens</a>
+              {!staticSite && <a className="btn" href="/login">Accéder à mes examens</a>}
             </div>
           </section>
         )}
