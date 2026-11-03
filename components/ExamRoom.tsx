@@ -467,7 +467,7 @@ export default function ExamRoom(props: {
   return (
     <div className="min-h-screen bg-bg select-none relative overflow-auto">
       {/* Filigrane : dissuade les photos d'écran et permet de tracer une fuite */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden opacity-[0.07] select-none">
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden opacity-[0.035] select-none">
         <div className="flex flex-wrap gap-x-24 gap-y-16 -rotate-[25deg] -translate-x-1/4 -translate-y-1/4 w-[200vw]">
           {watermarkTiles.map((i) => <span key={i} className="text-sm font-mono whitespace-nowrap">{watermark}</span>)}
         </div>
@@ -497,22 +497,31 @@ export default function ExamRoom(props: {
           <b className="font-display uppercase text-sm truncate">{title}</b>
         </div>
         <div className="flex items-center gap-4">
-          <span className={`text-xs ${saving === "error" ? "text-danger" : "text-faint"}`} role="status">
+          <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs ${saving === "error" ? "text-danger" : "text-faint"}`} role="status">
+            <span aria-hidden className={`w-1.5 h-1.5 rounded-full ${saving === "error" ? "bg-danger" : saving === "saving" ? "bg-warn animate-pulse" : "bg-ok"}`} />
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
-          <span className="text-xs text-muted">Infractions : {violations}/{maxViolations}</span>
+          <span className={`text-xs px-2 py-1 rounded-full border ${violations ? "border-warn/50 text-warn" : "border-line text-muted"}`} title="Infractions relevées">
+            {violations}/{maxViolations} infraction{maxViolations > 1 ? "s" : ""}
+          </span>
           <CameraChip videoRef={camera.attach} live={camera.state === "live"} cam={cam} />
-          <div className={`font-mono text-lg ${remaining < 300 ? "text-danger" : ""}`} aria-label={`Temps restant ${formatClock(remaining)}`}>{formatClock(remaining)}</div>
+          <div className={`flex items-baseline gap-2 px-3 py-1.5 rounded-lg border ${remaining < 300 ? "border-danger/60 bg-danger/10 text-danger" : "border-line bg-bg"}`} aria-label={`Temps restant ${formatClock(remaining)}`}>
+            <span className="text-[10px] uppercase tracking-wider text-muted hidden md:inline">Temps</span>
+            <span className="font-mono text-lg tabular-nums">{formatClock(remaining)}</span>
+          </div>
         </div>
       </header>
 
-      <div className="h-1 bg-surface-2 relative z-30" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={idx + 1} aria-label="Progression">
+      <div className="h-1.5 bg-surface-2 relative z-30" role="progressbar" aria-valuemin={1} aria-valuemax={questions.length} aria-valuenow={idx + 1} aria-label="Progression">
         <div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} />
       </div>
 
       <main className={`${q?.type === "external" ? "max-w-6xl" : "max-w-3xl"} mx-auto p-4 sm:p-6 relative z-30`}>
         <div className="text-sm text-muted mb-3 flex items-center justify-between gap-3">
-          <span>Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</span>
+          <span className="flex items-center gap-3">
+            <span>Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</span>
+            <span className="text-faint hidden sm:inline">{Math.round((idx / Math.max(1, questions.length)) * 100)} % fait</span>
+          </span>
           {qRemaining !== null && (
             <span className={`font-mono ${qRemaining <= 10 ? "text-danger" : "text-fg"}`} role="timer" aria-label={`Temps restant pour cette question ${formatClock(qRemaining)}`}>
               Cette question : {formatClock(qRemaining)}

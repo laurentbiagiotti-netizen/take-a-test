@@ -36,6 +36,10 @@ export default function EditTest() {
   const [msg, setMsg] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
+  const [openQ, setOpenQ] = useState<Set<number>>(new Set());
+  const [qFilter, setQFilter] = useState("");
+  const [qType, setQType] = useState("");
+  const toggleQ = (i: number) => setOpenQ((s) => { const n = new Set(s); if (n.has(i)) n.delete(i); else n.add(i); return n; });
   const domains = Array.from(new Set(questions.map((q) => q.domain?.trim()).filter(Boolean) as string[])).sort();
   const [link, setLink] = useState("");
 
@@ -116,6 +120,9 @@ export default function EditTest() {
 
   const addQuestion = (type: QType) => {
     const isMcq = type === "mcq_single" || type === "mcq_multi";
+    setOpenQ((s) => new Set(s).add(questions.length));
+    setQFilter(""); setQType("");
+    setTimeout(() => document.getElementById(`q-${questions.length}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     setQuestions((qs) => [...qs, {
       test_id: id, position: qs.length, type,
       prompt: type === "terminal" ? "Connecte-toi au serveur et retrouve le flag au format CYBER{...}." : "",
@@ -189,9 +196,18 @@ export default function EditTest() {
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
-      <a href="/admin" className="text-sm text-muted">← Retour</a>
-      <div className="flex items-center justify-between mt-2">
-        <h1 className="h1">Modifier l&apos;examen</h1>
+      <a href="/admin" className="text-sm text-muted">← Examens</a>
+      <div className="flex flex-wrap items-start justify-between gap-4 mt-2">
+        <div className="min-w-0">
+          <div className="text-xs uppercase tracking-wider text-muted">Modifier l&apos;épreuve</div>
+          <h1 className="h1 mt-1 normal-case">{test.title || "Sans titre"}</h1>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm mt-2">
+            <a href={`/admin/tests/${id}/invites`} className="text-muted hover:text-fg">Candidats</a>
+            <a href={`/admin/tests/${id}/live`} className="text-muted hover:text-fg">En direct</a>
+            <a href={`/admin/tests/${id}/attempts`} className="text-muted hover:text-fg">Tentatives</a>
+            <a href={`/admin/tests/${id}/dashboard`} className="text-muted hover:text-fg">Tableau de bord</a>
+          </div>
+        </div>
         <div className="flex items-center gap-4">
         <PreviewButton testId={id} className="btn" />
         <button
@@ -206,12 +222,14 @@ export default function EditTest() {
         </div>
       </div>
 
-      <nav aria-label="Sections de l'épreuve" className="sticky top-0 z-30 -mx-6 px-6 py-2 mt-4 bg-bg/90 backdrop-blur border-b border-line flex flex-wrap items-center gap-1 text-sm">
-        {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono et notation"], ["acces", "Accès et SEB"], ["questions", `Questions (${questions.length})`]].map(([k, l]) => (
-          <a key={k} href={`#${k}`} className="px-3 py-1.5 rounded-md text-muted hover:text-fg hover:bg-surface-2">{l}</a>
-        ))}
-        <span className={`ml-auto text-xs px-2 py-1 rounded ${test.is_published ? "text-ok" : "text-muted"}`}>{test.is_published ? "Publié" : "Brouillon"}</span>
-        <button className="btn !py-1.5" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
+      <nav aria-label="Sections de l'épreuve" className="sticky top-0 z-30 -mx-6 px-6 py-2 mt-4 bg-bg/90 backdrop-blur border-b border-line flex items-center gap-3 text-sm">
+        <div className="flex gap-1 overflow-x-auto min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono et notation"], ["acces", "Accès et SEB"], ["questions", `Questions (${questions.length})`]].map(([k, l]) => (
+            <a key={k} href={`#${k}`} className="px-3 py-1.5 rounded-md text-muted hover:text-fg hover:bg-surface-2 whitespace-nowrap">{l}</a>
+          ))}
+        </div>
+        <span className={`ml-auto shrink-0 badge ${test.is_published ? "border-ok/40 text-ok" : "border-line-strong text-muted"}`}>{test.is_published ? "Publiée" : "Brouillon"}</span>
+        <button className="btn !py-1.5 shrink-0" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
       </nav>
       <p className="text-xs text-faint mt-2">Les réglages s&apos;enregistrent tout seuls ; les questions avec le bouton « Enregistrer les questions ».</p>
 
@@ -434,25 +452,65 @@ export default function EditTest() {
           onFormation={(f) => updateTest({ formation: f || null })}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
       </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        <button className="btn-secondary" onClick={() => addQuestion("mcq_single")}>+ QCM (une réponse)</button>
-        <button className="btn-secondary" onClick={() => addQuestion("mcq_multi")}>+ QCM (plusieurs réponses)</button>
-        <button className="btn-secondary" onClick={() => addQuestion("long_text")}>+ Réponse rédigée</button>
-        <button className="btn-secondary" onClick={() => addQuestion("terminal")}>+ Défi terminal</button>
-        <button className="btn-secondary" onClick={() => addQuestion("ordering")}>+ Remettre dans l&apos;ordre</button>
-        <button className="btn-secondary" onClick={() => addQuestion("matching")}>+ Associer</button>
-        <button className="btn-secondary" onClick={() => addQuestion("hotspot")}>+ Repérer (code, log, mail, tableau)</button>
-        <button className="btn-secondary" onClick={() => addQuestion("short_answer")}>+ Réponse courte / données</button>
-        <button className="btn-secondary" onClick={() => addQuestion("external")}>+ Exercice dans un outil (Crime GeoGuess, Cybersup OS)</button>
+      <div className="mt-3">
+        <div className="text-xs uppercase tracking-wider text-muted mb-2">Ajouter une question</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {([
+            ["mcq_single", "QCM", "une seule réponse"],
+            ["mcq_multi", "QCM", "plusieurs réponses"],
+            ["short_answer", "Réponse courte", "mot, nombre, donnée"],
+            ["long_text", "Réponse rédigée", "corrigée à la main"],
+            ["ordering", "Remettre en ordre", "étapes, procédure"],
+            ["matching", "Associer", "deux colonnes"],
+            ["hotspot", "Repérer", "code, log, mail, tableau"],
+            ["terminal", "Défi terminal", "Linux simulé"],
+            ["external", "Exercice outil", "Crime GeoGuess, Cybersup OS"],
+          ] as [QType, string, string][]).map(([t, l, d]) => (
+            <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
+              <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>
+              <div className="text-xs text-muted mt-0.5">{d}</div>
+            </button>
+          ))}
+        </div>
       </div>
 
+      {questions.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
+          <input className="input !w-auto flex-1 min-w-[14rem]" placeholder="Rechercher dans les énoncés ou les domaines" value={qFilter} onChange={(e) => setQFilter(e.target.value)} aria-label="Rechercher une question" />
+          <select className="input !w-auto" value={qType} onChange={(e) => setQType(e.target.value)} aria-label="Filtrer par type">
+            <option value="">Tous les types</option>
+            {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l as string}</option>)}
+          </select>
+          <button className="btn-secondary !py-1.5" onClick={() => setOpenQ(new Set(questions.map((_, k) => k)))}>Tout déplier</button>
+          <button className="btn-secondary !py-1.5" onClick={() => setOpenQ(new Set())}>Tout replier</button>
+        </div>
+      )}
+
       <div className="mt-4 space-y-4">
-        {questions.map((q, i) => (
-          <div key={i} className="card space-y-2">
-            <div className="flex justify-between items-center">
-              <b>Q{i + 1} · {KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</b>
-              <button className="text-danger text-sm" onClick={() => setQuestions((arr) => arr.filter((_, k) => k !== i))}>Retirer</button>
+        {questions.map((q, i) => {
+          const f = qFilter.trim().toLowerCase();
+          if (qType && q.type !== qType) return null;
+          if (f && !`${q.prompt || ""} ${q.domain || ""}`.toLowerCase().includes(f)) return null;
+          const err = validateQuestion(q.type as any, q.options, q.correct);
+          const isOpen = openQ.has(i);
+          return (
+          <div key={i} id={`q-${i}`} className={`card scroll-mt-20 ${isOpen ? "space-y-2 border-line-strong" : "!py-3"}`}>
+            <div className="flex items-center gap-3">
+              <button className="flex-1 min-w-0 flex items-center gap-3 text-left" onClick={() => toggleQ(i)} aria-expanded={isOpen}>
+                <span className="text-faint font-mono text-xs w-8 shrink-0">Q{i + 1}</span>
+                <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-semibold">{KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</span>
+                <span className={`truncate text-sm ${q.prompt ? "" : "text-faint italic"}`}>{(q.prompt || "Énoncé à écrire").replace(/\s+/g, " ").slice(0, 140)}</span>
+                <span className="ml-auto shrink-0 flex items-center gap-2 text-xs text-muted">
+                  {q.domain && <span className="hidden md:inline">{q.domain}</span>}
+                  <span>{q.points} pt{q.points > 1 ? "s" : ""}</span>
+                  {err && <span className="text-danger" title={err}>à compléter</span>}
+                  <span aria-hidden className={`transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
+                </span>
+              </button>
+              <button className="text-danger text-xs shrink-0" onClick={() => { if (confirm(`Retirer la question ${i + 1} ?`)) { setQuestions((arr) => arr.filter((_, k) => k !== i)); setOpenQ(new Set()); } }}>Retirer</button>
             </div>
+            {isOpen && <>
+            {err && <p className="text-xs text-danger">À corriger avant d&apos;enregistrer : {err}</p>}
             <textarea className="input" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
               const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, prompt: v } : x));
             }} />
@@ -568,8 +626,10 @@ export default function EditTest() {
                 <button className="btn-secondary text-xs" onClick={() => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: [...(x.options || []), { id: crypto.randomUUID(), text: "" }] } : x))}>+ Ajouter une réponse</button>
               </div>
             )}
+            </>}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-6">

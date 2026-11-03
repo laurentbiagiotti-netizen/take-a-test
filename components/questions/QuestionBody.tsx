@@ -66,10 +66,8 @@ function Mcq({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any
   const single = q.type === "mcq_single";
   return (
     <div>
-      <p className="text-xs text-muted mb-3 flex items-center gap-2">
-        <span className={`inline-block w-2 h-2 ${single ? "rounded-full" : "rounded-sm"} bg-accent`} aria-hidden />
-        {single ? "Une seule bonne réponse." : "Plusieurs réponses possibles : cochez toutes les bonnes."}
-      </p>
+      <p className="sr-only">{single ? "Une seule bonne réponse." : "Plusieurs réponses possibles : cochez toutes les bonnes."}</p>
+      {!single && sel.length > 0 && <p className="text-xs text-muted mb-2" aria-live="polite">{sel.length} réponse(s) cochée(s)</p>}
       <div className="grid gap-2.5">
         {(q.options || []).map((opt: any, k: number) => {
           const checked = sel.includes(opt.id);
