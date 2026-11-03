@@ -195,7 +195,7 @@ export default function EditTest() {
   if (!test) return <main className="p-10">Chargement…</main>;
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
+    <main className="max-w-5xl mx-auto px-6 py-10">
       <a href="/admin" className="text-sm text-muted">← Examens</a>
       <div className="flex flex-wrap items-start justify-between gap-4 mt-2">
         <div className="min-w-0">
@@ -224,7 +224,7 @@ export default function EditTest() {
 
       <nav aria-label="Sections de l'épreuve" className="sticky top-0 z-30 -mx-6 px-6 py-2 mt-4 bg-bg/90 backdrop-blur border-b border-line flex items-center gap-3 text-sm">
         <div className="flex gap-1 overflow-x-auto min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono et notation"], ["acces", "Accès et SEB"], ["questions", `Questions (${questions.length})`]].map(([k, l]) => (
+          {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono"], ["acces", "Accès et SEB"], ["questions", `Questions · ${questions.length}`]].map(([k, l]) => (
             <a key={k} href={`#${k}`} className="px-3 py-1.5 rounded-md text-muted hover:text-fg hover:bg-surface-2 whitespace-nowrap">{l}</a>
           ))}
         </div>
@@ -446,8 +446,8 @@ export default function EditTest() {
         )}
       </div>
 
-      <div id="questions" className="mt-8 flex flex-wrap items-center justify-between gap-2 scroll-mt-16">
-        <h2 className="h2">Questions</h2>
+      <div id="questions" className="mt-10 flex flex-col gap-3 scroll-mt-16">
+        <h2 className="h2">Questions <span className="text-muted normal-case font-sans text-sm ml-1">{questions.length}</span></h2>
         <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
           onFormation={(f) => updateTest({ formation: f || null })}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />

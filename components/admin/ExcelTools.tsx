@@ -72,20 +72,23 @@ export default function ExcelTools({ questions, formation, locked, onFormation, 
   const bad = preview?.rows.filter((r) => !r.question) || [];
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
+    <div className="flex flex-wrap items-end gap-3 text-sm rounded-lg border border-line bg-surface/60 p-3">
       <label className="text-xs text-muted">Formation de l&apos;épreuve
-        <select className="input mt-1 !w-auto !py-1" value={formation} onChange={(e) => onFormation(e.target.value)}>
+        <select className="input mt-1 !w-auto !py-1.5" value={formation} onChange={(e) => onFormation(e.target.value)}>
           <option value="">(toutes)</option>
           {FORMATIONS.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
       </label>
-      <button className="btn-secondary" onClick={template}>Modèle Excel</button>
-      <button className="btn-secondary" onClick={exportBank} disabled={!questions.length}>Exporter en Excel</button>
-      <button className="btn-secondary" onClick={exportCsv} disabled={!questions.length}>Exporter en CSV</button>
-      <button className="btn-secondary" disabled={locked || busy} onClick={() => input.current?.click()}
-        title={locked ? "Des candidats ont déjà composé : questions verrouillées" : undefined}>
-        {busy ? "Lecture…" : "Importer (Excel ou CSV)"}
-      </button>
+      <div className="flex flex-wrap items-center gap-1.5 ml-auto">
+        <span className="text-xs text-muted mr-1">Banque de questions :</span>
+        <button className="btn-secondary !py-1.5 !px-3" onClick={template}>Modèle Excel</button>
+        <button className="btn-secondary !py-1.5 !px-3" onClick={exportBank} disabled={!questions.length}>Exporter Excel</button>
+        <button className="btn-secondary !py-1.5 !px-3" onClick={exportCsv} disabled={!questions.length}>Exporter CSV</button>
+        <button className="btn !py-1.5 !px-3" disabled={locked || busy} onClick={() => input.current?.click()}
+          title={locked ? "Des candidats ont déjà composé : questions verrouillées" : undefined}>
+          {busy ? "Lecture…" : "Importer Excel ou CSV"}
+        </button>
+      </div>
       <input ref={input} type="file" accept=".xlsx,.csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
 
       {preview && (
