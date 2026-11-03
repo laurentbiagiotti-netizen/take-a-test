@@ -39,7 +39,7 @@ const columns: Column<AttemptRow>[] = [
     key: "identity", label: "Identité", sort: (a) => (a.identity === "submitted" ? "0" : a.identity),
     cell: (a) => (
       <span className={a.identity === "submitted" ? "text-warn font-semibold" : a.identity === "rejected" ? "text-danger" : ""}>
-        {a.identity === "submitted" ? "à vérifier" : a.identity || "-"}
+        {({ submitted: "à vérifier", verified: "validée", rejected: "refusée", pending: "attendue", not_required: "non demandée" } as Record<string, string>)[a.identity || ""] || "-"}
       </span>
     ),
   },
