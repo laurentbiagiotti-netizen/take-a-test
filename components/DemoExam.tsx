@@ -273,7 +273,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
                   </span>
                 </div>
                 <video ref={stage === "checks" ? camera.attach : undefined} className="mt-3 w-full aspect-video rounded-md bg-[#05070d] border border-line object-cover" muted playsInline />
-                <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, l&apos;image est analysée en continu : absence de visage, autre personne dans le champ, caméra masquée ou image figée sont signalées.</p>
+                <p className="text-xs text-muted mt-2">Pendant l&apos;épreuve, l&apos;image est analysée en continu : absence de visage, autre personne ou téléphone dans le champ, caméra masquée ou image figée sont signalées.</p>
               </div>
             </section>
             <RulesList />

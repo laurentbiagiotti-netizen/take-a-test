@@ -19,7 +19,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
 
   const ids = (attempts || []).map((a: any) => a.id);
   const { data: camEv } = ids.length
-    ? await supabase.from("proctor_events").select("attempt_id").in("attempt_id", ids).in("kind", ["no_face", "multiple_faces", "camera_covered", "camera_frozen", "other_person", "camera_refused", "camera_off"])
+    ? await supabase.from("proctor_events").select("attempt_id").in("attempt_id", ids).in("kind", ["no_face", "multiple_faces", "camera_covered", "camera_frozen", "other_person", "phone_detected", "camera_refused", "camera_off"])
     : { data: [] as any[] };
   const camCount = new Map<string, number>();
   for (const e of camEv || []) camCount.set(e.attempt_id, (camCount.get(e.attempt_id) || 0) + 1);
@@ -48,6 +48,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
         <h1 className="h1">Tentatives</h1>
         <div className="flex flex-wrap gap-2">
           <a className="btn" href={`/admin/tests/${id}/live`}>Suivi en direct</a>
+          <a className="btn-secondary" href={`/admin/tests/${id}/dashboard`}>Tableau de bord</a>
           <a className="btn-secondary" href={`/admin/tests/${id}/stats`}>Statistiques des questions</a>
           <a className="btn-secondary" href={`/api/staff/tests/${id}/results`}>Résultats (Excel)</a>
           <a className="btn-secondary" href={`/api/staff/tests/${id}/recaps`}>Toutes les fiches PDF (.zip)</a>

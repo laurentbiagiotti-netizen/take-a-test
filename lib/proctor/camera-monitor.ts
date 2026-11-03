@@ -24,7 +24,7 @@
  * C'est pourquoi le serveur exige aussi des photos régulières, consultables par
  * le surveillant, et qu'une photo est prise à chaque anomalie.
  */
-export type CameraAnomaly = "no_face" | "multiple_faces" | "other_person" | "camera_covered" | "camera_frozen";
+export type CameraAnomaly = "no_face" | "multiple_faces" | "other_person" | "phone_detected" | "camera_covered" | "camera_frozen";
 export type CameraStatus = { faces: number | null; brightness: number; anomaly: CameraAnomaly | null; ready: boolean };
 
 type Options = {
@@ -38,7 +38,7 @@ type Options = {
 type Box = { x: number; y: number; w: number; h: number; score: number };
 
 // Mesures consécutives avant de signaler (une mesure toutes les ~1,5 s)
-const THRESHOLD: Record<Exclude<CameraAnomaly, "multiple_faces" | "other_person">, number> = { no_face: 4, camera_covered: 3, camera_frozen: 8 };
+const THRESHOLD: Record<Exclude<CameraAnomaly, "multiple_faces" | "other_person" | "phone_detected">, number> = { no_face: 4, camera_covered: 3, camera_frozen: 8 };
 // Autre personne : 2 des 5 dernières mesures rapides, ou 2 des 3 dernières analyses fines
 const QUICK_WINDOW = 5, QUICK_HITS = 2, DEEP_WINDOW = 3, DEEP_HITS = 2;
 const DEEP_EVERY = 3;
@@ -50,6 +50,9 @@ const MIN_FACE_PX = 14;          // en dessous : bruit
 const PERSON_MIN_SCORE = 0.38;   // détection de personnes (corps)
 const PERSON_MIN_HEIGHT = 0.15;  // part de la hauteur de l'image en dessous de laquelle on ignore
 const PERSON_INPUT = 512;
+// Téléphone dans le champ (classe COCO « cell phone » du même modèle CenterNet)
+const PHONE_CLASS = 67;
+const PHONE_MIN_SCORE = 0.42;
 const SCAN_MAX = 1280;           // résolution maximale analysée par la passe fine
 
 let detectorPromise: Promise<any> | null = null;
@@ -130,6 +133,7 @@ export function startCameraMonitor(opts: Options): () => void {
   let ssdReady = false;
   let personModel: any = null;
   const bodyHistory: boolean[] = [];
+  const phoneHistory: boolean[] = [];
   let detectorFailed = false;
   let tickNo = 0;
 
@@ -176,9 +180,9 @@ export function startCameraMonitor(opts: Options): () => void {
     return out;
   };
 
-  /** Personnes visibles (corps entier ou partiel), en coordonnées de la vidéo. */
-  const detectPersons = async (): Promise<Box[]> => {
-    if (!personModel) return [];
+  /** Personnes visibles (corps entier ou partiel) et téléphones, en coordonnées de la vidéo. */
+  const detectObjects = async (): Promise<{ persons: Box[]; phones: Box[] }> => {
+    if (!personModel) return { persons: [], phones: [] };
     const tf = faceapi.tf;
     const input = tf.tidy(() => tf.image.resizeBilinear(tf.browser.fromPixels(scan).toFloat().expandDims(0), [PERSON_INPUT, PERSON_INPUT]));
     const out = personModel.execute(input, ["tower_0/detections"]);
@@ -186,10 +190,11 @@ export function startCameraMonitor(opts: Options): () => void {
     const rows: number[][] = (await out.array())[0];
     out.dispose();
     const sx = video.videoWidth / PERSON_INPUT, sy = video.videoHeight / PERSON_INPUT;
-    const boxes = rows.filter((r) => r[5] === 0 && r[4] >= PERSON_MIN_SCORE)
-      .map((r) => ({ x: r[0] * sx, y: r[1] * sy, w: (r[2] - r[0]) * sx, h: (r[3] - r[1]) * sy, score: r[4] }))
+    const box = (r: number[]) => ({ x: r[0] * sx, y: r[1] * sy, w: (r[2] - r[0]) * sx, h: (r[3] - r[1]) * sy, score: r[4] });
+    const boxes = rows.filter((r) => r[5] === 0 && r[4] >= PERSON_MIN_SCORE).map(box)
       .filter((b) => b.h >= video.videoHeight * PERSON_MIN_HEIGHT);
-    return mergeBoxes(boxes, 1);
+    const phones = rows.filter((r) => r[5] === PHONE_CLASS && r[4] >= PHONE_MIN_SCORE).map(box);
+    return { persons: mergeBoxes(boxes, 1), phones };
   };
 
   const tick = async () => {
@@ -225,8 +230,16 @@ export function startCameraMonitor(opts: Options): () => void {
           if (ssdReady && sctx && tctx && (tickNo % DEEP_EVERY === 0 || doubt)) {
             const merged = mergeBoxes(quick.concat(await deepScan(brightness < 80)));
             // Corps sans visage visible (tête hors champ, de dos) à côté du candidat
-            if (personModel && merged.length >= 1) {
-              const bodies = bodiesWithoutFace(await detectPersons(), merged);
+            const objects = personModel ? await detectObjects() : null;
+            if (objects) {
+              const { phones } = objects;
+              push(phoneHistory, phones.length > 0, DEEP_WINDOW);
+              if (phones.length && phoneHistory.filter(Boolean).length >= DEEP_HITS) {
+                send("phone_detected", { telephones: phones.length, confiance: phones.map((b) => Math.round(b.score * 100) + " %") });
+              }
+            } else push(phoneHistory, false, DEEP_WINDOW);
+            if (objects && merged.length >= 1) {
+              const bodies = bodiesWithoutFace(objects.persons, merged);
               push(bodyHistory, bodies.length > 0, DEEP_WINDOW);
               if (bodies.length && bodyHistory.filter(Boolean).length >= DEEP_HITS) {
                 send("other_person", { corps: bodies.length, visages: merged.length, hauteur: bodies.map((b) => Math.round((b.h / video.videoHeight) * 100) + " %") });
@@ -250,6 +263,7 @@ export function startCameraMonitor(opts: Options): () => void {
           streak.camera_covered >= THRESHOLD.camera_covered ? "camera_covered"
           : multi ? "multiple_faces"
           : bodyHistory.filter(Boolean).length >= DEEP_HITS ? "other_person"
+          : phoneHistory.filter(Boolean).length >= DEEP_HITS ? "phone_detected"
           : streak.no_face >= THRESHOLD.no_face ? "no_face"
           : streak.camera_frozen >= THRESHOLD.camera_frozen ? "camera_frozen" : null;
         onStatus?.({ faces, brightness, anomaly, ready: !!faceapi || detectorFailed });
@@ -266,6 +280,7 @@ export const ANOMALY_LABEL: Record<CameraAnomaly, string> = {
   no_face: "aucun visage détecté",
   multiple_faces: "autre personne détectée",
   other_person: "autre personne (corps visible)",
+  phone_detected: "téléphone visible",
   camera_covered: "caméra masquée ou image noire",
   camera_frozen: "image de la caméra figée",
 };

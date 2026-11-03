@@ -1363,6 +1363,7 @@ begin
     when 'camera_covered' then 'warning'
     when 'camera_frozen' then 'warning'
     when 'other_person' then 'warning'
+    when 'phone_detected' then 'warning'
     when 'fullscreen_return' then 'info'
     when 'copy_blocked' then 'warning'
     when 'paste_blocked' then 'warning'

@@ -44,7 +44,7 @@ export default function Confidentialite() {
             <li><b>Votre identité</b> : nom et adresse e-mail transmis par l&apos;école avec votre convocation, et votre code d&apos;accès personnel (vous n&apos;avez pas de mot de passe à créer).</li>
             <li><b>Vos réponses</b> et votre résultat, y compris par domaine.</li>
             <li><b>Le déroulé de l&apos;épreuve</b> : heures de début et de fin, sorties du plein écran, changements d&apos;onglet ou de fenêtre, coupures réseau, adresse IP et type de navigateur. Ce journal est protégé contre toute modification.</li>
-            <li><b>Des photos de la caméra</b>, seulement lorsqu&apos;une anomalie est détectée. La détection (présence d&apos;un visage, d&apos;une autre personne, caméra masquée ou figée) se fait sur votre ordinateur.</li>
+            <li><b>Des photos de la caméra</b>, seulement lorsqu&apos;une anomalie est détectée. La détection (présence d&apos;un visage, d&apos;une autre personne, d&apos;un téléphone, caméra masquée ou figée) se fait sur votre ordinateur.</li>
             <li><b>Une photo de pièce d&apos;identité et un selfie</b>, seulement si l&apos;épreuve demande une vérification d&apos;identité. Ils sont comparés à l&apos;œil par un surveillant, sans traitement biométrique.</li>
           </ul>
           <p className="mt-2 text-muted">La caméra peut capter votre environnement : installez-vous dans une pièce calme et neutre, et prévenez les personnes autour de vous.</p>
