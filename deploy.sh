@@ -34,11 +34,11 @@ cd "${SCRIPT_DIR}"
 
 echo "==> Archivage des sources…"
 rm -f "${LOCAL_ARCHIVE}"
+# Pas d'exclusion « tests » : le tar de macOS l'appliquerait aussi à app/admin/tests.
 COPYFILE_DISABLE=1 tar czf "${LOCAL_ARCHIVE}" \
     --exclude='./node_modules' \
     --exclude='./.git' \
     --exclude='./.next' \
-    --exclude='./tests' \
     --exclude='./.env.local' \
     --exclude='./.env' \
     --exclude='./_transfert_claude_*' \
