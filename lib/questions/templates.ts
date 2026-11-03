@@ -109,3 +109,93 @@ export const PRACTICAL_TEMPLATES = {
     points: 3,
   },
 } as const;
+
+/* ------------------------------------------------------------------
+ * Packs d'exercices pratiques, construits à partir des grilles de Dylan
+ * (QCM et entretiens d'admission 2026, Drive « Tests d'admission »).
+ *  - B1 : aucun prérequis, on cherche les pépites (logique, curiosité,
+ *    capacité à apprendre vite) : « le petit cours » est affiché.
+ *  - B3 : acquis de sortie de BTS SIO SISR ou CIEL IR, orientés
+ *    administration et support ; rien du programme de B3 (pas de pentest).
+ * ------------------------------------------------------------------ */
+const it = (id: string, text: string) => ({ id, text });
+const L = (id: string, text: string) => ({ id, text });
+
+export type PackQuestion = { type: string; prompt: string; domain: string; points: number; time_limit_s: number; options: any; correct: any };
+
+const B3_LOGS = [
+  "CREATE TABLE connexions (id INTEGER PRIMARY KEY, compte TEXT, pays TEXT, heure TEXT, succes INTEGER);",
+  ...([
+    ["m.durand", "FR", "2026-10-05 08:12", 1], ["m.durand", "FR", "2026-10-05 13:40", 1], ["s.leroy", "FR", "2026-10-05 09:01", 1],
+    ["s.leroy", "RO", "2026-10-06 03:17", 0], ["s.leroy", "RO", "2026-10-06 03:18", 0], ["s.leroy", "RO", "2026-10-06 03:19", 1],
+    ["a.benali", "FR", "2026-10-06 07:55", 1], ["compta01", "FR", "2026-10-06 02:30", 1], ["k.martin", "ES", "2026-10-06 10:05", 1],
+    ["k.martin", "FR", "2026-10-07 08:47", 1], ["j.petit", "NG", "2026-10-07 04:02", 1], ["j.petit", "FR", "2026-10-07 09:15", 1],
+    ["a.benali", "FR", "2026-10-07 23:58", 1], ["svc.backup", "FR", "2026-10-08 01:00", 1], ["m.durand", "BR", "2026-10-08 02:44", 0],
+  ] as const).map(([c, p, h, s], i) => `INSERT INTO connexions VALUES (${i + 1}, '${c}', '${p}', '${h}', ${s});`),
+].join("\n");
+
+export const PACKS: Record<"b1" | "b3", { label: string; minutes: number; questions: PackQuestion[] }> = {
+  b1: {
+    label: "B1 : logique et curiosité (aucun prérequis)",
+    minutes: 20,
+    questions: [
+      { type: "netpuzzle", domain: "Logique et raisonnement", points: 2, time_limit_s: 240, prompt: PRACTICAL_TEMPLATES.netpuzzle.prompt, options: { w: 5, h: 5, help: true }, correct: null },
+      { type: "ordering", domain: "Fonctionnement du numérique", points: 2, time_limit_s: 120,
+        prompt: "Vous tapez www.cybersup.ai dans votre navigateur. Remettez dans l'ordre ce qui se passe.",
+        options: [it("o1", "Le navigateur demande à un serveur DNS l'adresse IP qui correspond au nom"), it("o2", "Le serveur DNS répond avec l'adresse IP du site"),
+          it("o3", "Le navigateur se connecte au serveur web à cette adresse IP"), it("o4", "Le navigateur et le serveur établissent une connexion chiffrée (HTTPS)"),
+          it("o5", "Le serveur envoie la page demandée"), it("o6", "Le navigateur affiche la page")],
+        correct: ["o1", "o2", "o3", "o4", "o5", "o6"] },
+      { type: "password", domain: "Réflexes cyber", points: 2, time_limit_s: 150, prompt: PRACTICAL_TEMPLATES.password.prompt, options: clone(PRACTICAL_TEMPLATES.password.options), correct: null },
+      { type: "headers", domain: "Réflexes cyber", points: 2, time_limit_s: 240, prompt: PRACTICAL_TEMPLATES.headers.prompt, options: clone(PRACTICAL_TEMPLATES.headers.options), correct: clone(PRACTICAL_TEMPLATES.headers.correct) },
+      { type: "decode", domain: "Logique et raisonnement", points: 2, time_limit_s: 240, prompt: PRACTICAL_TEMPLATES.decode.prompt, options: clone(PRACTICAL_TEMPLATES.decode.options), correct: clone(PRACTICAL_TEMPLATES.decode.correct) },
+      { type: "blocks", domain: "Fonctionnement du numérique", points: 2, time_limit_s: 300, prompt: PRACTICAL_TEMPLATES.blocks.prompt, options: clone(PRACTICAL_TEMPLATES.blocks.options), correct: clone(PRACTICAL_TEMPLATES.blocks.correct) },
+      { type: "sql", domain: "Algorithmique", points: 2, time_limit_s: 300, prompt: PRACTICAL_TEMPLATES.sql.prompt + " (Défi : lisez le petit cours, il suffit.)", options: clone(PRACTICAL_TEMPLATES.sql.options), correct: clone(PRACTICAL_TEMPLATES.sql.correct) },
+    ],
+  },
+  b3: {
+    label: "B3 : administration et support (niveau fin de BTS SIO SISR)",
+    minutes: 25,
+    questions: [
+      { type: "subnet", domain: "Réseaux", points: 2, time_limit_s: 180,
+        prompt: "Un poste vient d'être installé. À partir de son adresse, complétez la fiche réseau.",
+        options: { mode: "basic", prefixes: [25, 26, 27, 28], ask: ["network", "broadcast", "first", "last", "hosts", "mask"], help: false }, correct: null },
+      { type: "subnet", domain: "Réseaux", points: 3, time_limit_s: 300,
+        prompt: "L'école déménage dans un nouveau bâtiment. Découpez le bloc reçu entre les services.",
+        options: { mode: "vlsm", services: 3, help: false }, correct: null },
+      { type: "ordering", domain: "Logique et diagnostic", points: 2, time_limit_s: 120,
+        prompt: "Un utilisateur n'a plus Internet. Vous êtes à son poste : dans quel ordre vérifiez-vous ?",
+        options: [it("d1", "Le câble, le voyant de la carte réseau, le Wi-Fi activé"), it("d2", "La configuration IP avec ipconfig (une adresse en 169.254 signale un problème de DHCP)"),
+          it("d3", "Un ping de la passerelle"), it("d4", "Un ping de 8.8.8.8"), it("d5", "Un ping d'un nom de domaine (s'il échoue alors que 8.8.8.8 répond : DNS)")],
+        correct: ["d1", "d2", "d3", "d4", "d5"] },
+      { type: "ordering", domain: "Logique et diagnostic", points: 2, time_limit_s: 120,
+        prompt: "Ces demandes arrivent en même temps. Classez-les de la plus prioritaire à la moins prioritaire (impact et urgence).",
+        options: [it("i1", "Un compte administrateur semble compromis"), it("i2", "La messagerie est en panne pour toute l'entreprise"),
+          it("i3", "Un poste est en panne, un poste de secours est disponible"), it("i4", "Le clavier d'un utilisateur a une touche qui accroche")],
+        correct: ["i1", "i2", "i3", "i4"] },
+      { type: "matching", domain: "Systèmes", points: 2, time_limit_s: 180,
+        prompt: "Un nouveau collaborateur de la comptabilité arrive lundi, et un autre part vendredi. Associez chaque situation à la bonne pratique.",
+        options: { left: [L("l1", "Il doit accéder au dossier partagé de la comptabilité"), L("l2", "Il demande les droits administrateur pour installer un logiciel"),
+          L("l3", "Ses paramètres de poste doivent être identiques à ceux de son service"), L("l4", "Son collègue quitte l'entreprise vendredi"),
+          L("l5", "Il reçoit ses identifiants")],
+          right: [L("r1", "L'ajouter au groupe « Comptabilité » qui a les droits sur le dossier"), L("r2", "Refuser des droits permanents, vérifier le logiciel et l'installer soi-même"),
+          L("r3", "Placer son compte dans l'OU du service, où s'appliquent les GPO"), L("r4", "Désactiver le compte le jour du départ, le supprimer plus tard"),
+          L("r5", "Mot de passe temporaire à changer à la première connexion, avec le MFA"), L("r6", "Copier les droits d'un collègue du même service")] },
+        correct: { l1: "r1", l2: "r2", l3: "r3", l4: "r4", l5: "r5" } },
+      { type: "blocks", domain: "Cybersécurité", points: 3, time_limit_s: 300, prompt: PRACTICAL_TEMPLATES.blocks.prompt, options: { ...clone(PRACTICAL_TEMPLATES.blocks.options), help: false }, correct: clone(PRACTICAL_TEMPLATES.blocks.correct) },
+      { type: "sql", domain: "Cybersécurité", points: 2, time_limit_s: 300,
+        prompt: "La supervision signale des connexions la nuit depuis l'étranger. Dans la table connexions, trouvez les comptes qui se sont connectés AVEC SUCCÈS entre 0 h et 5 h (0 h 00 à 4 h 59) depuis un autre pays que la France (FR). Affichez la colonne compte, une fois par compte.",
+        options: { mode: "query", setup: B3_LOGS, show_tables: true, help: false },
+        correct: { expected_sql: "SELECT DISTINCT compte FROM connexions WHERE succes = 1 AND pays <> 'FR' AND CAST(strftime('%H', heure) AS INTEGER) < 5;", ordered: false } },
+      { type: "headers", domain: "Cybersécurité", points: 2, time_limit_s: 240,
+        prompt: "Une utilisatrice a cliqué sur le lien de ce mail et vous l'a transféré. Avant de lancer la procédure, analysez ses en-têtes.",
+        options: { ...clone(PRACTICAL_TEMPLATES.headers.options), view: "raw", help: false, ask: ["origin_ip", "spf", "dkim", "reply_to", "verdict"] },
+        correct: { ...clone(PRACTICAL_TEMPLATES.headers.correct), dkim: "none" } },
+      { type: "password", domain: "Systèmes", points: 1, time_limit_s: 120,
+        prompt: "Vous créez le compte du nouveau collaborateur. Proposez un mot de passe initial conforme à la politique de l'entreprise (évitez un vrai mot de passe).",
+        options: { mode: "create", help: false, policy: { min_length: 12, upper: true, lower: true, digit: true, symbol: true, min_score: 3, forbid: ["cybersup", "2026", "azerty"] } }, correct: null },
+    ],
+  },
+};
+
+function clone<T>(x: T): T { return JSON.parse(JSON.stringify(x)); }

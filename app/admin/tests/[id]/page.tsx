@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
-import { PRACTICAL_TEMPLATES } from "@/lib/questions/templates";
+import { PACKS, PRACTICAL_TEMPLATES } from "@/lib/questions/templates";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
@@ -134,6 +134,17 @@ export default function EditTest() {
       terminal: type === "terminal" ? { scenario: JSON.stringify(TERMINAL_TEMPLATE, null, 2), flag: "CYBER{exemple_a_changer}" } : null,
       external: type === "external" ? externalDraft("crime") : null,
     }]);
+  };
+
+  const addPack = (k: "b1" | "b3") => {
+    const pack = PACKS[k];
+    if (!confirm(`Ajouter les ${pack.questions.length} exercices du pack « ${pack.label} » à la fin de l'épreuve ?\n\nIls prennent environ ${pack.minutes} minutes : pensez à allonger la durée, puis à enregistrer.`)) return;
+    setQuestions((qs) => [...qs, ...pack.questions.map((p, j) => ({
+      test_id: id, position: qs.length + j, type: p.type as QType, prompt: p.prompt, domain: p.domain, points: p.points,
+      time_limit_s: p.time_limit_s, options: JSON.parse(JSON.stringify(p.options)), correct: JSON.parse(JSON.stringify(p.correct)),
+      image_url: null, terminal: null, external: null,
+    }))]);
+    notify(`${pack.questions.length} exercices ajoutés. Allongez la durée d'environ ${pack.minutes} min, puis cliquez sur « Enregistrer ».`);
   };
 
   const saveAll = async () => {
@@ -481,6 +492,13 @@ export default function EditTest() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mt-3 rounded-lg border border-dashed border-line-strong p-3 flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-muted mr-1">Packs prêts à l&apos;emploi (grilles de Dylan) :</span>
+        {(["b1", "b3"] as const).map((k) => (
+          <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>+ {PACKS[k].label} · {PACKS[k].questions.length} exercices</button>
+        ))}
       </div>
 
       {questions.length > 0 && (
