@@ -57,7 +57,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
   const mcqAnswers = sorted.filter((x: any) => x.question?.type === "mcq_single" || x.question?.type === "mcq_multi");
   const termAnswers = sorted.filter((x: any) => x.question?.type === "terminal");
-  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle"].includes(x.question?.type));
+  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed"].includes(x.question?.type));
   const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
   const { data: termHistory } = await supabase.from("terminal_history").select("question_id, cwd, command, created_at").eq("attempt_id", id).order("id");
   const { data: extSessions } = await supabase.from("external_sessions")
@@ -224,6 +224,11 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
               if (q.type === "password") shown = o.mode === "rank" ? txt(o.items, r.order || []).map((t: string, k: number) => `${k + 1}. ${t}`).join("   ") : r.text ? "•".repeat(Math.min(24, String(r.text).length)) + ` (${String(r.text).length} caractères)` : "";
               if (q.type === "headers" || (q.type === "subnet" && r.fields)) shown = Object.entries(r.fields || {}).map(([k, v]) => `${k} : ${v}`).join("   ");
               if (q.type === "subnet" && r.subnets) shown = Object.entries(r.subnets).map(([k, v]) => `${k} : ${v}`).join("   ");
+              if (q.type === "sokoban") shown = `${(r.moves || []).map((m: string, i: number) => `niveau ${i + 1} : ${m.length} coups`).join(", ")} · ${r.undos || 0} annulation(s), ${r.restarts || 0} recommencement(s)`;
+              if (q.type === "robot") shown = `${(r.programs || []).map((p: any, i: number) => `niveau ${i + 1} : ${(p?.main?.length || 0) + (p?.p1?.length || 0)} instructions`).join(", ")} · ${r.runs || 0} essai(s)`;
+              if (q.type === "adsim") shown = r.state ? `${r.state.users?.length || 0} comptes dans l'annuaire final` : "";
+              if (q.type === "tickets") shown = Object.entries(r.tickets || {}).map(([id, t]: any) => `${id} : ${t.impact || "?"}/${t.urgence || "?"} → ${t.groupe || "?"}`).join("   ");
+              if (q.type === "feed") shown = Object.entries(r.verdicts || {}).map(([id, v]) => `${id} : ${v}`).join("   ");
               if (q.type === "netpuzzle") shown = `${r.moves || 0} rotation(s) en ${Math.round((r.ms || 0) / 1000)} s`;
               if (q.type === "blocks") shown = r.program ? `Par défaut : ${r.program.default === "block" ? "bloquer" : "autoriser"}, ${r.program.rules?.length || 0} règle(s)` : "";
               return (

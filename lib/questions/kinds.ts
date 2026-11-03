@@ -2,7 +2,7 @@
  * Types de questions : formats, validation (éditeur admin et API) et
  * barème (identique à la fonction SQL _grade, utilisé par la démo).
  */
-export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle";
+export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed";
 
 export const TYPE_LABEL: Record<QType, string> = {
   mcq_single: "QCM, une réponse",
@@ -20,6 +20,11 @@ export const TYPE_LABEL: Record<QType, string> = {
   headers: "En-têtes de mail",
   subnet: "Sous-réseaux IP",
   netpuzzle: "Puzzle réseau (logique)",
+  sokoban: "Caisses à pousser (logique)",
+  robot: "Robot à programmer",
+  adsim: "Console Active Directory",
+  tickets: "Tickets de support",
+  feed: "Vrai ou fake ? (fil d'actualité)",
 };
 
 export type Item = { id: string; text: string };
@@ -44,6 +49,11 @@ import { validPasswordOptions } from "./password";
 import { validSqlOptions } from "./sql-task";
 import { validHeadersQuestion } from "./headers";
 import { validSubnetOptions } from "./subnet";
+import { validSokoban } from "./sokoban";
+import { validRobot } from "./robot";
+import { validAd } from "./adsim";
+import { validTickets } from "./tickets";
+import { validFeed } from "./feed";
 
 /** Valide options + clé d'un type ; renvoie un message d'erreur ou null. */
 export function validateQuestion(type: QType, options: any, key: any): string | null {
@@ -91,6 +101,11 @@ export function validateQuestion(type: QType, options: any, key: any): string | 
       return validHeadersQuestion(options, key);
     case "subnet":
       return validSubnetOptions(options);
+    case "sokoban": return validSokoban(options);
+    case "robot": return validRobot(options);
+    case "adsim": return validAd(options, key);
+    case "tickets": return validTickets(options, key);
+    case "feed": return validFeed(options, key);
     case "netpuzzle": {
       const w = options?.w ?? 5, h = options?.h ?? 5;
       return Number.isInteger(w) && Number.isInteger(h) && w >= 3 && h >= 3 && w <= 9 && h <= 9 ? null : "Grille de 3×3 à 9×9";

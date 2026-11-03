@@ -121,7 +121,7 @@ export const PRACTICAL_TEMPLATES = {
 const it = (id: string, text: string) => ({ id, text });
 const L = (id: string, text: string) => ({ id, text });
 
-export type PackQuestion = { type: string; prompt: string; domain: string; points: number; time_limit_s: number; options: any; correct: any };
+export type PackQuestion = { type: string; prompt: string; domain: string; points: number; time_limit_s: number; options: any; correct: any; terminal?: { scenario: string; flag: string }; explanation?: string };
 
 const B3_LOGS = [
   "CREATE TABLE connexions (id INTEGER PRIMARY KEY, compte TEXT, pays TEXT, heure TEXT, succes INTEGER);",
@@ -224,3 +224,183 @@ export const PACKS: Record<"b1" | "b3", { label: string; minutes: number; questi
 };
 
 function clone<T>(x: T): T { return JSON.parse(JSON.stringify(x)); }
+
+/* ---------------- Jeux de logique (B1) et simulations d'administration (B3) ---------------- */
+
+export const SOKOBAN_LEVELS = [
+  { map: "#######\n#  .  #\n#  $  #\n# @   #\n#######", par: 4 },
+  { map: "######\n#    #\n# $$ #\n#.@ .#\n#    #\n######", par: 16 },
+  { map: "########\n#  .   #\n# $##$ #\n#  @ . #\n########", par: 20 },
+];
+export const ROBOT_LEVELS = [
+  { map: "..L.L", start: [0, 0] as [number, number], dir: 1 as const, main: 8, p1: 0 },
+  { map: "L..L\n.##.\n.##.\nL..L", start: [0, 0] as [number, number], dir: 1 as const, main: 5, p1: 5 },
+  { map: "L.###\n#L.##\n##L.#\n###L#", start: [0, 0] as [number, number], dir: 1 as const, main: 5, p1: 5 },
+];
+
+const AD_INITIAL = {
+  domain: "ecole.local",
+  ous: [
+    { id: "ou-ecole", name: "Ecole", parent: null }, { id: "ou-users", name: "Utilisateurs", parent: "ou-ecole" },
+    { id: "ou-compta", name: "Comptabilité", parent: "ou-users" }, { id: "ou-peda", name: "Pédagogie", parent: "ou-users" },
+    { id: "ou-dir", name: "Direction", parent: "ou-users" }, { id: "ou-pc", name: "Ordinateurs", parent: "ou-ecole" },
+    { id: "ou-anciens", name: "Anciens collaborateurs", parent: "ou-ecole" }, { id: "ou-groupes", name: "Groupes", parent: "ou-ecole" },
+  ],
+  users: [
+    { sam: "m.durand", name: "Marie Durand", ou: "ou-compta", enabled: true, groups: ["GG_Compta"] },
+    { sam: "k.martin", name: "Kevin Martin", ou: "ou-compta", enabled: true, groups: ["GG_Compta", "GG_VPN"] },
+    { sam: "s.leroy", name: "Sophie Leroy", ou: "ou-peda", enabled: true, groups: ["GG_Pedagogie"] },
+    { sam: "t.stagiaire", name: "Tom Stagiaire", ou: "ou-peda", enabled: true, groups: ["GG_Pedagogie", "GG_Admins_Locaux"] },
+    { sam: "a.benali", name: "Amine Benali", ou: "ou-dir", enabled: true, groups: ["GG_Direction", "GG_VPN"] },
+  ],
+  groups: ["GG_Compta", "GG_Pedagogie", "GG_Direction", "GG_VPN", "GG_Admins_Locaux"].map((name) => ({ name, ou: "ou-groupes" })),
+  gpos: [
+    { name: "Fond d'écran de l'école", links: ["ou-ecole"] },
+    { name: "Verrouillage de l'écran après 10 min", links: ["ou-users"] },
+    { name: "Lecteur réseau Compta (S:)", links: [] },
+  ],
+};
+
+export const EXTRA_TEMPLATES = {
+  sokoban: {
+    prompt: "Poussez toutes les caisses sur les cibles. On ne peut que pousser une caisse, pas la tirer. Flèches du clavier ou boutons ; « Annuler » revient d'un coup en arrière. Trois niveaux, du plus simple au plus difficile.",
+    options: { levels: SOKOBAN_LEVELS, help: true }, correct: null, points: 3,
+  },
+  robot: {
+    prompt: "Le robot doit allumer toutes les lampes (cases jaunes). Composez son programme avec les boutons, puis lancez-le. La case P1 est une petite routine que vous pouvez appeler plusieurs fois : elle évite de tout réécrire.",
+    options: { levels: ROBOT_LEVELS, help: true }, correct: null, points: 3,
+  },
+  adsim: {
+    prompt: "Vous êtes administrateur du domaine ecole.local. Traitez les demandes du jour dans la console Active Directory.",
+    options: { initial: AD_INITIAL, help: false, tasks: [
+      "Créez le compte de Julie Martin (identifiant j.martin) dans l'OU Comptabilité, avec un mot de passe à changer à la première connexion.",
+      "Donnez-lui accès au partage de la comptabilité (groupe GG_Compta) et au VPN (groupe GG_VPN).",
+      "Kevin Martin (k.martin) quitte l'école : désactivez son compte et rangez-le dans l'OU Anciens collaborateurs. Ne le supprimez pas.",
+      "Le stagiaire t.stagiaire ne doit pas être administrateur des postes : retirez-le du groupe GG_Admins_Locaux.",
+      "La GPO « Lecteur réseau Compta (S:) » doit s'appliquer aux seuls utilisateurs de la comptabilité : liez-la à la bonne OU.",
+    ] },
+    correct: { checks: [
+      { kind: "exists", sam: "j.martin" }, { kind: "user_in_ou", sam: "j.martin", ou: "ou-compta" }, { kind: "must_change", sam: "j.martin" },
+      { kind: "in_group", sam: "j.martin", group: "GG_Compta" }, { kind: "in_group", sam: "j.martin", group: "GG_VPN" },
+      { kind: "disabled", sam: "k.martin" }, { kind: "user_in_ou", sam: "k.martin", ou: "ou-anciens" },
+      { kind: "not_in_group", sam: "t.stagiaire", group: "GG_Admins_Locaux" },
+      { kind: "gpo_linked", gpo: "Lecteur réseau Compta (S:)", ou: "ou-compta" },
+      { kind: "enabled", sam: "m.durand" }, { kind: "in_group", sam: "m.durand", group: "GG_Compta" },
+    ] },
+    points: 4,
+  },
+  tickets: {
+    prompt: "Vous arrivez au support à 9 h 15 : six tickets attendent. Pour chacun, indiquez l'impact, l'urgence et le groupe qui doit le traiter. La priorité se calcule toute seule, comme dans GLPI.",
+    options: { help: false, groups: ["Support poste de travail (N1)", "Réseau et infrastructure (N2)", "Sécurité (RSSI)", "Applications métier"], tickets: [
+      { id: "t1", title: "Plus aucun mail", from: "Accueil", text: "Depuis 9 h, personne dans l'école ne reçoit ni n'envoie de mails." },
+      { id: "t2", title: "J'ai cliqué sur un lien", from: "Comptabilité", text: "J'ai cliqué sur le lien d'un mail « Microsoft » et j'ai tapé mon mot de passe. Depuis, j'ai des alertes de connexion." },
+      { id: "t3", title: "Touche qui accroche", from: "Pédagogie", text: "La touche E de mon clavier accroche un peu, ce n'est pas urgent." },
+      { id: "t4", title: "Imprimante du 2e étage", from: "Direction", text: "L'imprimante du 2e étage ne marche plus. Celle du 1er étage fonctionne." },
+      { id: "t5", title: "Export de la paie en erreur", from: "Comptabilité", text: "Le logiciel de paie affiche une erreur à l'export. Les virements doivent partir demain matin." },
+      { id: "t6", title: "Wi-Fi lent en B12", from: "Pédagogie", text: "Le Wi-Fi est très lent dans la salle B12 pendant les cours, les étudiants n'arrivent pas à charger leurs exercices." },
+    ] },
+    correct: {
+      t1: { impact: "haute", urgence: "haute", groupe: "Réseau et infrastructure (N2)" },
+      t2: { impact: "haute", urgence: "haute", groupe: "Sécurité (RSSI)" },
+      t3: { impact: "basse", urgence: "basse", groupe: "Support poste de travail (N1)" },
+      t4: { impact: "moyenne", urgence: "basse", groupe: "Support poste de travail (N1)" },
+      t5: { impact: "moyenne", urgence: "haute", groupe: "Applications métier" },
+      t6: { impact: "moyenne", urgence: "moyenne", groupe: "Réseau et infrastructure (N2)" },
+    },
+    points: 3,
+  },
+};
+
+export const ALL_TEMPLATES: Record<string, unknown> = { ...PRACTICAL_TEMPLATES, ...EXTRA_TEMPLATES };
+
+// Les jeux de logique rejoignent le pack B1, les simulations d'administration le pack B3.
+PACKS.b1.questions.push(
+  { type: "sokoban", domain: "Logique et raisonnement", points: 3, time_limit_s: 360, prompt: EXTRA_TEMPLATES.sokoban.prompt, options: clone(EXTRA_TEMPLATES.sokoban.options), correct: null },
+  { type: "robot", domain: "Algorithmique", points: 3, time_limit_s: 360, prompt: EXTRA_TEMPLATES.robot.prompt, options: clone(EXTRA_TEMPLATES.robot.options), correct: null },
+);
+PACKS.b1.minutes = 32;
+PACKS.b3.questions.push(
+  { type: "adsim", domain: "Systèmes", points: 4, time_limit_s: 480, prompt: EXTRA_TEMPLATES.adsim.prompt, options: clone(EXTRA_TEMPLATES.adsim.options), correct: clone(EXTRA_TEMPLATES.adsim.correct) },
+  { type: "tickets", domain: "Logique et diagnostic", points: 3, time_limit_s: 300, prompt: EXTRA_TEMPLATES.tickets.prompt, options: clone(EXTRA_TEMPLATES.tickets.options), correct: clone(EXTRA_TEMPLATES.tickets.correct) },
+);
+PACKS.b3.minutes = 38;
+
+/** Mission Linux B1 : chasse au trésor guidée, toutes les commandes utiles sont expliquées à l'écran. */
+export const B1_TERMINAL = {
+  user: "explorateur", hostname: "cybersup-lab", home: "/home/explorateur",
+  motd: [
+    "Bienvenue sur un vrai terminal Linux (simulé). Ici, on parle à l'ordinateur en tapant des commandes, puis Entrée.",
+    "Les 4 commandes dont vous avez besoin :",
+    "  ls            liste ce qu'il y a dans le dossier où vous êtes",
+    "  ls -a         la même chose, y compris les fichiers cachés (leur nom commence par un point)",
+    "  cd dossier    entre dans un dossier ; cd ..  remonte d'un cran",
+    "  cat fichier   affiche le contenu d'un fichier",
+    "Commencez par : cat LISEZMOI.txt",
+  ].join("\n"),
+  files: {
+    "/home/explorateur/LISEZMOI.txt": "Un agent a caché un code secret dans ce compte.\nIndice 1 : il est rangé quelque part dans le dossier « coffre ».\nIndice 2 : l'agent aime cacher ses fichiers (pensez à ls -a).\nQuand vous l'avez, recopiez le code (il commence par CYBER{) dans la case sous le terminal.\nBonus : créez un dossier nommé « rapport » dans votre dossier personnel (commande : mkdir rapport).\n",
+    "/home/explorateur/coffre/etagere/carton.txt": "Rien ici, cherchez encore. Avez-vous essayé ls -a ?\n",
+    "/home/explorateur/coffre/etagere/.boite_noire/code.txt": "Bravo ! Le code est : CYBER{l1nux_s4ns_p3ur}\n",
+    "/home/explorateur/coffre/notes.txt": "L'étagère n'est pas aussi vide qu'elle en a l'air.\n",
+  },
+  objectives: [
+    { id: "lire", title: "Lire le fichier LISEZMOI.txt", check: { type: "ran", command: "cat" } },
+    { id: "cache", title: "Afficher les fichiers cachés avec ls -a", check: { type: "ran", command: "ls" } },
+    { id: "dossier", title: "Créer le dossier « rapport »", check: { type: "exists", path: "/home/explorateur/rapport", kind: "dir" } },
+  ],
+};
+PACKS.b1.questions.push({ type: "terminal", domain: "Fonctionnement du numérique", points: 3, time_limit_s: 420,
+  prompt: "Chasse au trésor dans un terminal Linux : suivez les indications affichées, aucune connaissance n'est nécessaire.",
+  options: null, correct: null, terminal: { scenario: JSON.stringify(B1_TERMINAL, null, 2), flag: "CYBER{l1nux_s4ns_p3ur}" } });
+PACKS.b1.minutes = 39;
+
+/* ---------------- Esprit critique (fake news) et culture informatique, pour les B1 ---------------- */
+
+export const FEED_TEMPLATE = {
+  prompt: "Ces publications circulent sur un réseau social. Pour chacune, dites si elle est fiable, douteuse (à vérifier avant de la croire) ou fausse. Indices utiles : qui publie, l'adresse du lien, le ton du message.",
+  options: { help: true, posts: [
+    { id: "f1", author: "Info Rapide 24", handle: "@inforapide24_", badge: "nouveau", age: "il y a 3 jours", date: "il y a 2 h",
+      text: "🚨 URGENT !!! À partir de lundi, l'application MessaGo deviendra PAYANTE (4,99 €/mois) sauf si vous partagez ce message à 10 contacts. PARTAGEZ AVANT QUE CE SOIT SUPPRIMÉ !!!", stats: "18 400 partages" },
+    { id: "f2", author: "Cybersup", handle: "@cybersup", badge: "officiel", date: "hier",
+      text: "Maintenance de l'espace candidat samedi de 8 h à 10 h. Les inscriptions restent possibles ensuite. Merci de votre patience.",
+      link: { title: "Planning des maintenances", url: "https://www.cybersup.ai/maintenance" }, stats: "42 j'aime" },
+    { id: "f3", author: "Aide Étudiants France", handle: "@aide_etudiants_fr2026", badge: "nouveau", age: "il y a 1 semaine", date: "il y a 5 h",
+      text: "Bonne nouvelle 🎉 L'État verse une prime numérique de 500 € à TOUS les étudiants. Inscrivez-vous avant minuit avec votre numéro de carte bancaire pour la recevoir.",
+      link: { title: "Prime numérique étudiante : inscription", url: "https://prime-etudiant-gouv.info-officiel.co/inscription" }, stats: "9 100 partages" },
+    { id: "f4", author: "Actu Jeunes", handle: "@actujeunes", date: "il y a 1 jour",
+      text: "Selon une étude, les jeunes qui jouent aux jeux vidéo ont de meilleures notes en maths. 🎮➕📈", stats: "31 000 j'aime" },
+    { id: "f5", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique", badge: "media", date: "il y a 3 h",
+      text: "Une faille de sécurité dans l'application MessaGo a été corrigée. L'éditeur recommande d'installer la dernière mise à jour depuis le magasin d'applications.",
+      link: { title: "Faille dans MessaGo : ce qu'il faut faire", url: "https://www.quotidien-numerique.fr/securite/faille-messago-corrigee" }, stats: "1 200 partages" },
+    { id: "f6", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique_officiel_", badge: "nouveau", age: "il y a 2 jours", date: "il y a 40 min",
+      text: "INCROYABLE 😱 Un célèbre youtubeur arrêté pour piratage, regardez la vidéo avant qu'elle soit censurée !",
+      link: { title: "La vidéo choc", url: "https://quotidien-numerique.fr.actu-choc.net/video" }, stats: "5 600 partages" },
+    { id: "f7", author: "Thomas", handle: "@thomas_du_75", date: "il y a 6 h",
+      text: "Il paraît qu'Internet va être coupé dans toute la France ce week-end pour une maintenance. Quelqu'un a des infos ?", stats: "230 réponses" },
+  ] },
+  correct: { f1: "faux", f2: "fiable", f3: "faux", f4: "douteux", f5: "fiable", f6: "faux", f7: "douteux" },
+  points: 3,
+};
+(ALL_TEMPLATES as any).feed = FEED_TEMPLATE;
+
+const q = (id: string, prompt: string, opts: string[], good: number[], explanation: string): PackQuestion => ({
+  type: good.length > 1 ? "mcq_multi" : "mcq_single", domain: "Culture informatique", points: 1, time_limit_s: 45, prompt, explanation,
+  options: opts.map((text, i) => ({ id: `${id}${"abcdef"[i]}`, text })), correct: good.map((i) => `${id}${"abcdef"[i]}`),
+});
+export const CULTURE_B1: PackQuestion[] = [
+  q("c1", "Que garantit le petit cadenas à côté de l'adresse d'un site ?", ["Que le site est honnête", "Que la connexion entre vous et le site est chiffrée", "Que le site est gouvernemental", "Que le site n'a pas de publicité"], [1], "Le cadenas (HTTPS) chiffre la connexion. Un faux site peut très bien en avoir un : il ne prouve pas que le site est honnête."),
+  q("c2", "Lequel de ces noms est un moteur de recherche ?", ["Firefox", "Qwant", "Windows", "Bluetooth"], [1], "Qwant est un moteur de recherche (comme Google). Firefox est un navigateur, Windows un système d'exploitation."),
+  q("c3", "Lequel de ces logiciels est un système d'exploitation ?", ["Linux", "Word", "Google", "YouTube"], [0], "Le système d'exploitation (Linux, Windows, macOS, Android) fait fonctionner l'ordinateur et ses programmes."),
+  q("c4", "Que veut dire « open source » pour un logiciel ?", ["Il est forcément gratuit et sans bug", "Son code source est public : chacun peut le lire, le modifier et le partager", "Il ne fonctionne qu'en ligne", "Il a été créé par un gouvernement"], [1], "Open source = code public et réutilisable selon une licence. Linux, Firefox ou VLC sont open source."),
+  q("c5", "Combien de bits contient un octet ?", ["2", "8", "10", "1 000"], [1], "Un octet = 8 bits. Un bit vaut 0 ou 1."),
+  q("c6", "À quoi sert la mémoire vive (RAM) d'un ordinateur ?", ["À garder vos photos quand l'ordinateur est éteint", "À stocker temporairement ce que l'ordinateur est en train d'utiliser", "À se connecter au Wi-Fi", "À refroidir le processeur"], [1], "La RAM est la mémoire de travail, effacée à l'extinction. Les fichiers sont gardés sur le disque (SSD ou disque dur)."),
+  q("c7", "Que signifie « stocker ses fichiers dans le cloud » ?", ["Les garder sur une clé USB", "Les envoyer sur des serveurs d'une entreprise, accessibles par Internet", "Les supprimer définitivement", "Les imprimer"], [1], "Le cloud, ce sont les ordinateurs (serveurs) de quelqu'un d'autre, auxquels on accède par Internet."),
+  q("c8", "Quel est le rôle d'une adresse IP ?", ["Identifier une machine sur un réseau", "Protéger un compte par un mot de passe", "Accélérer la connexion", "Afficher les pages web"], [0], "Comme une adresse postale, l'adresse IP permet aux données de trouver la bonne machine."),
+  q("c9", "Alan Turing est célèbre pour :", ["Avoir créé Facebook", "Ses travaux fondateurs de l'informatique et le décryptage d'Enigma pendant la Seconde Guerre mondiale", "Avoir inventé le Wi-Fi", "Avoir fondé Apple"], [1], "Alan Turing est l'un des pères de l'informatique ; son équipe a cassé le chiffrement allemand Enigma."),
+  q("c10", "D'où vient le mot « bug » en informatique ?", ["D'un insecte retrouvé coincé dans un ordinateur en 1947", "D'un logiciel appelé Bug", "Du nom d'un pirate", "D'une marque de clavier"], [0], "En 1947, l'équipe de Grace Hopper a trouvé un papillon de nuit coincé dans le calculateur Mark II et l'a noté comme premier « bug »."),
+  q("c11", "Cochez les bons réflexes face à un mail qui vous demande votre mot de passe (plusieurs réponses) :", ["Cliquer vite pour ne pas perdre son compte", "Vérifier l'adresse de l'expéditeur", "Aller sur le site en tapant soi-même son adresse", "Répondre avec son mot de passe"], [1, 2], "Un service sérieux ne demande jamais votre mot de passe par mail. On vérifie l'expéditeur et on passe par le site officiel."),
+  q("c12", "Qu'est-ce qu'un « hacker éthique » ?", ["Un pirate qui vole des données", "Un spécialiste qui cherche les failles avec l'accord de l'entreprise, pour les faire corriger", "Un logiciel antivirus", "Un réseau social"], [1], "Le hacker éthique (ou pentesteur) teste la sécurité avec autorisation, pour protéger."),
+];
+
+PACKS.b1.questions.push({ type: "feed", domain: "Réflexes cyber", points: 3, time_limit_s: 300, prompt: FEED_TEMPLATE.prompt, options: clone(FEED_TEMPLATE.options), correct: clone(FEED_TEMPLATE.correct) }, ...CULTURE_B1);
+PACKS.b1.minutes = 53;

@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { DecodeQuestion, PasswordCreate, SqlQuestion } from "@/components/questions/Practical";
 import { HeadersQuestion, NetPuzzle, SubnetQuestion } from "@/components/questions/Networky";
 import MiniCours from "@/components/questions/MiniCours";
+import { Feed, RobotGame, Sokoban, Tickets } from "@/components/questions/Games";
+const AdConsole = dynamic(() => import("@/components/questions/AdConsole"), { ssr: false });
 const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBlocks"), { ssr: false, loading: () => <p className="text-sm text-muted">Chargement de l&apos;éditeur de blocs…</p> });
 
 /**
@@ -56,6 +58,11 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
     case "headers": return <HeadersQuestion q={q} value={value} onText={onText || onChange} onChange={onChange} />;
     case "subnet": return <SubnetQuestion q={q} value={value} onText={onText || onChange} />;
     case "netpuzzle": return <NetPuzzle key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "sokoban": return <Sokoban key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "robot": return <RobotGame key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "adsim": return <AdConsole key={q.id} q={q} value={value} onChange={onText || onChange} />;
+    case "tickets": return <Tickets q={q} value={value} onChange={onChange} />;
+    case "feed": return <Feed q={q} value={value} onChange={onChange} />;
     case "password":
       if (q.options?.mode === "create") return <PasswordCreate q={q} value={value} onText={onText || onChange} />;
       return <PasswordRank q={q} value={value} onChange={onChange} />;

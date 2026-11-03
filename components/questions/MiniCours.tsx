@@ -34,6 +34,21 @@ const COURS: Record<string, { titre: string; lignes: string[] }> = {
     "« From » est l'expéditeur affiché : il se falsifie facilement. « Reply-To » est l'adresse où partira votre réponse.",
     "SPF vérifie que le serveur avait le droit d'envoyer pour ce domaine ; DKIM vérifie une signature. « fail » ou « none » est mauvais signe.",
   ] },
+  sokoban: { titre: "Les règles", lignes: [
+    "Vous êtes le rond bleu. Vous pouvez pousser une caisse (carré orange) en marchant dessus, mais jamais la tirer.",
+    "Une caisse coincée dans un coin ne peut plus bouger : réfléchissez avant de pousser.",
+    "« Annuler » revient d'un pas en arrière, « Recommencer » remet le niveau à zéro. Les deux sont permis.",
+  ] },
+  robot: { titre: "Comment programmer le robot", lignes: [
+    "Chaque bouton ajoute une instruction. Le robot les exécute de gauche à droite quand vous cliquez sur « Lancer ».",
+    "« Allumer » ne marche que si le robot est sur une lampe. Il avance dans le sens de la flèche.",
+    "P1 est une petite routine : écrivez-la une fois dans son cadre, puis appelez-la plusieurs fois depuis le programme principal.",
+  ] },
+  feed: { titre: "Comment repérer une fausse information", lignes: [
+    "Qui parle ? Un compte officiel ou un média connu, ou bien un compte créé il y a deux jours ?",
+    "Regardez l'adresse du lien : un site connu imité (lettre en plus, .info, .co) est un très mauvais signe.",
+    "Méfiez-vous des majuscules, de l'urgence (« partagez avant que ce soit supprimé ») et des promesses trop belles.",
+  ] },
   netpuzzle: { titre: "Le principe", lignes: [
     "Chaque case est un morceau de câble. Cliquez dessus pour la faire tourner d'un quart de tour.",
     "Le carré central est le serveur ; les petits écrans sont les postes. Tout ce qui est relié au serveur devient orange.",

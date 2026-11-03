@@ -29,7 +29,7 @@ function textToPackets(t: string, prefix: string): { packets: FwPacket[]; error:
 
 export default function PracticalEditor(props: Props) {
   const { type, options, correct, onChange } = props;
-  const withHelp = ["sql", "decode", "password", "blocks", "headers", "netpuzzle"].includes(type);
+  const withHelp = ["sql", "decode", "password", "blocks", "headers", "netpuzzle", "sokoban", "robot", "feed"].includes(type);
   return (
     <div className="space-y-2">
       {withHelp && (
@@ -113,6 +113,7 @@ function PracticalForm({ type, options, correct, onChange }: Props) {
   }
 
   if (type === "blocks") return <FirewallEditor o={o} k={k} set={set} />;
+  if (["sokoban", "robot", "adsim", "tickets", "feed"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
 
   if (type === "headers") {
     const ask: HeaderField[] = o.ask || [];
@@ -243,6 +244,33 @@ function FirewallEditor({ o, k, set }: { o: any; k: any; set: (o: any, k?: any) 
         <textarea className="input font-mono text-xs min-h-[140px]" value={hidden} onChange={(e) => { setHidden(e.target.value); const r = textToPackets(e.target.value, "h"); if (!r.error) set(o, { packets: r.packets }); }} />
         {errH && <span className="text-xs text-danger">{errH}</span>}
       </Field>
+    </div>
+  );
+}
+
+const JSON_HELP: Record<string, string> = {
+  sokoban: "levels : liste de niveaux { map, par }. Plan : # mur, . cible, $ caisse, * caisse sur cible, @ joueur. par = nombre de coups visé (au-delà, 70 % des points du niveau).",
+  robot: "levels : liste de niveaux { map, start: [x, y], dir (0 haut, 1 droite, 2 bas, 3 gauche), main, p1 }. Plan : # vide, . sol, L lampe ; main et p1 = nombre de cases.",
+  adsim: "initial : annuaire de départ (ous, users, groups, gpos) ; tasks : demandes affichées. Correction : checks (exists, user_in_ou, in_group, not_in_group, disabled, enabled, must_change, gpo_linked, gpo_not_linked).",
+  feed: "posts : { id, author, handle, badge (officiel, media, nouveau), age, date, text, link { title, url }, stats }. Correction : pour chaque id, fiable, douteux ou faux.",
+  tickets: "tickets : { id, title, from, text } ; groups : groupes d'attribution. Correction : pour chaque id, { impact, urgence, groupe } (haute, moyenne ou basse).",
+};
+
+/** Éditeur avancé (JSON) pour les jeux et simulations : le modèle inséré est déjà complet. */
+function JsonEditor({ type, o, k, set }: { type: string; o: any; k: any; set: (o: any, k?: any) => void }) {
+  const [opt, setOpt] = useState(() => JSON.stringify(o, null, 2));
+  const [key, setKey] = useState(() => JSON.stringify(k ?? null, null, 2));
+  const [err, setErr] = useState<string | null>(null);
+  const apply = (a: string, b: string) => {
+    try { set(JSON.parse(a), JSON.parse(b)); setErr(null); } catch (e: any) { setErr("JSON invalide : " + e.message); }
+  };
+  const needsKey = type === "adsim" || type === "tickets" || type === "feed";
+  return (
+    <div className="space-y-2 rounded-lg border border-line p-3">
+      <p className="text-xs text-muted">{JSON_HELP[type]} L&apos;exemple inséré est prêt à l&apos;emploi : adaptez-le ou gardez-le.</p>
+      <Field label="Contenu de l'exercice (JSON)"><textarea className="input font-mono text-xs min-h-[180px]" value={opt} onChange={(e) => { setOpt(e.target.value); apply(e.target.value, key); }} /></Field>
+      {needsKey && <Field label="Correction (JSON)"><textarea className="input font-mono text-xs min-h-[140px]" value={key} onChange={(e) => { setKey(e.target.value); apply(opt, e.target.value); }} /></Field>}
+      {err && <p className="text-xs text-danger">{err}</p>}
     </div>
   );
 }

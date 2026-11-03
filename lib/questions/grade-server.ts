@@ -4,6 +4,11 @@ import { gradeFirewall, validProgram, type FwPacket } from "./firewall";
 import { policyChecks, type PasswordOptions } from "./password";
 import { gradeSubnet } from "./subnet";
 import { gradeNet } from "./netpuzzle";
+import { gradeSokoban } from "./sokoban";
+import { gradeRobot } from "./robot";
+import { gradeAd } from "./adsim";
+import { gradeTickets } from "./tickets";
+import { gradeFeed } from "./feed";
 
 /**
  * Notes calculées par le serveur pour les types qui ne se corrigent pas en SQL :
@@ -93,6 +98,11 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
   try {
     if (type === "subnet") return gradeSubnet(options, seed, resp, points);
     if (type === "netpuzzle") return gradeNet(options || {}, seed, resp, points);
+    if (type === "sokoban") return gradeSokoban(options, resp, points);
+    if (type === "robot") return gradeRobot(options, resp, points);
+    if (type === "adsim") return gradeAd(key, resp, points);
+    if (type === "tickets") return gradeTickets(options, key, resp, points);
+    if (type === "feed") return gradeFeed(options, key, resp, points);
     if (type === "sql") return await gradeSql(options, key || {}, resp, points);
     if (type === "password") return await gradePassword(options, resp, points);
     if (type === "blocks") {
@@ -103,4 +113,4 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
   return null;
 }
 
-export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle"]);
+export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed"]);

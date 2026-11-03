@@ -6,15 +6,15 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
-import { PACKS, PRACTICAL_TEMPLATES } from "@/lib/questions/templates";
+import { ALL_TEMPLATES, PACKS } from "@/lib/questions/templates";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
-const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle"];
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
@@ -130,7 +130,7 @@ export default function EditTest() {
       options: isMcq ? [{ id: crypto.randomUUID(), text: "" }, { id: crypto.randomUUID(), text: "" }] : null,
       correct: isMcq ? [] : type === "short_answer" ? { answers: [], case_sensitive: false } : null, points: 1, image_url: null,
       ...(type === "hotspot" ? { options: { layout: "code", multi: false, segments: [] }, correct: [] } : {}),
-      ...(type in PRACTICAL_TEMPLATES ? JSON.parse(JSON.stringify((PRACTICAL_TEMPLATES as Record<string, unknown>)[type])) : {}),
+      ...(type in ALL_TEMPLATES ? JSON.parse(JSON.stringify(ALL_TEMPLATES[type])) : {}),
       terminal: type === "terminal" ? { scenario: JSON.stringify(TERMINAL_TEMPLATE, null, 2), flag: "CYBER{exemple_a_changer}" } : null,
       external: type === "external" ? externalDraft("crime") : null,
     }]);
@@ -142,7 +142,7 @@ export default function EditTest() {
     setQuestions((qs) => [...qs, ...pack.questions.map((p, j) => ({
       test_id: id, position: qs.length + j, type: p.type as QType, prompt: p.prompt, domain: p.domain, points: p.points,
       time_limit_s: p.time_limit_s, options: JSON.parse(JSON.stringify(p.options)), correct: JSON.parse(JSON.stringify(p.correct)),
-      image_url: null, terminal: null, external: null,
+      image_url: null, terminal: p.terminal ? { ...p.terminal } : null, external: null, explanation: p.explanation ?? null,
     }))]);
     notify(`${pack.questions.length} exercices ajoutés. Allongez la durée d'environ ${pack.minutes} min, puis cliquez sur « Enregistrer ».`);
   };
@@ -485,6 +485,11 @@ export default function EditTest() {
             ["headers", "En-têtes de mail", "phishing : IP, SPF, Reply-To"],
             ["subnet", "Sous-réseaux", "valeurs propres à chaque candidat"],
             ["netpuzzle", "Puzzle réseau", "logique, sans prérequis"],
+            ["sokoban", "Caisses à pousser", "persévérance, sans prérequis"],
+            ["robot", "Robot à programmer", "pensée algorithmique"],
+            ["adsim", "Console Active Directory", "OU, comptes, groupes, GPO"],
+            ["tickets", "Tickets de support", "impact, urgence, attribution"],
+            ["feed", "Vrai ou fake ?", "fil d'actualité à trier"],
           ] as [QType, string, string][]).map(([t, l, d]) => (
             <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
               <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>
