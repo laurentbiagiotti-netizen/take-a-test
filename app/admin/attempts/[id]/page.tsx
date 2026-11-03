@@ -57,7 +57,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
   const mcqAnswers = sorted.filter((x: any) => x.question?.type === "mcq_single" || x.question?.type === "mcq_multi");
   const termAnswers = sorted.filter((x: any) => x.question?.type === "terminal");
-  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer"].includes(x.question?.type));
+  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks"].includes(x.question?.type));
   const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
   const { data: termHistory } = await supabase.from("terminal_history").select("question_id, cwd, command, created_at").eq("attempt_id", id).order("id");
   const { data: extSessions } = await supabase.from("external_sessions")
@@ -209,7 +209,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
 
       {funAnswers.length > 0 && (
         <section>
-          <h2 className="h2">Ordre, association, repérage, réponses courtes</h2>
+          <h2 className="h2">Exercices pratiques et réponses courtes</h2>
           <div className="mt-2 space-y-2">
             {funAnswers.map((ans: any) => {
               const q = ans.question, o = q?.options || {}, r = ans.response || {};
@@ -219,6 +219,10 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
               if (q.type === "matching") shown = Object.entries(r.pairs || {}).map(([l, rr]) => `${txt(o.left, [l])[0]} → ${txt(o.right, [rr as string])[0]}`).join("   ");
               if (q.type === "hotspot") shown = txt(o.segments, r.selected || []).join("   |   ");
               if (q.type === "short_answer") shown = r.text || "";
+              if (q.type === "sql") shown = r.query || "";
+              if (q.type === "decode") shown = `${r.text || ""}${r.recipe?.length ? `   (recette : ${r.recipe.map((x: any) => x.op + (x.arg ? `(${x.arg})` : "")).join(" > ")})` : ""}`;
+              if (q.type === "password") shown = o.mode === "rank" ? txt(o.items, r.order || []).map((t: string, k: number) => `${k + 1}. ${t}`).join("   ") : r.text ? "•".repeat(Math.min(24, String(r.text).length)) + ` (${String(r.text).length} caractères)` : "";
+              if (q.type === "blocks") shown = r.program ? `Par défaut : ${r.program.default === "block" ? "bloquer" : "autoriser"}, ${r.program.rules?.length || 0} règle(s)` : "";
               return (
                 <div key={ans.id} className="card">
                   <div className="text-xs text-muted">{ans.score ?? 0}/{q?.points} pt</div>

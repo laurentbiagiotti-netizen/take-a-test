@@ -11,6 +11,7 @@ export const TYPE_HINT: Record<string, string> = {
   mcq_single: "Une seule réponse", mcq_multi: "Plusieurs réponses possibles", long_text: "Réponse rédigée",
   terminal: "Défi terminal", ordering: "Remettre dans l'ordre", matching: "Associer",
   hotspot: "Repérer dans le document", short_answer: "Réponse courte", external: "Exercice pratique",
+  sql: "Requête SQL", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs",
 };
 
 export const EVENT_LABEL: Record<string, string> = {
@@ -31,7 +32,8 @@ export const EVENT_LABEL: Record<string, string> = {
 export function isAnswered(a: any): boolean {
   if (!a) return false;
   return !!((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim())
-    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length) || a.completed === true);
+    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length) || a.completed === true
+    || (typeof a.query === "string" && a.query.trim()) || (a.program && a.program.rules && a.program.rules.length));
 }
 
 /** Prêt à démarrer : un seul visage vu, ou détecteur indisponible mais image correcte. */

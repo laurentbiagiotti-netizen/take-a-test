@@ -4,7 +4,7 @@ import type { RecapData, RecapQuestion } from "./recap";
 
 const TYPE_NAME: Record<string, string> = {
   mcq_single: "QCM une réponse", mcq_multi: "QCM plusieurs réponses", long_text: "Réponse rédigée", terminal: "Défi terminal",
-  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil",
+  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil", sql: "Requête SQL", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs",
 };
 const END: Record<string, string> = {
   submitted: "Copie rendue par le candidat", expired: "Temps écoulé", terminated: "Interrompue par un surveillant",
@@ -79,6 +79,15 @@ export async function recapData(admin: SupabaseClient, attemptId: string): Promi
     if (q.type === "mcq_single" || q.type === "mcq_multi") {
       const chosen: string[] = r.selected || [];
       base.options = (q.options || []).map((o: any) => ({ text: o.text, correct: (key || []).includes(o.id), chosen: chosen.includes(o.id) }));
+    } else if (q.type === "sql") {
+      base.answer = r.query || "";
+    } else if (q.type === "decode") {
+      base.answer = r.text || "";
+      base.expected = (key?.answers || []).join(" ; ");
+    } else if (q.type === "blocks") {
+      base.answer = r.program ? `${r.program.rules?.length || 0} règle(s), politique par défaut : ${r.program.default === "block" ? "bloquer" : "autoriser"}` : "";
+    } else if (q.type === "password") {
+      base.answer = q.options?.mode === "rank" ? (r.order || []).map((id: string, k: number) => `${k + 1}. ${(q.options.items || []).find((x: any) => x.id === id)?.text ?? id}`).join("  ") : r.text ? `${String(r.text).length} caractères` : "";
     } else if (q.type === "short_answer") {
       base.answer = r.text || "";
       base.expected = (key?.answers || []).join(" ; ");

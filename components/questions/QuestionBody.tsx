@@ -2,6 +2,9 @@
 import { useMemo, useState } from "react";
 import Terminal, { type TermResult } from "@/components/Terminal";
 import ExternalExercise, { type ExternalInfo, type LaunchResult } from "@/components/questions/ExternalExercise";
+import dynamic from "next/dynamic";
+import { DecodeQuestion, PasswordCreate, SqlQuestion } from "@/components/questions/Practical";
+const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBlocks"), { ssr: false, loading: () => <p className="text-sm text-muted">Chargement de l&apos;éditeur de blocs…</p> });
 
 /**
  * Affiche une question selon son type et remonte la réponse via onChange.
@@ -42,6 +45,12 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
     case "matching": return <Matching q={q} value={value} onChange={onChange} />;
     case "hotspot": return <Hotspot q={q} value={value} onChange={onChange} />;
     case "short_answer": return <ShortAnswer q={q} value={value} onChange={onText || onChange} />;
+    case "sql": return <SqlQuestion key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "decode": return <DecodeQuestion key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "blocks": return <FirewallBlocks key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "password":
+      if (q.options?.mode === "create") return <PasswordCreate q={q} value={value} onText={onText || onChange} />;
+      return <PasswordRank q={q} value={value} onChange={onChange} />;
     case "terminal":
       return q.terminal && runTerminal ? (
         <div className="space-y-3">
@@ -99,7 +108,23 @@ function Mcq({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any
   );
 }
 
-function Ordering({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any) => void }) {
+/** Mots de passe à classer du plus faible au plus fort : mélangés de façon stable par question. */
+function PasswordRank({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any) => void }) {
+  const items = useMemo(() => {
+    const list = [...(q.options?.items || [])];
+    let h = 0; for (const c of q.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    for (let i = list.length - 1; i > 0; i--) { h = (h * 1103515245 + 12345) >>> 0; const j = h % (i + 1); [list[i], list[j]] = [list[j], list[i]]; }
+    return list;
+  }, [q.id, q.options]);
+  return (
+    <div>
+      <p className="text-sm text-muted mb-3">Du <b className="text-fg">plus faible</b> (en haut) au <b className="text-fg">plus robuste</b> (en bas).</p>
+      <Ordering q={{ ...q, options: items.map((x: any) => ({ id: x.id, text: x.text })) }} value={value} onChange={onChange} mono />
+    </div>
+  );
+}
+
+function Ordering({ q, value, onChange, mono }: { q: PublicQ; value: any; onChange: (r: any) => void; mono?: boolean }) {
   const byId = useMemo(() => new Map((q.options || []).map((o: any) => [o.id, o.text])), [q.options]);
   const order: string[] = value?.order || (q.options || []).map((o: any) => o.id);
   const [drag, setDrag] = useState<number | null>(null);
@@ -120,7 +145,7 @@ function Ordering({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
             className={`relative flex items-center gap-4 pl-1 pr-3 py-2.5 rounded-xl border bg-surface-2 cursor-grab active:cursor-grabbing transition-all
               ${drag === i ? "opacity-50 scale-[0.99] border-accent" : over === i && drag !== null ? "border-accent shadow-[0_0_0_1px_rgba(253,113,25,0.4)]" : "border-line hover:border-line-strong"}`}>
             <span className="relative z-10 shrink-0 w-10 h-10 grid place-items-center rounded-full bg-bg border-2 border-accent/70 font-display text-accent">{i + 1}</span>
-            <span className="flex-1">{String(byId.get(id) ?? "")}</span>
+            <span className={`flex-1 ${mono ? "font-mono" : ""}`}>{String(byId.get(id) ?? "")}</span>
             <span aria-hidden className="text-faint select-none tracking-tighter mr-1">⋮⋮</span>
             <span className="flex gap-1">
               <button type="button" className="w-8 h-8 grid place-items-center rounded-md border border-line-strong text-muted hover:text-accent hover:border-accent disabled:opacity-30" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Monter">↑</button>

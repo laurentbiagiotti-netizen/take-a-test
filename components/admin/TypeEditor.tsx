@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { parseCsv, type QType } from "@/lib/questions/kinds";
+import PracticalEditor from "@/components/admin/PracticalEditor";
 
 /**
  * Éditeurs des types « fun » avec des formats de saisie simples :
@@ -31,7 +32,12 @@ function initialDraft(type: QType, o: any, c: any): string {
   return "";
 }
 
-export default function TypeEditor({ type, options, correct, onChange }: Props) {
+export default function TypeEditor(props: Props) {
+  if (["sql", "decode", "password", "blocks"].includes(props.type)) return <PracticalEditor {...props} />;
+  return <ClassicEditor {...props} />;
+}
+
+function ClassicEditor({ type, options, correct, onChange }: Props) {
   const [draft, setDraft] = useState(() => initialDraft(type, options, correct));
   const [csv, setCsv] = useState(() => options?.data?.kind === "table" ? [options.data.columns.join(";"), ...options.data.rows.map((r: string[]) => r.join(";"))].join("\n") : options?.data?.kind === "text" ? options.data.text : "");
 

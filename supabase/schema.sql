@@ -13,7 +13,8 @@
 ------------------------------------------------------------
 create type user_role as enum ('admin', 'proctor', 'candidate');
 create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal',
-                                   'ordering', 'matching', 'hotspot', 'short_answer', 'external');
+                                   'ordering', 'matching', 'hotspot', 'short_answer', 'external',
+                                   'sql', 'decode', 'password', 'blocks');
 create type attempt_status as enum ('pending', 'in_progress', 'submitted', 'terminated', 'expired');
 create type identity_status as enum ('not_required', 'pending', 'submitted', 'verified', 'rejected');
 
@@ -210,6 +211,8 @@ create table answers (
   question_id uuid not null references questions(id) on delete cascade,
   response jsonb,
   score numeric,
+  -- Note calculée par le serveur (SQL, mots de passe, pare-feu) à chaque enregistrement
+  auto_score numeric,
   feedback text,
   graded_by uuid references profiles(id) on delete set null,
   updated_at timestamptz not null default now(),
@@ -718,7 +721,7 @@ begin
            count(*) filter (where x not in (select jsonb_array_elements_text(p_key)))
       into tp, fp from jsonb_array_elements_text(coalesce(p_resp->'selected', '[]')) x;
     return round(p_points * greatest(0, tp - fp) / n, 2);
-  elsif p_type = 'short_answer' then
+  elsif p_type in ('short_answer', 'decode') then
     if p_resp is null then return 0; end if;
     if exists (select 1 from jsonb_array_elements_text(coalesce(p_key->'answers', '[]')) ans
                where _norm(ans, coalesce((p_key->>'case_sensitive')::boolean, false))
@@ -757,7 +760,7 @@ begin
   select partial_points into v_partial from tests where id = a.test_id;
 
   for r in
-    select q.id as qid, q.type, q.points, q.options, an.id as aid, an.response, k.correct, qt.flag,
+    select q.id as qid, q.type, q.points, q.options, an.id as aid, an.response, an.auto_score, k.correct, qt.flag,
            jsonb_array_length(coalesce(qt.scenario->'objectives', '[]'::jsonb)) as n_obj, ts.done_ids,
            es.score_ratio, es.id as esid
     from questions q
@@ -770,7 +773,10 @@ begin
   loop
     v_max := v_max + r.points;
     continue when r.type = 'long_text';
-    if r.type = 'external' then
+    if r.type in ('sql', 'password', 'blocks') then
+      -- Noté par le serveur à l'enregistrement de la réponse (jamais par le navigateur)
+      s := least(r.points, greatest(0, coalesce(r.auto_score, 0)));
+    elsif r.type = 'external' then
       s := round(r.points * least(1, greatest(0, coalesce(r.score_ratio, 0))), 2);
       update external_sessions set final = true where id = r.esid;
     elsif r.type = 'mcq_multi' and v_partial and r.response is not null then
@@ -1151,7 +1157,7 @@ begin
             (select jsonb_agg(o order by array_position(
                array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
              from jsonb_array_elements(q2.options->'right') o))
-        when q2.type in ('hotspot', 'short_answer') then q2.options
+        when q2.type in ('hotspot', 'short_answer', 'sql', 'decode', 'password', 'blocks') then q2.options
         else null end)
     order by array_position(a.question_order, q2.id))
   into v_questions from questions q2 where q2.id = any(a.question_order);
@@ -1333,6 +1339,39 @@ begin
     end if;
     p_response := jsonb_build_object('selected',
       (select coalesce(jsonb_agg(distinct x), '[]'::jsonb) from jsonb_array_elements(v_sel) x));
+  elsif q.type = 'sql' then
+    if coalesce(jsonb_typeof(p_response->'query'), '') <> 'string' or length(p_response->>'query') > 4000 then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('query', p_response->>'query');
+  elsif q.type = 'decode' then
+    if coalesce(jsonb_typeof(p_response->'text'), '') <> 'string' or length(p_response->>'text') > 500
+       or (p_response ? 'recipe' and (jsonb_typeof(p_response->'recipe') <> 'array' or length((p_response->'recipe')::text) > 4000)) then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('text', p_response->>'text', 'recipe', coalesce(p_response->'recipe', '[]'::jsonb));
+  elsif q.type = 'password' then
+    if q.options->>'mode' = 'rank' then
+      v_sel := p_response->'order';
+      if coalesce(jsonb_typeof(v_sel), '') <> 'array' or jsonb_array_length(v_sel) <> jsonb_array_length(q.options->'items')
+         or (select count(distinct x) from jsonb_array_elements_text(v_sel) x) <> jsonb_array_length(q.options->'items')
+         or exists (select 1 from jsonb_array_elements(v_sel) x where jsonb_typeof(x) <> 'string'
+                    or (x #>> '{}') not in (select o->>'id' from jsonb_array_elements(q.options->'items') o)) then
+        raise exception 'bad_response' using errcode = 'P0001';
+      end if;
+      p_response := jsonb_build_object('order', v_sel);
+    else
+      if coalesce(jsonb_typeof(p_response->'text'), '') <> 'string' or length(p_response->>'text') > 128 then
+        raise exception 'bad_response' using errcode = 'P0001';
+      end if;
+      p_response := jsonb_build_object('text', p_response->>'text');
+    end if;
+  elsif q.type = 'blocks' then
+    if coalesce(jsonb_typeof(p_response->'program'), '') <> 'object' or length((p_response->'program')::text) > 20000
+       or (p_response ? 'state' and length((p_response->'state')::text) > 60000) then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('program', p_response->'program', 'state', p_response->'state');
   elsif q.type in ('mcq_single', 'mcq_multi') then
     v_sel := p_response->'selected';
     if jsonb_typeof(v_sel) <> 'array' then raise exception 'bad_response' using errcode = 'P0001'; end if;
@@ -1352,7 +1391,10 @@ begin
 
   insert into answers(attempt_id, question_id, response, updated_at)
   values (a.id, p_question, p_response, now())
-  on conflict (attempt_id, question_id) do update set response = excluded.response, updated_at = now();
+  on conflict (attempt_id, question_id) do update set response = excluded.response, auto_score = null, updated_at = now();
+  if q.type in ('sql', 'password', 'blocks') then
+    return jsonb_build_object('status', 'in_progress', 'saved', true, 'auto', true, 'response', p_response);
+  end if;
   return jsonb_build_object('status', 'in_progress', 'saved', true);
 end; $$;
 
@@ -1981,6 +2023,24 @@ end; $$;
 
 revoke execute on function public.access_by_code(text, text), public.staff_bootstrap(uuid) from public, anon, authenticated;
 grant execute on function public.access_by_code(text, text), public.staff_bootstrap(uuid) to service_role;
+
+------------------------------------------------------------
+-- Note calculée par le serveur (types sql, password, blocks)
+------------------------------------------------------------
+-- Appelée par le serveur juste après exam_save_answer, avec la note qu'il a calculée
+-- à partir de la réponse enregistrée. Ignorée si la réponse a changé entre-temps.
+create or replace function public.exam_set_auto_score(p_attempt uuid, p_question uuid, p_response jsonb, p_score numeric)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_points numeric; v_n int;
+begin
+  select q.points into v_points from questions q join attempts a on a.id = p_attempt
+    where q.id = p_question and q.type in ('sql', 'password', 'blocks') and a.status = 'in_progress';
+  if v_points is null then return jsonb_build_object('ok', false); end if;
+  update answers set auto_score = least(v_points, greatest(0, coalesce(p_score, 0)))
+    where attempt_id = p_attempt and question_id = p_question and response = p_response;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('ok', v_n = 1);
+end; $$;
 
 ------------------------------------------------------------
 -- Pause et scan à 360° de la pièce (filmé au téléphone)

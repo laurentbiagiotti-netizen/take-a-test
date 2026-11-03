@@ -6,14 +6,15 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
+import { PRACTICAL_TEMPLATES } from "@/lib/questions/templates";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
-const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer"];
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
@@ -129,6 +130,7 @@ export default function EditTest() {
       options: isMcq ? [{ id: crypto.randomUUID(), text: "" }, { id: crypto.randomUUID(), text: "" }] : null,
       correct: isMcq ? [] : type === "short_answer" ? { answers: [], case_sensitive: false } : null, points: 1, image_url: null,
       ...(type === "hotspot" ? { options: { layout: "code", multi: false, segments: [] }, correct: [] } : {}),
+      ...(type in PRACTICAL_TEMPLATES ? JSON.parse(JSON.stringify((PRACTICAL_TEMPLATES as Record<string, unknown>)[type])) : {}),
       terminal: type === "terminal" ? { scenario: JSON.stringify(TERMINAL_TEMPLATE, null, 2), flag: "CYBER{exemple_a_changer}" } : null,
       external: type === "external" ? externalDraft("crime") : null,
     }]);
@@ -465,6 +467,10 @@ export default function EditTest() {
             ["hotspot", "Repérer", "code, log, mail, tableau"],
             ["terminal", "Défi terminal", "Linux simulé"],
             ["external", "Exercice outil", "Crime GeoGuess, Cybersup OS"],
+            ["sql", "Requête SQL", "logs en base, injection"],
+            ["decode", "Décodage", "Base64, ROT13, XOR…"],
+            ["password", "Mots de passe", "classer ou créer"],
+            ["blocks", "Pare-feu en blocs", "règles à assembler"],
           ] as [QType, string, string][]).map(([t, l, d]) => (
             <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
               <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>

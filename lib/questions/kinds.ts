@@ -2,7 +2,7 @@
  * Types de questions : formats, validation (éditeur admin et API) et
  * barème (identique à la fonction SQL _grade, utilisé par la démo).
  */
-export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer";
+export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks";
 
 export const TYPE_LABEL: Record<QType, string> = {
   mcq_single: "QCM, une réponse",
@@ -13,6 +13,10 @@ export const TYPE_LABEL: Record<QType, string> = {
   matching: "Associer",
   hotspot: "Trouver dans le document",
   short_answer: "Réponse courte / analyse de données",
+  sql: "Requête SQL",
+  decode: "Décodage (recette)",
+  password: "Mots de passe",
+  blocks: "Pare-feu en blocs",
 };
 
 export type Item = { id: string; text: string };
@@ -30,6 +34,11 @@ export type ShortOptions = { data?: DataBlock | null; placeholder?: string };
 const isStr = (x: unknown, max = 2000) => typeof x === "string" && x.length <= max;
 const items = (x: unknown, min: number, max: number) =>
   Array.isArray(x) && x.length >= min && x.length <= max && x.every((i: any) => isStr(i?.id, 64) && isStr(i?.text, 1000));
+
+import { validRecipe } from "./decode";
+import { validPackets } from "./firewall";
+import { validPasswordOptions } from "./password";
+import { validSqlOptions } from "./sql-task";
 
 /** Valide options + clé d'un type ; renvoie un message d'erreur ou null. */
 export function validateQuestion(type: QType, options: any, key: any): string | null {
@@ -63,6 +72,20 @@ export function validateQuestion(type: QType, options: any, key: any): string | 
       if (options?.data && !["table", "text"].includes(options.data.kind)) return "Données invalides";
       if (options?.data?.kind === "table" && (!Array.isArray(options.data.rows) || options.data.rows.length > 2000)) return "Tableau de 2000 lignes maximum";
       return null;
+    case "sql":
+      return validSqlOptions(options, key);
+    case "decode":
+      if (typeof options?.input !== "string" || !options.input || options.input.length > 5000) return "Message à décoder requis";
+      if (options.ops && !Array.isArray(options.ops)) return "Opérations invalides";
+      if (!key || !Array.isArray(key.answers) || !key.answers.length || key.answers.some((a: any) => !isStr(a, 500) || !a.trim())) return "Flag attendu requis";
+      if (key.recipe !== undefined && !validRecipe(key.recipe)) return "Recette invalide";
+      return null;
+    case "password":
+      return validPasswordOptions(options);
+    case "blocks":
+      if (!validPackets(options?.sample || [], true) && (options?.sample || []).length) return "Paquets d'exemple invalides";
+      if (!validPackets(key?.packets, true)) return "Paquets de test cachés invalides (1 à 200, avec la décision attendue)";
+      return null;
     default:
       return null;
   }
@@ -94,7 +117,7 @@ export function grade(type: QType, points: number, resp: any, key: any): number 
       const tp = sel.filter((s) => key.includes(s)).length, fp = sel.length - tp;
       return key?.length ? r2(points * Math.max(0, tp - fp) / key.length) : 0;
     }
-    case "short_answer":
+    case "short_answer": case "decode":
       if (typeof resp.text !== "string") return 0;
       return (key?.answers || []).some((a: string) => norm(a, !!key.case_sensitive) === norm(resp.text, !!key.case_sensitive)) ? points : 0;
     default:
