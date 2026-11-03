@@ -8,8 +8,12 @@
 #   ./deploy.sh             build + déploiement
 #   ./deploy.sh --no-cache  force la reconstruction de l'image Docker
 #
-# La configuration (clés Supabase, secrets) vit UNIQUEMENT sur le serveur,
-# dans /home/apagon/cybersup-examen/.env.local : ce script ne l'écrase jamais.
+# Configuration : si un fichier .env.production existe à côté de ce script
+# (jamais versionné), il est envoyé sur le serveur comme .env.local. Sinon,
+# le .env.local déjà présent sur le serveur est gardé tel quel.
+# Le secret partagé avec Crime GeoGuess (EXTERNAL_CRIME_SECRET) est aussi
+# recopié dans ~/crime-geoguess/.env (EXAM_SHARED_SECRET) et l'API de Crime
+# GeoGuess est relancée si la valeur a changé.
 
 set -euo pipefail
 
@@ -47,6 +51,10 @@ echo "    Archive : ${LOCAL_ARCHIVE} ($(du -h "${LOCAL_ARCHIVE}" | cut -f1))"
 
 echo "==> Upload vers ${REMOTE_TARGET}…"
 scp "${LOCAL_ARCHIVE}" "${REMOTE_TARGET}:${REMOTE_ARCHIVE}"
+if [ -f .env.production ]; then
+    echo "==> Envoi de la configuration (.env.production)…"
+    ssh "${REMOTE_TARGET}" "mkdir -p ${REMOTE_DIR} && umask 077 && cat > ${REMOTE_DIR}/.env.local" < .env.production
+fi
 
 echo "==> Build et déploiement distant…"
 ssh "${REMOTE_TARGET}" \
@@ -111,6 +119,24 @@ $DC build ${BUILD_FLAGS}
 $DC up -d --force-recreate --remove-orphans
 sleep 5
 $DC ps
+
+# Secret partagé avec Crime GeoGuess
+CRIME_SECRET=$(grep -E '^EXTERNAL_CRIME_SECRET=' .env.local | cut -d= -f2- || true)
+CRIME_DIR="$HOME/crime-geoguess"
+if [ -n "${CRIME_SECRET}" ] && [ -d "${CRIME_DIR}" ]; then
+    touch "${CRIME_DIR}/.env"
+    CURRENT=$(grep -E '^EXAM_SHARED_SECRET=' "${CRIME_DIR}/.env" | cut -d= -f2- || true)
+    if [ "${CURRENT}" != "${CRIME_SECRET}" ]; then
+        grep -vE '^EXAM_SHARED_SECRET=' "${CRIME_DIR}/.env" > "${CRIME_DIR}/.env.tmp" || true
+        echo "EXAM_SHARED_SECRET=${CRIME_SECRET}" >> "${CRIME_DIR}/.env.tmp"
+        mv "${CRIME_DIR}/.env.tmp" "${CRIME_DIR}/.env"
+        chmod 600 "${CRIME_DIR}/.env"
+        echo "    [remote] Secret Crime GeoGuess mis à jour, relance de son API…"
+        (cd "${CRIME_DIR}" && $DC up -d --force-recreate api) || echo "    [remote] Relance de Crime GeoGuess à faire à la main" >&2
+    else
+        echo "    [remote] Secret Crime GeoGuess déjà en place ✓"
+    fi
+fi
 
 if curl -fsS -o /dev/null "http://127.0.0.1:${EXAM_PORT}/login"; then
     echo "    [remote] Application en ligne sur le port ${EXAM_PORT} ✓"
