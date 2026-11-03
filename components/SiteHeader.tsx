@@ -19,7 +19,7 @@ export default async function SiteHeader() {
           <img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-6 w-auto" />
         </Link>
         <nav className="flex items-center gap-2 text-sm">
-          <Link href="/demo" className="px-3 py-2 text-muted hover:text-fg">Démo</Link>
+          <Link href="/demo" className="hidden sm:inline px-3 py-2 text-muted hover:text-fg">Démo</Link>
           {signedIn ? (
             <>
               <Link href={staff ? "/admin" : "/dashboard"} className="px-3 py-2 text-muted hover:text-fg">{staff ? "Administration" : "Mes examens"}</Link>
@@ -27,8 +27,8 @@ export default async function SiteHeader() {
             </>
           ) : (
             <>
-              <Link href="/login" className="px-3 py-2 text-muted hover:text-fg">Espace équipe</Link>
-              <Link href="/acces" className="btn">J&apos;ai un code</Link>
+              <Link href="/login" className="px-3 py-2 text-muted hover:text-fg whitespace-nowrap">Espace équipe</Link>
+              <Link href="/acces" className="btn whitespace-nowrap">J&apos;ai un code</Link>
             </>
           )}
         </nav>

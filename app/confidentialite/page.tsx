@@ -41,7 +41,7 @@ export default function Confidentialite() {
         <div>
           <h2 className="h2">Ce qui est collecté</h2>
           <ul className="mt-2 list-disc pl-5 space-y-1">
-            <li><b>Votre compte</b> : nom, adresse e-mail, mot de passe (conservé sous forme hachée, illisible même par l&apos;équipe).</li>
+            <li><b>Votre identité</b> : nom et adresse e-mail transmis par l&apos;école avec votre convocation, et votre code d&apos;accès personnel (vous n&apos;avez pas de mot de passe à créer).</li>
             <li><b>Vos réponses</b> et votre résultat, y compris par domaine.</li>
             <li><b>Le déroulé de l&apos;épreuve</b> : heures de début et de fin, sorties du plein écran, changements d&apos;onglet ou de fenêtre, coupures réseau, adresse IP et type de navigateur. Ce journal est protégé contre toute modification.</li>
             <li><b>Des photos de la caméra</b>, seulement lorsqu&apos;une anomalie est détectée. La détection (présence d&apos;un visage, d&apos;une autre personne, caméra masquée ou figée) se fait sur votre ordinateur.</li>
@@ -52,7 +52,7 @@ export default function Confidentialite() {
 
         <div>
           <h2 className="h2">Qui y a accès</h2>
-          <p className="mt-2">Les membres de l&apos;équipe d&apos;admission et les surveillants habilités, connectés avec une double authentification ; toute modification qu&apos;ils font est journalisée. Les données sont hébergées par : {LEGAL.host}. Elles sont chiffrées pendant leur transfert et leur stockage.</p>
+          <p className="mt-2">Les membres de l&apos;équipe d&apos;admission et les surveillants habilités, connectés à un espace réservé ; toute modification qu&apos;ils font est journalisée. Les données sont hébergées par : {LEGAL.host}. Elles sont chiffrées pendant leur transfert et leur stockage.</p>
         </div>
 
         <div>

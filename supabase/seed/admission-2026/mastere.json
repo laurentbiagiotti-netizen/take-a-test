@@ -1,6 +1,6 @@
 {
  "title": "Admission Mastère Cybersécurité (M1) 2026",
- "description": "QCM d'admission Mastère Cyber, entrée M1 (proposition de Dylan, v2, relue). 74 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de Bac+3 (Licence ou BUT informatique, TP AIS, Bachelor cyber). Plus une mission terminal de 8 minutes (4 points). Plus une enquête Crime GeoGuess (7 minutes, 4 points) et trois exercices de détection du phishing dans Cybersup OS (9 minutes, 6 points). Seuil d'admissibilité proposé : 32/64.",
+ "description": "Au programme : 50 questions à choix multiples (une ou plusieurs bonnes réponses), une mission sur une machine Linux, une enquête OSINT dans Crime GeoGuess et trois exercices de détection du phishing dans Cybersup OS. Durée totale : 74 minutes. Une question à la fois, sans retour en arrière : une réponse validée est définitive.",
  "formation": "Mastère 1 Cybersécurité",
  "duration_minutes": 74,
  "pass_mark": 32,

@@ -28,12 +28,12 @@ export default async function AdminHome() {
       <div className="mt-6 space-y-3">
         {(tests || []).length === 0 && <p className="text-muted">Aucun examen.</p>}
         {(tests || []).map((t) => (
-          <div key={t.id} className="card flex items-center justify-between">
-            <div>
+          <div key={t.id} className="card flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="min-w-0">
               <div className="font-semibold">{t.title} {t.is_published ? <span className="badge-ok ml-2">publié</span> : <span className="badge-muted ml-2">brouillon</span>}</div>
-              <div className="text-sm text-muted">{t.description}</div>
+              <div className="text-sm text-muted line-clamp-2 mt-1">{t.description}</div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 shrink-0 [&>*]:whitespace-nowrap">
               {isAdmin && <Link href={`/admin/tests/${t.id}`} className="btn-secondary">Modifier</Link>}
               {isAdmin && <PreviewButton testId={t.id} />}
               {isAdmin && <Link href={`/admin/tests/${t.id}/invites`} className="btn-secondary">Candidats</Link>}

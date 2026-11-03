@@ -18,7 +18,7 @@ const TEAM = [
   "Chrono, infractions et correction décidés par le serveur",
   "Deux variantes par question : un sujet différent par candidat",
   "Caméra analysée, photos et journal infalsifiable",
-  "Double authentification de l'équipe",
+  "Accès des candidats par code personnel, sans compte",
 ];
 
 export default function Home() {
@@ -30,7 +30,7 @@ export default function Home() {
           <span className="text-fg">Cybersup</span>
         </h1>
         <p className="mt-5 text-lg text-muted max-w-2xl">
-          Vous êtes convoqué(e) à une épreuve en ligne : QCM, énigmes et, selon le programme, une mission sur une machine Linux.
+          Vous êtes convoqué(e) à une épreuve en ligne : QCM, exercices pratiques dans nos outils (enquête OSINT, détection du phishing) et, selon le programme, une mission sur une machine Linux.
           Voici comment ça se passe.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">

@@ -204,8 +204,12 @@ export default function EditTest() {
       </div>
 
       <div className="card mt-4 space-y-3">
-        <input className="input" value={test.title} onChange={(e) => updateTest({ title: e.target.value })} />
-        <textarea className="input" value={test.description || ""} onChange={(e) => updateTest({ description: e.target.value })} placeholder="Description (visible par les candidats)" />
+        <label className="block text-sm">Titre
+          <input className="input mt-1" value={test.title} onChange={(e) => updateTest({ title: e.target.value })} />
+        </label>
+        <label className="block text-sm">Présentation affichée aux candidats avant l&apos;épreuve
+          <textarea className="input mt-1 min-h-[96px]" value={test.description || ""} onChange={(e) => updateTest({ description: e.target.value })} placeholder="Ce que le candidat doit savoir : contenu, durée, matériel" />
+        </label>
         <label className="block text-sm">Durée (minutes)
           <input className="input mt-1" type="number" min={1} max={600} value={test.duration_minutes} onChange={(e) => updateTest({ duration_minutes: parseInt(e.target.value) || 1 })} />
         </label>

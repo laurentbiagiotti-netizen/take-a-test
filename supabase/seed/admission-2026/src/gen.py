@@ -134,17 +134,15 @@ for name in ["b1", "b3", "mastere"]:
     domains = sorted({it["domain"] for it in items})
     floors = {d: FLOOR for d in domains if d not in NO_FLOOR}
     guide = (SRC / "entretiens" / f"{name}.md").read_text()
-    desc = m.DESC
-    extra = (f"Plus une enquête Crime GeoGuess ({CRIME['minutes']} minutes, {CRIME['points']} points) et trois "
-             f"exercices de détection du phishing dans Cybersup OS ({sum(w[4] for w in WIN95)} minutes, "
-             f"{sum(w[3] for w in WIN95)} points).")
+    # Présentation lue par le candidat avant l'épreuve : contenu et durée, sans seuil
+    # ni note interne (le seuil est réglé à part, réservé à l'équipe).
+    parts = [f"{n_q} questions à choix multiples (une ou plusieurs bonnes réponses)"]
     if mission:
-        desc = desc.replace("50 minutes", f"{duration} minutes").replace("Seuil d'admissibilité proposé : 25/50.",
-               f"Plus une mission terminal de {MISSION_MINUTES} minutes ({len(mission['scenario']['objectives'])} points). "
-               f"{extra} Seuil d'admissibilité proposé : {pass_mark}/{total}.")
-    else:
-        desc = re.sub(r"Seuil d'admissibilité proposé : [^.]*\.", f"{extra} Seuil d'admissibilité proposé : {pass_mark}/{total}.",
-                      desc.replace(f"{n_q} minutes", f"{duration} minutes"))
+        parts.append("une mission sur une machine Linux")
+    parts.append("une enquête OSINT dans Crime GeoGuess")
+    parts.append("trois exercices de détection du phishing dans Cybersup OS")
+    desc = ("Au programme : " + ", ".join(parts[:-1]) + " et " + parts[-1] + f". Durée totale : {duration} minutes. "
+            "Une question à la fois, sans retour en arrière : une réponse validée est définitive.")
 
     print(name, f"{n_q} questions x {2 if variants else 1} variante(s)", "+ mission" if mission else "",
           f"| {total} pts, {duration} min, seuil {pass_mark}", dict(collections.Counter(it["domain"] for it in items if it.get("variant") != "B")))
