@@ -36,7 +36,7 @@ export default async function Dashboard({ params }: { params: Promise<{ id: stri
   const real = (attempts || []).filter((a: any) => !previews.has(a.candidate?.email));
   const ids = real.map((a: any) => a.id);
   const { data: events } = ids.length
-    ? await supabase.from("proctor_events").select("attempt_id, kind").in("attempt_id", ids).in("kind", [...CAMERA, "phone_detected"])
+    ? await supabase.from("proctor_events").select("attempt_id, kind").in("attempt_id", ids).in("kind", [...CAMERA, "phone_detected", "fast_answers"])
     : { data: [] as any[] };
 
   const invited = (invites || []).filter((i: any) => !i.preview).length;
@@ -67,6 +67,7 @@ export default async function Dashboard({ params }: { params: Promise<{ id: stri
   const anomalies = [
     { label: "Alerte caméra", n: withKind(CAMERA) },
     { label: "Téléphone visible", n: withKind(["phone_detected"]) },
+    { label: "Réponses anormalement rapides", n: withKind(["fast_answers"]) },
     { label: "Infractions (onglet, plein écran…)", n: real.filter((a: any) => a.violation_count > 0).length },
     { label: "Suspicion signalée", n: real.filter((a: any) => a.suspicion_at).length },
   ];

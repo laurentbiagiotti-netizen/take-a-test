@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatClock } from "@/lib/exam/client";
 import { DataTable, type Column } from "@/components/admin/DataTable";
+import { StaffChat } from "@/components/admin/StaffChat";
 
 /** Surveillance en direct : actualisée toute seule toutes les 5 secondes. */
 const KIND: Record<string, string> = {
@@ -26,7 +27,7 @@ type Row = {
 const lost = (r: Row) => r.status === "in_progress" && (r.silence ?? 0) > 45;
 const running = (r: Row) => r.status === "in_progress";
 
-const columns: Column<Row>[] = [
+const baseColumns: Column<Row>[] = [
   {
     key: "name", label: "Candidat", primary: true, sort: (r) => r.nom,
     cell: (r) => <>
@@ -66,7 +67,6 @@ const columns: Column<Row>[] = [
     key: "connection", label: "Connexion", sort: (r) => (running(r) ? (lost(r) ? -(r.silence ?? 0) : 1) : null),
     cell: (r) => <span className={lost(r) ? "text-danger" : "text-muted"}>{running(r) ? (lost(r) ? `perdue (${r.silence} s)` : "en ligne") : "-"}</span>,
   },
-  { key: "actions", label: "", actions: true, cell: (r) => <a className="underline" href={`/admin/attempts/${r.id}`}>Ouvrir</a> },
 ];
 
 export default function Live() {
@@ -90,6 +90,32 @@ export default function Live() {
     return () => { stop = true; clearInterval(i); };
   }, [id, supabase]);
 
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const [chat, setChat] = useState<Row | null>(null);
+  useEffect(() => {
+    const ids = rows.filter(running).map((r) => r.id);
+    if (!ids.length) { setUnread({}); return; }
+    supabase.from("exam_messages").select("attempt_id").in("attempt_id", ids).eq("sender", "candidate").is("read_at", null)
+      .then(({ data }) => {
+        const m: Record<string, number> = {};
+        for (const x of data || []) m[x.attempt_id] = (m[x.attempt_id] || 0) + 1;
+        setUnread(m);
+      });
+  }, [rows, supabase]);
+
+  const columns: Column<Row>[] = [
+    ...baseColumns,
+    {
+      key: "messages", label: "Messages", sort: (r) => unread[r.id] || 0,
+      cell: (r) => running(r)
+        ? <button className={unread[r.id] ? "badge-warn" : "underline text-muted"} onClick={() => setChat(r)}>
+            {unread[r.id] ? `${unread[r.id]} non lu(s)` : "Écrire"}
+          </button>
+        : <span className="text-faint">-</span>,
+    },
+    { key: "actions", label: "", actions: true, cell: (r) => <a className="underline" href={`/admin/attempts/${r.id}`}>Ouvrir</a> },
+  ];
+  const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
   const active = rows.filter((r) => r.status === "in_progress");
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -99,17 +125,19 @@ export default function Live() {
         <span className="badge-ok">{active.length} en cours</span>
         <span className="badge-muted">{meta?.en_attente ?? 0} pas encore commencé(s)</span>
         <span className="badge-muted">{meta?.rendus ?? 0} copie(s) rendue(s)</span>
+        {totalUnread > 0 && <span className="badge-warn">{totalUnread} message(s) de candidat non lu(s)</span>}
         <span className="text-faint">Actualisation automatique toutes les 5 secondes{meta ? ` · ${new Date(meta.now).toLocaleTimeString("fr-FR")}` : ""}</span>
       </div>
       {error && <p className="text-danger text-sm mt-3">{error}</p>}
 
       <DataTable
         rows={rows} columns={columns} rowKey={(r) => r.id} caption="Épreuves en cours"
-        rowClassName={(r) => (r.alertes_recentes > 0 ? "bg-danger/10" : "")}
+        rowClassName={(r) => (r.alertes_recentes > 0 ? "bg-danger/10" : unread[r.id] ? "bg-warn/10" : "")}
         initialSort={{ key: "alerts", dir: "desc" }}
         search={(r) => r.nom} searchLabel="Rechercher un candidat"
         empty="Aucune épreuve en cours pour le moment."
       />
+      {chat && <StaffChat attemptId={chat.id} name={chat.nom} onClose={() => setChat(null)} />}
     </main>
   );
 }

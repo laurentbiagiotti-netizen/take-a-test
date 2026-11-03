@@ -47,6 +47,8 @@ const MESSAGES: Record<string, [number, string]> = {
   bad_question: [400, "Question invalide."],
   bad_response: [400, "Réponse invalide."],
   unknown_event: [400, "Événement inconnu."],
+  message_invalid: [400, "Message vide ou trop long (1 000 caractères au plus)."],
+  message_rate: [429, "Trop de messages : patientez une minute avant d'en envoyer un autre."],
   bad_path: [400, "Requête invalide."],
   bad_token: [400, "Requête invalide."],
   forbidden: [403, "Accès refusé."],

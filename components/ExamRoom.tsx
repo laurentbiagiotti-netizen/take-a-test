@@ -6,6 +6,7 @@ import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proctor/camera-monitor";
 import { CameraChip, CheckRow, ConfirmBar, RulesList, StartRow } from "@/components/exam/ui";
 import { EVENT_LABEL, TYPE_HINT, faceReady, formatClock, fullscreenSupported, isAnswered, useAutoCamera, useTimeAlerts } from "@/lib/exam/client";
+import { ChatPanel, type ChatMessage } from "@/components/exam/ChatPanel";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
@@ -47,6 +48,7 @@ export default function ExamRoom(props: {
   const [phase, setPhaseState] = useState<Phase>("prep");
   const [questions, setQuestions] = useState<Q[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [deadline, setDeadline] = useState<number>(0);
   // Temps par question (option du test) : fin de la question courante, 0 sinon
   const [qDeadline, setQDeadline] = useState<number>(0);
@@ -229,11 +231,19 @@ export default function ExamRoom(props: {
     };
   }, [phase, report, inSeb]);
 
+  const sendMessage = useCallback(async (body: string) => {
+    const { ok, data } = await post("message", { body });
+    if (!ok) return data?.message || "Message non envoyé, réessayez.";
+    setMessages((m) => [...m, { id: Date.now(), sender: "candidate", body, created_at: new Date().toISOString() }]);
+    return null;
+  }, [post]);
+
   // Battement de cœur : présence, IP, chrono serveur
   useEffect(() => {
     if (phase !== "active") return;
     const i = setInterval(async () => {
       const { data } = await post("heartbeat");
+      if (Array.isArray(data?.messages)) setMessages(data.messages);
       if (data?.deadline_at) {
         setDeadline(new Date(data.deadline_at).getTime());
         clockOffset.current = new Date(data.server_now).getTime() - Date.now();
@@ -524,6 +534,7 @@ export default function ExamRoom(props: {
         )}
         <div className="h-20" aria-hidden />
       </main>
+      <ChatPanel messages={messages} send={sendMessage} />
       {confirming && q && (() => {
         const done = (x: Q) => isAnswered(answers[x.id]) || (x.type === "external" && !!x.external?.completed);
         const unanswered = questions.filter((x) => x.type !== "terminal" && !done(x)).length;

@@ -23,6 +23,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   if (!a) return <main className="p-10">Tentative introuvable.</main>;
   const { data: answers } = await supabase.from("answers").select("*, question:questions(*)").eq("attempt_id", id);
   const { data: events } = await supabase.from("proctor_events").select("*").eq("attempt_id", id).order("id");
+  const { data: messages } = await supabase.from("exam_messages").select("id, sender, body, created_at").eq("attempt_id", id).order("id");
 
   const snaps = (events || []).filter((e: any) => e.kind === "snapshot" && e.detail?.path);
   const CAM = new Set(["no_face", "multiple_faces", "camera_covered", "camera_frozen", "other_person", "phone_detected", "camera_refused", "camera_off"]);
@@ -222,6 +223,21 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
         </section>
       )}
       {a.media_purged_at && <p className="text-sm text-muted">Photos supprimées le {t(a.media_purged_at)} (durée de conservation atteinte).</p>}
+
+      {!!messages?.length && (
+        <section>
+          <h2 className="h2">Messages avec le surveillant ({messages.length})</h2>
+          <ul className="mt-2 text-sm max-h-72 overflow-y-auto border rounded p-2 bg-surface">
+            {messages.map((m: any) => (
+              <li key={m.id} className="border-b last:border-0 py-1.5">
+                <code className="text-muted">{new Date(m.created_at).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" })}</code>{" "}
+                <b className={m.sender === "staff" ? "text-accent" : ""}>{m.sender === "staff" ? "Surveillant" : "Candidat"}</b>{" "}
+                <span className="whitespace-pre-wrap">{m.body}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="h2">Journal de surveillance ({events?.length || 0})</h2>

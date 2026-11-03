@@ -8,3 +8,4 @@ seed.sql 0
 external.sql 12
 timing.sql 2
 access.sql 5
+messages.sql 7
