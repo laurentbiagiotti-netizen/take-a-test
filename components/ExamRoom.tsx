@@ -95,7 +95,9 @@ export default function ExamRoom(props: {
       if (j?.receipt) setReceipt(j.receipt);
       if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
       if (typeof j?.violation_count === "number") setViolations(j.violation_count);
-      if (!r.ok && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
+      // Après la remise de la copie, la session est fermée : une requête encore en file
+      // (battement de cœur) reçoit « session invalide », ce n'est pas un blocage.
+      if (!r.ok && phaseRef.current !== "ended" && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
         camera.stop();
         setBanner(j.message); setPhase("blocked");
       }
