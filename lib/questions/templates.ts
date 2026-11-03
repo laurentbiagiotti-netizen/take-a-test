@@ -1,4 +1,5 @@
 import { MISSIONS } from "./missions";
+import { SIM_TEMPLATES } from "./sim-templates";
 import { encodeForRecipe, type RecipeStep } from "./decode";
 import { intrusionLogs } from "./evtx-scenario";
 import { suggestKey } from "./headers";
@@ -579,3 +580,10 @@ for (const m of MISSIONS) {
 }
 PACKS.b1.minutes -= 4;
 PACKS.m1.minutes -= 5;
+
+// Simulations réalistes (appli photo, question secrète, brassage, pare-feu web, capture réseau).
+for (const t of Object.values(SIM_TEMPLATES)) {
+  PACKS[t.level].questions.push({ type: "sim", domain: t.domain, points: t.points, time_limit_s: t.minutes * 60, prompt: t.prompt, options: clone(t.options), correct: clone(t.correct) });
+  PACKS[t.level].minutes += t.minutes;
+}
+(ALL_TEMPLATES as any).sim = { prompt: SIM_TEMPLATES.privacy.prompt, options: SIM_TEMPLATES.privacy.options, correct: SIM_TEMPLATES.privacy.correct, points: 4 };

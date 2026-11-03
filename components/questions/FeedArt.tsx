@@ -8,6 +8,67 @@ const Frame = ({ children, bg }: { children: ReactNode; bg: string }) => (
 );
 
 export const ART: Record<string, () => JSX.Element> = {
+  identite: () => (
+    <Frame bg="#dbeafe">
+      <rect x="70" y="40" width="260" height="150" rx="12" fill="#eff6ff" stroke="#93c5fd" strokeWidth="3" />
+      <rect x="70" y="40" width="260" height="26" rx="12" fill="#1d4ed8" /><text x="200" y="58" textAnchor="middle" fontSize="12" fontWeight="700" fill="#fff">CARTE NATIONALE D&apos;IDENTITÉ</text>
+      <rect x="88" y="80" width="70" height="88" rx="6" fill="#cbd5e1" /><circle cx="123" cy="110" r="16" fill="#94a3b8" /><rect x="101" y="130" width="44" height="30" rx="14" fill="#94a3b8" />
+      {["NOM : MARTIN", "Prénom : Léa", "Né(e) le : 14.03.2009", "N° : 23AB45678"].map((t, i) => <text key={t} x="172" y={96 + i * 20} fontSize="12" fill="#1e293b" fontFamily="monospace">{t}</text>)}
+    </Frame>
+  ),
+  coucher: () => (
+    <Frame bg="#fb923c">
+      <rect x="0" y="0" width="400" height="140" fill="#fdba74" /><circle cx="200" cy="140" r="50" fill="#fde047" />
+      <rect x="0" y="140" width="400" height="85" fill="#1e3a8a" />{[155, 170, 185, 200].map((y) => <rect key={y} x={200 - (y - 140)} y={y} width={2 * (y - 140)} height="3" fill="#fde047" opacity=".6" />)}
+    </Frame>
+  ),
+  maison: () => (
+    <Frame bg="#bae6fd">
+      <rect x="0" y="180" width="400" height="45" fill="#86efac" /><rect x="110" y="95" width="180" height="90" fill="#fef3c7" /><polygon points="95,100 200,40 305,100" fill="#b91c1c" />
+      <rect x="185" y="130" width="34" height="55" fill="#78350f" /><rect x="128" y="115" width="38" height="30" fill="#93c5fd" /><rect x="236" y="115" width="38" height="30" fill="#93c5fd" />
+      <rect x="226" y="150" width="36" height="22" rx="3" fill="#1e40af" /><text x="244" y="166" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff">12</text>
+      <rect x="20" y="160" width="80" height="22" rx="3" fill="#1e3a8a" /><text x="60" y="175" textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">Rue des Lilas</text>
+    </Frame>
+  ),
+  chat: () => (
+    <Frame bg="#fce7f3">
+      <ellipse cx="200" cy="160" rx="110" ry="45" fill="#f9a8d4" /><ellipse cx="200" cy="150" rx="80" ry="40" fill="#78716c" />
+      <circle cx="270" cy="130" r="32" fill="#78716c" /><polygon points="250,105 258,80 270,102" fill="#78716c" /><polygon points="282,102 292,80 296,106" fill="#78716c" />
+      <path d="M258 130 q6 5 12 0 M276 130 q6 5 12 0" stroke="#1c1917" strokeWidth="3" fill="none" /><text x="320" y="90" fontSize="22" fill="#9d174d">z z</text>
+    </Frame>
+  ),
+  billet: () => (
+    <Frame bg="#e0f2fe">
+      <rect x="50" y="55" width="300" height="115" rx="10" fill="#fff" stroke="#7dd3fc" strokeWidth="3" /><rect x="50" y="55" width="300" height="26" rx="10" fill="#0369a1" />
+      <text x="62" y="73" fontSize="12" fontWeight="700" fill="#fff">CARTE D&apos;EMBARQUEMENT</text>
+      <text x="70" y="115" fontSize="26" fontWeight="800" fill="#0c4a6e">LIL → BCN</text>
+      <text x="70" y="140" fontSize="12" fill="#334155" fontFamily="monospace">MARTIN/LEA · VOL VY8814 · 06:00</text>
+      {Array.from({ length: 16 }, (_, i) => <rect key={i} x={265 + i * 5} y="98" width={i % 3 ? 2 : 3} height="52" fill="#0f172a" />)}
+    </Frame>
+  ),
+  chien: () => (
+    <Frame bg="#fef9c3">
+      <rect x="0" y="170" width="400" height="55" fill="#a3e635" /><ellipse cx="200" cy="150" rx="70" ry="40" fill="#d97706" />
+      <circle cx="270" cy="115" r="34" fill="#d97706" /><ellipse cx="248" cy="100" rx="12" ry="26" fill="#92400e" /><ellipse cx="294" cy="100" rx="12" ry="26" fill="#92400e" />
+      <circle cx="262" cy="112" r="4" fill="#1c1917" /><circle cx="282" cy="112" r="4" fill="#1c1917" /><ellipse cx="272" cy="128" rx="8" ry="5" fill="#1c1917" />
+      <rect x="250" y="142" width="44" height="8" rx="4" fill="#dc2626" /><text x="120" y="60" fontSize="18" fontWeight="800" fill="#b45309">Caramel 🐾</text>
+    </Frame>
+  ),
+  phare: () => (
+    <Frame bg="#7dd3fc">
+      <rect x="0" y="165" width="400" height="60" fill="#0369a1" /><path d="M0 165 q100 -10 200 0 t200 0 v10 H0z" fill="#e0f2fe" opacity=".6" />
+      <polygon points="190,165 200,60 220,60 230,165" fill="#fff" /><rect x="196" y="85" width="28" height="12" fill="#dc2626" /><rect x="193" y="120" width="34" height="12" fill="#dc2626" />
+      <rect x="198" y="45" width="24" height="16" fill="#facc15" /><polygon points="222,50 330,30 330,70" fill="#fef08a" opacity=".5" />
+      <text x="60" y="60" fontSize="18" fontWeight="800" fill="#0c4a6e">QUIMPER</text>
+    </Frame>
+  ),
+  gateau: () => (
+    <Frame bg="#fdf2f8">
+      <rect x="120" y="120" width="160" height="70" rx="8" fill="#f472b6" /><rect x="120" y="120" width="160" height="16" fill="#fbcfe8" />
+      {[150, 185, 215, 250].map((x) => <g key={x}><rect x={x} y="92" width="8" height="28" fill="#60a5fa" /><ellipse cx={x + 4} cy="86" rx="5" ry="8" fill="#fbbf24" /></g>)}
+      <text x="200" y="215" textAnchor="middle" fontSize="16" fontWeight="800" fill="#be185d">45 ans !</text>
+    </Frame>
+  ),
   inondation: () => (
     <Frame bg="#8fa3b5">
       <rect x="0" y="0" width="400" height="120" fill="#9fb2c3" />

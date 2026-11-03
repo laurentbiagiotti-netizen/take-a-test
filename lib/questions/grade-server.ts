@@ -10,6 +10,7 @@ import { gradeAd } from "./adsim";
 import { gradeTickets } from "./tickets";
 import { gradeFeed } from "./feed";
 import { gradeEvtx } from "./evtx";
+import { gradeSim } from "./sim";
 import { BASH_HOME, BASH_LIMITS, MAX_FILE, abs, datasets, scoreBash, type BashKey, type BashOptions, type BashRun } from "./bash-task";
 
 /**
@@ -155,6 +156,7 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
     if (type === "tickets") return gradeTickets(options, key, resp, points);
     if (type === "feed") return gradeFeed(options, key, resp, points);
     if (type === "evtx") return gradeEvtx(options, key, resp, points);
+    if (type === "sim") return gradeSim(options, key, resp, points);
     if (type === "bash") return await gradeBash(options, key, resp, points);
     if (type === "sql") return await gradeSql(options, key || {}, resp, points);
     if (type === "password") return await gradePassword(options, resp, points);
@@ -166,4 +168,4 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
   return null;
 }
 
-export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash"]);
+export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash", "sim"]);

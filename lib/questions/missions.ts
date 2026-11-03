@@ -138,6 +138,44 @@ const nouvelleArrivee: Scenario = {
   ],
 };
 
+
+const sauvegarde: Scenario = {
+  user: "tech", hostname: "srv-backup", home: "/home/tech",
+  motd: "Connexion SSH à srv-backup. Un ticket vous attend : cat TICKET-2077.txt\nTapez help pour les commandes disponibles (sudo -l pour ce que vous pouvez faire en root).",
+  disks: [{ mount: "/", device: "/dev/sda1", size_mb: 30720, base_mb: 6200 }, { mount: "/var", device: "/dev/sdb1", size_mb: 20480, base_mb: 2800 }],
+  files: {
+    "/home/tech/TICKET-2077.txt": "TICKET #2077 · Priorité haute · Demandeur : direction\n\nLa sauvegarde automatique du serveur de fichiers échoue depuis trois nuits.\nLe service s'appelle « sauvegarde-nuit ».\n\nÀ faire :\n1. Trouver pourquoi le service est en échec (son état et son journal).\n2. Corriger la cause, SANS supprimer les sauvegardes déjà faites ni les journaux du mois en cours.\n3. Relancer le service et vérifier qu'il tourne.\n4. L'audit a aussi relevé qu'il ne redémarre pas tout seul après un redémarrage du serveur : corrigez-le.\n",
+    "/var/log/syslog": { content: "nov. 04 02:00:01 srv-backup CRON[2201]: (root) CMD (systemctl start sauvegarde-nuit)\nnov. 04 02:00:03 srv-backup sauvegarde-nuit[2210]: tar: /var/backups/sauvegarde-2026-11-04.tar.gz: écriture impossible: No space left on device\n", owner: "root", mode: "644", size: 40 },
+    "/var/log/auth.log": { content: "nov. 04 08:55:12 srv-backup sshd[2390]: Accepted publickey for tech from 10.0.99.14\n", owner: "root", mode: "640", size: 12 },
+    "/var/log/ancien/debug-2026-07.log.gz": { content: "(archive compressée de journaux de débogage, juillet)\n", owner: "root", mode: "644", size: 5800 },
+    "/var/log/ancien/debug-2026-08.log.gz": { content: "(archive compressée de journaux de débogage, août)\n", owner: "root", mode: "644", size: 5900 },
+    "/var/log/ancien/debug-2026-09.log.gz": { content: "(archive compressée de journaux de débogage, septembre)\n", owner: "root", mode: "644", size: 5600 },
+    "/var/log/ancien/LISEZMOI": { content: "Archives de débogage de l'ancienne application, conservées « au cas où ». Plus utilisées depuis la migration de juin.\n", owner: "root", mode: "644" },
+    "/var/backups/sauvegarde-2026-10-31.tar.gz": { content: "(sauvegarde complète)\n", owner: "root", mode: "600", size: 30 },
+    "/var/backups/sauvegarde-2026-11-01.tar.gz": { content: "(sauvegarde complète)\n", owner: "root", mode: "600", size: 30 },
+    "/etc/systemd/system/sauvegarde-nuit.service": { content: "[Unit]\nDescription=Sauvegarde nocturne du serveur de fichiers\n\n[Service]\nExecStart=/usr/local/bin/sauvegarde.sh\n\n[Install]\nWantedBy=multi-user.target\n", owner: "root", mode: "644" },
+  },
+  dirs: [{ path: "/var/log/ancien", owner: "root" }, { path: "/var/backups", owner: "root", mode: "755" }],
+  services: [
+    { name: "ssh", description: "OpenBSD Secure Shell server", active: true, enabled: true, log: ["nov. 04 08:55:12 srv-backup sshd[2390]: Accepted publickey for tech from 10.0.99.14"] },
+    { name: "cron", description: "Regular background program processing daemon", active: true, enabled: true, log: ["nov. 04 02:00:01 srv-backup CRON[2201]: (root) CMD (systemctl start sauvegarde-nuit)"] },
+    { name: "sauvegarde-nuit", description: "Sauvegarde nocturne du serveur de fichiers", active: false, enabled: false,
+      log: ["nov. 02 02:00:03 srv-backup sauvegarde-nuit[1880]: tar: écriture impossible: No space left on device", "nov. 03 02:00:03 srv-backup sauvegarde-nuit[2044]: tar: écriture impossible: No space left on device",
+        "nov. 04 02:00:03 srv-backup sauvegarde-nuit[2210]: tar: /var/backups/sauvegarde-2026-11-04.tar.gz: écriture impossible: No space left on device", "nov. 04 02:00:03 srv-backup systemd[1]: sauvegarde-nuit.service: Failed with result 'exit-code'."],
+      requires: { type: "disk_below", mount: "/var", percent: 90 }, fail: "tar: écriture impossible: No space left on device" },
+  ],
+  crontab: "0 2 * * * systemctl start sauvegarde-nuit",
+  sudo: ["systemctl", "rm", "du", "ls", "cat", "journalctl"],
+  objectives: [
+    { id: "place", title: "Libérer de la place sur /var", check: { type: "disk_below", mount: "/var", percent: 90 } },
+    { id: "garder", title: "Garder les sauvegardes et les journaux en cours", check: { type: "all", checks: [
+      { type: "exists", path: "/var/backups/sauvegarde-2026-10-31.tar.gz" }, { type: "exists", path: "/var/backups/sauvegarde-2026-11-01.tar.gz" },
+      { type: "exists", path: "/var/log/syslog" }, { type: "exists", path: "/var/log/auth.log" }, { type: "disk_below", mount: "/var", percent: 90 }] } },
+    { id: "relance", title: "Service sauvegarde-nuit relancé et actif", check: { type: "service_active", name: "sauvegarde-nuit" } },
+    { id: "boot", title: "Service activé au démarrage du serveur", check: { type: "service_enabled", name: "sauvegarde-nuit" } },
+  ],
+};
+
 /* -------------------------------------------------------------- Mastère */
 
 export const WEBSHELL = "<?php if (isset($_GET['cmd'])) { system($_GET['cmd']); } ?>\n";
@@ -194,6 +232,8 @@ export const MISSIONS: Mission[] = [
     prompt: "Mission terminal : le site de l'école est en panne. Traitez le ticket sur le serveur web, proprement (sauvegarde avant modification)." },
   { key: "partage", level: "b3", domain: "Systèmes", minutes: 9, scenario: nouvelleArrivee,
     prompt: "Mission terminal : traitez les demandes du jour sur le serveur de fichiers (arrivée d'une collaboratrice, audit des mots de passe, nettoyage)." },
+  { key: "sauvegarde", level: "b3", domain: "Systèmes", minutes: 9, scenario: sauvegarde,
+    prompt: "Mission terminal : la sauvegarde de nuit échoue depuis trois nuits. Trouvez la cause, corrigez proprement et remettez le service en route." },
   { key: "compromis", level: "m1", domain: "Cybersécurité", minutes: 12, scenario: compromis,
     prompt: "Mission terminal : un serveur de production est compromis. Menez la réponse à incident en conservant les preuves." },
 ];

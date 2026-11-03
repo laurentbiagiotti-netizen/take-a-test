@@ -5,7 +5,7 @@ import type { RecapData, RecapQuestion } from "./recap";
 
 const TYPE_NAME: Record<string, string> = {
   mcq_single: "QCM une réponse", mcq_multi: "QCM plusieurs réponses", long_text: "Réponse rédigée", terminal: "Défi terminal",
-  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil", sql: "Requête SQL", bash: "Script Bash", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs", headers: "En-têtes de mail", subnet: "Sous-réseaux", netpuzzle: "Puzzle réseau", sokoban: "Caisses à pousser", robot: "Robot à programmer", adsim: "Console Active Directory", tickets: "Tickets de support", feed: "Vrai ou fake ?", evtx: "Journaux Windows",
+  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil", sql: "Requête SQL", bash: "Script Bash", sim: "Simulation", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs", headers: "En-têtes de mail", subnet: "Sous-réseaux", netpuzzle: "Puzzle réseau", sokoban: "Caisses à pousser", robot: "Robot à programmer", adsim: "Console Active Directory", tickets: "Tickets de support", feed: "Vrai ou fake ?", evtx: "Journaux Windows",
 };
 const END: Record<string, string> = {
   submitted: "Copie rendue par le candidat", expired: "Temps écoulé", terminated: "Interrompue par un surveillant",

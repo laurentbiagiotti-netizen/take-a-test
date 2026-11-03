@@ -58,7 +58,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
   const mcqAnswers = sorted.filter((x: any) => x.question?.type === "mcq_single" || x.question?.type === "mcq_multi");
   const termAnswers = sorted.filter((x: any) => x.question?.type === "terminal");
-  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "bash", "evtx"].includes(x.question?.type));
+  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "bash", "sim", "evtx"].includes(x.question?.type));
   const feedIds = funAnswers.filter((x: any) => x.question?.type === "feed").map((x: any) => x.question_id);
   const { data: feedKeys } = feedIds.length ? await supabase.from("answer_keys").select("question_id, correct").in("question_id", feedIds) : { data: [] as any[] };
   const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
@@ -232,6 +232,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
               if (q.type === "adsim") shown = r.state ? `${r.state.users?.length || 0} comptes dans l'annuaire final` : "";
               if (q.type === "tickets") shown = Object.entries(r.tickets || {}).map(([id, t]: any) => `${id} : ${t.impact || "?"}/${t.urgence || "?"} → ${t.groupe || "?"}`).join("   ");
               if (q.type === "bash") shown = r.script || "";
+              if (q.type === "sim") shown = JSON.stringify(r.state || {}).slice(0, 600);
               if (q.type === "evtx") shown = Object.entries(r.answers || {}).map(([k, v]) => `${k} : ${v}`).join("   ");
               if (q.type === "feed") shown = Object.entries(r.verdicts || {}).map(([id, v]) => `${id} : ${v}${(r.reasons?.[id] || []).length ? ` (${r.reasons[id].length} indice(s))` : ""}`).join("   ") + "   ·   " + feedSummary(q.options || {}, (feedKeys || []).find((k: any) => k.question_id === ans.question_id)?.correct, r);
               if (q.type === "netpuzzle") shown = `${r.moves || 0} rotation(s) en ${Math.round((r.ms || 0) / 1000)} s`;

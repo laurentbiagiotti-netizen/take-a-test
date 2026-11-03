@@ -33,7 +33,7 @@ function initialDraft(type: QType, o: any, c: any): string {
 }
 
 export default function TypeEditor(props: Props) {
-  if (["sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash"].includes(props.type)) return <PracticalEditor {...props} />;
+  if (["sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash", "sim"].includes(props.type)) return <PracticalEditor {...props} />;
   return <ClassicEditor {...props} />;
 }
 

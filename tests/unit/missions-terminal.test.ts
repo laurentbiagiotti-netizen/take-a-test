@@ -16,7 +16,7 @@ describe("missions de terminal", () => {
   it("scénarios valides et présents dans les packs", () => {
     for (const m of MISSIONS) expect(validateScenario(m.scenario), m.key).toBeNull();
     expect(PACKS.b1.questions.filter((q) => q.type === "terminal")).toHaveLength(2);
-    expect(PACKS.b3.questions.filter((q) => q.type === "terminal")).toHaveLength(3);
+    expect(PACKS.b3.questions.filter((q) => q.type === "terminal")).toHaveLength(4);
     expect(PACKS.m1.questions.filter((q) => q.type === "terminal")).toHaveLength(1);
     expect([...PACKS.b1.questions, ...PACKS.b3.questions, ...PACKS.m1.questions].some((q) => q.type === "decode")).toBe(false);
   });
@@ -57,5 +57,20 @@ describe("missions de terminal", () => {
     expect(all(r)).toEqual([]);
     const detruit = play("compromis", ["sudo rm /var/www/html/uploads/avatar.php"]);
     expect(detruit.done.find((o) => o.id === "webshell")!.done).toBe(false);
+  });
+});
+
+describe("mission services (B3)", () => {
+  it("diagnostic, nettoyage, relance, activation", () => {
+    const avant = play("sauvegarde", ["sudo systemctl restart sauvegarde-nuit"]);
+    expect(avant.outs[0]).toMatch(/failed/);
+    const r = play("sauvegarde", ["cat TICKET-2077.txt", "systemctl status sauvegarde-nuit", "journalctl -u sauvegarde-nuit -n 5", "df -h", "sudo du -sh /var/log/*",
+      "sudo rm /var/log/ancien/*.gz", "df -h", "sudo systemctl restart sauvegarde-nuit", "systemctl status sauvegarde-nuit", "sudo systemctl enable sauvegarde-nuit"]);
+    expect(r.outs[3]).toMatch(/100%|9\d%/);
+    expect(r.outs[6]).toMatch(/\s[1-3]\d%\s\/var/);
+    expect(r.outs[8]).toMatch(/active \(running\)/);
+    expect(all(r)).toEqual([]);
+    const brutal = play("sauvegarde", ["sudo rm /var/backups/sauvegarde-2026-10-31.tar.gz", "sudo rm /var/backups/sauvegarde-2026-11-01.tar.gz"]);
+    expect(brutal.done.find((o) => o.id === "garder")!.done).toBe(false);
   });
 });

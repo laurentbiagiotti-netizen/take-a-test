@@ -11,7 +11,7 @@
  */
 import { createHash } from "node:crypto";
 
-export type FileSpec = string | { content: string; mode?: string; owner?: string };
+export type FileSpec = string | { content: string; mode?: string; owner?: string; size?: number };
 export type Check =
   | { type: "exists"; path: string; kind?: "file" | "dir" }
   | { type: "absent"; path: string }
@@ -21,7 +21,12 @@ export type Check =
   | { type: "process_absent"; name: string }
   | { type: "process_present"; name: string }
   | { type: "ran"; command: string }
-  | { type: "all"; checks: Check[] };
+  | { type: "all"; checks: Check[] }
+  | { type: "service_active"; name: string }
+  | { type: "service_enabled"; name: string }
+  | { type: "disk_below"; mount: string; percent: number };
+export type ServiceSpec = { name: string; description?: string; active?: boolean; enabled?: boolean; log?: string[]; requires?: Check; fail?: string };
+export type DiskSpec = { mount: string; device?: string; size_mb: number; base_mb?: number };
 export type Objective = { id: string; title: string; check: Check };
 
 export type Scenario = {
@@ -38,10 +43,12 @@ export type Scenario = {
   interfaces?: { name: string; ip: string }[];
   sudo?: string[];
   crontab?: string;
+  services?: ServiceSpec[];
+  disks?: DiskSpec[];
   objectives?: Objective[];
 };
 
-type Node = { t: "f" | "d"; c?: string; m: number; o: string };
+type Node = { t: "f" | "d"; c?: string; m: number; o: string; z?: number };
 type Proc = { pid: number; user: string; cmd: string; cpu: number; mem: number };
 export type ShellState = {
   v: 2;
@@ -51,6 +58,7 @@ export type ShellState = {
   env: Record<string, string>;
   history: string[];
   ran: string[];
+  svc?: Record<string, { active: boolean; enabled: boolean; log: string[] }>;
 };
 export type ObjectiveStatus = { id: string; title: string; done: boolean };
 export type ShellResult = { output: string; state: ShellState; clear?: boolean };
@@ -62,6 +70,13 @@ const MAX_BYTES = 1_000_000;     // contenu + chemins de tout l'état
 const MAX_PATH = 1024;
 const MAX_SEG = 255;
 const STICKY = 0o1000;
+function hsize(b: number, h: boolean) {
+  if (!h) return String(b);
+  if (b < 1024) return String(b);
+  const u = ["K", "M", "G", "T"]; let v = b / 1024, i = 0;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return (v >= 10 ? Math.round(v).toString() : v.toFixed(1).replace(".", ",")) + u[i];
+}
 
 // ------------------------------------------------------------------ chemins
 export function normalize(path: string, cwd: string, home = "/"): string {
@@ -115,6 +130,7 @@ export function initState(s: Scenario): ShellState {
       t: "f", c: String(f.content ?? "").replace(/\u0000/g, ""),
       m: parseMode(f.mode, inDenied ? 0o600 : 0o644),
       o: f.owner || (inDenied ? "root" : ownerFor(p)),
+      ...(typeof (f as any).size === "number" && (f as any).size > 0 ? { z: Math.round((f as any).size * 1048576) } : {}),
     };
   }
   // Sous-dossiers implicites d'un dossier interdit : root, 700
@@ -126,7 +142,26 @@ export function initState(s: Scenario): ShellState {
     env: { USER: user, HOME: home, SHELL: "/bin/bash", HOSTNAME: s.hostname || "lab", PATH: "/usr/local/bin:/usr/bin:/bin", ...(s.env || {}) },
     history: [],
     ran: [],
+    svc: Object.fromEntries((s.services || []).map((x) => [x.name, { active: !!x.active, enabled: !!x.enabled, log: [...(x.log || [])] }])),
   };
+}
+
+const MB = 1048576;
+const sizeOf = (n: Node) => (n.t === "d" ? 4096 : n.z ?? (n.c || "").length);
+/** Occupation d'un point de montage (Mo) : base fixe + fichiers qui s'y trouvent. */
+export function diskUse(s: Scenario, st: ShellState, mount: string) {
+  const d = (s.disks || []).find((x) => x.mount === mount);
+  if (!d) return null;
+  const others = (s.disks || []).map((x) => x.mount).filter((m) => m !== mount && m.startsWith(mount === "/" ? "/" : mount + "/"));
+  let bytes = 0;
+  for (const [p, n] of Object.entries(st.nodes)) {
+    if (n.t !== "f") continue;
+    if (!(mount === "/" || p === mount || p.startsWith(mount + "/"))) continue;
+    if (others.some((m) => p.startsWith(m + "/"))) continue;
+    bytes += sizeOf(n);
+  }
+  const used = Math.min(d.size_mb, (d.base_mb || 0) + bytes / MB);
+  return { ...d, used, pct: Math.round((100 * used) / d.size_mb) };
 }
 
 // ----------------------------------------------------------------- missions
@@ -146,6 +181,9 @@ function checkOne(c: Check, st: ShellState, s: Scenario): boolean {
     case "process_absent": return !st.procs.some((p) => p.cmd.includes(c.name));
     case "process_present": return st.procs.some((p) => p.cmd.includes(c.name));
     case "ran": return (st.ran || []).includes(c.command);
+    case "service_active": return !!st.svc?.[c.name]?.active;
+    case "service_enabled": return !!st.svc?.[c.name]?.enabled;
+    case "disk_below": { const u = diskUse(s, st, c.mount); return !!u && u.pct < c.percent; }
     case "all": return Array.isArray(c.checks) && c.checks.length > 0 && c.checks.every((x) => x.type !== "all" && checkOne(x, st, s));
     default: return false;
   }
@@ -218,6 +256,7 @@ Texte      : grep [-i -v -n -c -r -l] · find [-name -type -perm -user] · wc [-
              sort [-n -r -u] · uniq [-c] · cut -d X -f N · tr · sed 's/a/b/g' ou '/motif/d' [-i] · rev
 Encodage   : base64 [-d] · md5sum · sha256sum
 Système    : ps [aux] · kill [-9] PID · ss -tlnp · ip a · whoami · id · hostname · uname -a
+             systemctl status|start|restart|enable … · journalctl -u service · df -h · du -sh
              env · export VAR=valeur · crontab -l · sudo -l · sudo <commande> · history · date
 Shell      : pipes « | », « ; » et « && », redirections « > » et « >> », jokers * et ?
 Raccourcis : ↑ ↓ historique · Ctrl+L effacer`;
@@ -482,7 +521,7 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
           const p = resolve(t), n = st.nodes[p];
           if (!n) { blocks.push(`ls: impossible d'accéder à '${t}': Aucun fichier ou dossier de ce type`); continue; }
           if (!traversable(p, root)) { blocks.push(`ls: impossible d'accéder à '${t}': Permission non accordée`); continue; }
-          if (n.t === "f") { blocks.push(f.has("l") ? `${modeStr(n)} ${n.o.padEnd(8)} ${String((n.c || "").length).padStart(6)} ${t}` : t); continue; }
+          if (n.t === "f") { blocks.push(f.has("l") ? `${modeStr(n)} ${n.o.padEnd(8)} ${hsize(sizeOf(n), f.has("h")).padStart(6)} ${t}` : t); continue; }
           if (!traversable(p, root) || !canAccess(p, 4, root)) { blocks.push(`ls: impossible d'ouvrir le dossier '${t}': Permission non accordée`); continue; }
           let names = children(p);
           if (!f.has("a")) names = names.filter((x) => !x.startsWith("."));
@@ -491,8 +530,7 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
             ? names.map((x) => {
                 const cp = x === "." ? p : x === ".." ? parentOf(p) : (p === "/" ? "/" : p + "/") + x;
                 const cn = st.nodes[cp];
-                const size = cn.t === "d" ? 4096 : (cn.c || "").length;
-                return `${modeStr(cn)} ${cn.o.padEnd(8)} ${String(size).padStart(6)} ${x}`;
+                return `${modeStr(cn)} ${cn.o.padEnd(8)} ${hsize(sizeOf(cn), f.has("h")).padStart(6)} ${x}`;
               }).join("\n")
             : names.join("  ");
           blocks.push(targets.length > 1 ? `${t}:\n${body}` : body);
@@ -839,6 +877,71 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
         const rows = alive.map((l) => `${(l.proto || "tcp").padEnd(6)} LISTEN  ${(l.addr || "0.0.0.0") + ":" + l.port}`.padEnd(40) + ` users:(("${l.process}"))`);
         return { out: ["Netid  State   Local Address:Port                Process", ...rows].join("\n") };
       }
+      case "systemctl": {
+        const sub = args.find((a) => !a.startsWith("-")) || "";
+        const name = (args.filter((a) => !a.startsWith("-"))[1] || "").replace(/\.service$/, "");
+        const specs = scn.services || [];
+        st.svc ||= {};
+        if (!sub || sub === "list-units" || args.includes("--failed")) {
+          const list = specs.filter((x) => !args.includes("--failed") || !st.svc![x.name]?.active);
+          return { out: ["  UNIT                         LOAD   ACTIVE SUB     DESCRIPTION", ...list.map((x) => { const v = st.svc![x.name]; return `${v?.active ? " " : "●"} ${(x.name + ".service").padEnd(28)} loaded ${v?.active ? "active running" : "failed failed "} ${x.description || ""}`; }), "", `${list.length} unités listées.`].join("\n") };
+        }
+        const spec = specs.find((x) => x.name === name), v = st.svc[name];
+        if (!name) return E(`systemctl: indiquez un service (ex. systemctl status ${specs[0]?.name || "ssh"})`);
+        if (!spec || !v) return E(`Unit ${name}.service could not be found.`);
+        if (sub === "status") {
+          return { out: [`${v.active ? "●" : "×"} ${name}.service - ${spec.description || name}`,
+            `     Loaded: loaded (/lib/systemd/system/${name}.service; ${v.enabled ? "enabled" : "disabled"}; preset: enabled)`,
+            `     Active: ${v.active ? "active (running) depuis aujourd'hui" : "failed (Result: exit-code) depuis aujourd'hui"}`,
+            "", ...v.log.slice(-5)].join("\n") };
+        }
+        if (sub === "is-active") return v.active ? { out: "active" } : { out: "", err: "failed" };
+        if (sub === "is-enabled") return v.enabled ? { out: "enabled" } : { out: "", err: "disabled" };
+        if (!["start", "restart", "stop", "enable", "disable", "reload"].includes(sub)) return E(`systemctl: sous-commande inconnue « ${sub} » (status, start, stop, restart, enable, disable, list-units --failed)`);
+        if (!root) return E(`Failed to ${sub} ${name}.service: Access denied (essayez avec sudo)`);
+        const stamp = "nov. 04 09:" + String(10 + (v.log.length % 50)).padStart(2, "0") + ":00 " + (st.env.HOSTNAME || "lab");
+        if (sub === "enable") { v.enabled = true; return { out: `Created symlink /etc/systemd/system/multi-user.target.wants/${name}.service → /lib/systemd/system/${name}.service.` }; }
+        if (sub === "disable") { v.enabled = false; return { out: `Removed /etc/systemd/system/multi-user.target.wants/${name}.service.` }; }
+        if (sub === "stop") { v.active = false; v.log.push(`${stamp} systemd[1]: Stopped ${spec.description || name}.`); return { out: "" }; }
+        if (spec.requires && !checkOne(spec.requires, st, scn)) {
+          v.active = false;
+          v.log.push(`${stamp} ${name}[${3000 + v.log.length}]: ${spec.fail || "erreur au démarrage"}`, `${stamp} systemd[1]: ${name}.service: Failed with result 'exit-code'.`);
+          return E(`Job for ${name}.service failed because the control process exited with error code.\nSee "systemctl status ${name}.service" and "journalctl -xeu ${name}.service" for details.`);
+        }
+        v.active = true; v.log.push(`${stamp} systemd[1]: Started ${spec.description || name}.`);
+        return { out: "" };
+      }
+      case "journalctl": {
+        let name = "";
+        for (let i = 0; i < args.length; i++) { if (args[i] === "-u" || args[i] === "--unit" || /^-[a-z]*u$/.test(args[i])) name = args[i + 1] || ""; else if (args[i].startsWith("--unit=")) name = args[i].slice(7); }
+        name = name.replace(/\.service$/, "");
+        const ni = args.indexOf("-n"); const n = ni >= 0 ? Math.max(1, Math.min(200, parseInt(args[ni + 1] || "10", 10) || 10)) : 200;
+        const all = name ? (st.svc?.[name]?.log || null) : Object.values(st.svc || {}).flatMap((x) => x.log);
+        if (!all) return E(`-- No entries -- (service « ${name} » inconnu)`);
+        return { out: all.slice(-n).join("\n") || "-- No entries --" };
+      }
+      case "df": {
+        const ds = scn.disks || [];
+        if (!ds.length) return { out: "Sys. de fichiers  Taille Utilisé Dispo Uti% Monté sur\n/dev/sda1           20G    4,2G   15G  22% /" };
+        const h = args.some((a) => a.includes("h"));
+        const fmt = (mb: number) => (h ? hsize(mb * MB, true) : String(Math.round(mb * 1024)));
+        return { out: ["Sys. de fichiers  Taille Utilisé Dispo Uti% Monté sur", ...ds.map((d) => { const u = diskUse(scn, st, d.mount)!; return `${(d.device || "/dev/sda1").padEnd(17)} ${fmt(d.size_mb).padStart(6)} ${fmt(u.used).padStart(7)} ${fmt(d.size_mb - u.used).padStart(5)} ${String(u.pct).padStart(3)}% ${d.mount}`; })].join("\n") };
+      }
+      case "du": {
+        const { f, rest } = flags(args);
+        const h = f.has("h");
+        const targets = rest.length ? rest : ["."];
+        const out: string[] = [];
+        for (const t of targets) {
+          const p = resolve(t), n = st.nodes[p];
+          if (!n) { out.push(`du: impossible d'accéder à '${t}': Aucun fichier ou dossier de ce type`); continue; }
+          if (!traversable(p, root) || (n.t === "d" && !canAccess(p, 4, root))) { out.push(`du: impossible de lire le répertoire '${t}': Permission non accordée`); continue; }
+          let b = n.t === "f" ? sizeOf(n) : 0;
+          if (n.t === "d") for (const [k, x] of Object.entries(st.nodes)) if (x.t === "f" && k.startsWith(p === "/" ? "/" : p + "/")) b += sizeOf(x);
+          out.push(`${hsize(Math.max(b, 4096), h).padEnd(7)} ${t}`);
+        }
+        return { out: out.join("\n") };
+      }
       case "ip": case "ifconfig": {
         const ifs = scn.interfaces?.length ? scn.interfaces : [{ name: "eth0", ip: "10.0.0.12/24" }];
         return { out: ["1: lo: <LOOPBACK,UP>\n    inet 127.0.0.1/8 scope host lo", ...ifs.map((x, i) => `${i + 2}: ${x.name}: <BROADCAST,UP>\n    inet ${x.ip} scope global ${x.name}`)].join("\n") };
@@ -888,7 +991,7 @@ export function validateScenario(x: any): string | null {
     if (!String(k).startsWith("/")) return `Chemin absolu attendu : ${k}`;
     if (typeof v !== "string" && (typeof v !== "object" || v === null || typeof (v as any).content !== "string")) return `Contenu invalide pour ${k}`;
   }
-  const types = ["exists", "absent", "contains", "equals", "mode", "process_absent", "process_present", "ran"];
+  const types = ["exists", "absent", "contains", "equals", "mode", "process_absent", "process_present", "ran", "service_active", "service_enabled", "disk_below"];
   for (const o of x.objectives || []) {
     const ok = o?.check && (types.includes(o.check.type) || (o.check.type === "all" && Array.isArray(o.check.checks) && o.check.checks.length > 0 && o.check.checks.length <= 20 && o.check.checks.every((c: any) => types.includes(c?.type))));
     if (!o?.id || !o?.title || !ok) return `Mission invalide : ${JSON.stringify(o).slice(0, 80)}`;

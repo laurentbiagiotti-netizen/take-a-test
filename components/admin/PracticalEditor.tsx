@@ -115,7 +115,7 @@ function PracticalForm({ type, options, correct, onChange }: Props) {
 
   if (type === "blocks") return <FirewallEditor o={o} k={k} set={set} />;
   if (type === "bash") return <BashEditor o={o} k={k} set={set} />;
-  if (["sokoban", "robot", "adsim", "tickets", "feed", "evtx"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
+  if (["sokoban", "robot", "adsim", "tickets", "feed", "evtx", "sim"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
 
   if (type === "headers") {
     const ask: HeaderField[] = o.ask || [];
@@ -258,6 +258,7 @@ function FirewallEditor({ o, k, set }: { o: any; k: any; set: (o: any, k?: any) 
 }
 
 const JSON_HELP: Record<string, string> = {
+  sim: "kind : privacy (appli photo), osint (question secrète), patch (baie de brassage), fwweb (pare-feu web) ou pcap (capture réseau). Le plus simple : partir d'un modèle des packs et l'adapter.",
   sokoban: "levels : liste de niveaux { map, par }. Plan : # mur, . cible, $ caisse, * caisse sur cible, @ joueur. par = nombre de coups visé (au-delà, 70 % des points du niveau).",
   robot: "levels : liste de niveaux { map, start: [x, y], dir (0 haut, 1 droite, 2 bas, 3 gauche), main, p1 }. Plan : # vide, . sol, L lampe ; main et p1 = nombre de cases.",
   adsim: "initial : annuaire de départ (ous, users, groups, gpos) ; tasks : demandes affichées. Correction : checks (exists, user_in_ou, in_group, not_in_group, disabled, enabled, must_change, gpo_linked, gpo_not_linked).",
@@ -274,7 +275,7 @@ function JsonEditor({ type, o, k, set }: { type: string; o: any; k: any; set: (o
   const apply = (a: string, b: string) => {
     try { set(JSON.parse(a), JSON.parse(b)); setErr(null); } catch (e: any) { setErr("JSON invalide : " + e.message); }
   };
-  const needsKey = type === "adsim" || type === "tickets" || type === "feed" || type === "evtx" || type === "bash";
+  const needsKey = type === "adsim" || type === "tickets" || type === "feed" || type === "evtx" || type === "bash" || type === "sim";
   return (
     <div className="space-y-2 rounded-lg border border-line p-3">
       <p className="text-xs text-muted">{JSON_HELP[type]} L&apos;exemple inséré est prêt à l&apos;emploi : adaptez-le ou gardez-le.</p>
