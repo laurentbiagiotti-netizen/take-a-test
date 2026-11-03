@@ -366,9 +366,19 @@ create index on webhook_outbox(next_try_at) where delivered_at is null;
 ------------------------------------------------------------
 -- Le staff doit être authentifié en double facteur (TOTP, niveau aal2) :
 -- un mot de passe volé ne suffit pas à lire ou modifier quoi que ce soit.
+-- Réglable : platform_settings.staff_mfa (et STAFF_MFA côté serveur).
+create table platform_settings (
+  id boolean primary key default true check (id),
+  staff_mfa boolean not null default true
+);
+insert into platform_settings(id) values (true);
+alter table platform_settings enable row level security;
+revoke all on platform_settings from anon, authenticated;
+
 create or replace function public._mfa_ok() returns boolean
-language sql stable as $$
-  select coalesce(auth.jwt()->>'aal', '') = 'aal2';
+language sql stable security definer set search_path = public as $$
+  select not coalesce((select staff_mfa from platform_settings where id), true)
+      or coalesce(auth.jwt()->>'aal', '') = 'aal2';
 $$;
 
 create or replace function public.is_admin() returns boolean

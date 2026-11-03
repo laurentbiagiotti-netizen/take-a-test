@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sameOrigin } from "@/lib/security/request";
 
+/** Double authentification du staff : active sauf STAFF_MFA=off (à régler aussi en base, platform_settings). */
+export const staffMfaRequired = () => (process.env.STAFF_MFA || "on").toLowerCase() !== "off";
+
 /**
  * Vérifie que l'appelant est surveillant ou admin, authentifié en double
  * facteur (TOTP, niveau aal2), et anti-CSRF pour les requêtes non-GET.
@@ -13,7 +16,7 @@ export async function requireStaff(req: NextRequest, adminOnly = false):
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { res: NextResponse.json({ error: "not_signed_in" }, { status: 401 }) };
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.currentLevel !== "aal2") return { res: NextResponse.json({ error: "mfa_required", message: "Double authentification requise" }, { status: 401 }) };
+  if (staffMfaRequired() && aal?.currentLevel !== "aal2") return { res: NextResponse.json({ error: "mfa_required", message: "Double authentification requise" }, { status: 401 }) };
   const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   const ok = adminOnly ? p?.role === "admin" : p?.role === "admin" || p?.role === "proctor";
   if (!ok) return { res: NextResponse.json({ error: "forbidden" }, { status: 403 }) };
@@ -28,6 +31,6 @@ export async function staffPageGuard(): Promise<{ role: "admin" | "proctor"; use
   const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (p?.role !== "admin" && p?.role !== "proctor") return { redirect: "/dashboard" };
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.currentLevel !== "aal2") return { redirect: "/mfa" };
+  if (staffMfaRequired() && aal?.currentLevel !== "aal2") return { redirect: "/mfa" };
   return { role: p.role, userId: user.id };
 }
