@@ -493,8 +493,9 @@ export default function ExamRoom(props: {
         </div>
         {q && (
           <div className="card">
-            <div className="text-sm text-muted">
-              {TYPE_HINT[q.type] || ""} · {q.points} pt{q.points > 1 ? "s" : ""}
+            <div className="flex items-center gap-2 text-xs">
+              {TYPE_HINT[q.type] && <span className="px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold uppercase tracking-wider">{TYPE_HINT[q.type]}</span>}
+              <span className="px-2.5 py-1 rounded-full border border-line-strong text-muted">{q.points} pt{q.points > 1 ? "s" : ""}</span>
             </div>
             <div className="mt-1"><QuestionPrompt ref={headingRef} prompt={q.prompt} /></div>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}

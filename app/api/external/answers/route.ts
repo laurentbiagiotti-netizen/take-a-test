@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { bearerLaunch, cors, fail, preflight, rpcFail } from "@/lib/external/http";
 import { gradeChoices, isScenario, type Verdict } from "@/lib/external/grade";
+import { DEMO_WIN95, demoRecord, isDemoNonce } from "@/lib/demo/external";
 
 /**
  * Choix du candidat dans un exercice noté par la plateforme. La page envoie
@@ -21,6 +22,11 @@ export async function POST(req: NextRequest) {
   const seq = Number(body.seq);
   if (!Number.isSafeInteger(seq) || seq < 1 || !body.answers || typeof body.answers !== "object" || Array.isArray(body.answers)) {
     return fail(req, 400, "bad_response");
+  }
+  if (isDemoNonce(auth.p.n)) {
+    const g = gradeChoices(DEMO_WIN95.scenario, DEMO_WIN95.answer_key, body.answers as Record<string, unknown>);
+    if (!demoRecord(auth.p.sid, auth.p.n, g.ratio, body.completed === true)) return fail(req, 403, "session_invalid");
+    return cors(req, NextResponse.json({ ok: true, completed: body.completed === true, answered: g.details.answered, total: g.max }));
   }
   const admin = adminClient();
   const { data, error } = await admin.rpc("external_session", { p_session: auth.p.sid, p_nonce: auth.p.n });

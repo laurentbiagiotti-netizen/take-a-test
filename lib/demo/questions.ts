@@ -86,8 +86,22 @@ export const DEMO_QUESTIONS: DemoQ[] = [
   },
 ];
 
+/** Exercices dans les outils de l'école (version serveur de la démo uniquement). */
+export const DEMO_TOOL_QUESTIONS = [
+  {
+    id: "d-crime", type: "external", points: 3,
+    prompt: "Crime GeoGuess : retrouvez le lieu du crime sur la carte à partir du dossier et de la vue de rue.",
+    options: null, external: { tool: "crime", label: "une enquête", time_limit_s: 6 * 60 },
+  },
+  {
+    id: "d-win95", type: "external", points: 3,
+    prompt: "Cybersup OS : un mail, un SMS et une adresse web arrivent sur le poste. Frauduleux ou légitime ?",
+    options: null, external: { tool: "win95", label: "détection du phishing", time_limit_s: 4 * 60 },
+  },
+] as const;
+
 /** Partie publique, avec étapes et colonne de droite mélangées (jamais dans l'ordre correct). */
-export function publicDemoQuestions() {
+export function publicDemoQuestions(opts: { tools?: boolean } = {}) {
   const shuffle = <T,>(a: T[]): T[] => {
     for (let t = 0; t < 8; t++) {
       const b = [...a];
@@ -96,9 +110,13 @@ export function publicDemoQuestions() {
     }
     return [...a].reverse();
   };
-  return DEMO_QUESTIONS.map(({ key: _k, ...q }) => {
+  const base = DEMO_QUESTIONS.map(({ key: _k, ...q }) => {
     if (q.type === "ordering") return { ...q, options: shuffle(q.options) };
     if (q.type === "matching") return { ...q, options: { left: q.options.left, right: shuffle(q.options.right) } };
-    return q;
+    return q as typeof q & { external?: { tool: string; label: string; time_limit_s: number } };
   });
+  if (!opts.tools) return base;
+  // Les exercices dans les outils viennent après le QCM, au milieu de l'essai
+  const tools = DEMO_TOOL_QUESTIONS.map((q) => ({ ...q, external: { ...q.external } }));
+  return [base[0], ...tools, ...base.slice(1)];
 }

@@ -31,8 +31,12 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
     case "mcq_single": case "mcq_multi": return <Mcq q={q} value={value} onChange={onChange} />;
     case "long_text":
       return (
-        <textarea className="input min-h-[220px] font-mono" maxLength={20000} spellCheck={false} autoComplete="off"
-          value={value?.text || ""} onChange={(e) => (onText || onChange)({ text: e.target.value })} onDrop={(e) => e.preventDefault()} />
+        <div>
+          <textarea className="input min-h-[240px] font-mono !rounded-xl !p-4 leading-relaxed" maxLength={20000} spellCheck={false} autoComplete="off"
+            placeholder="Rédigez votre réponse ici…"
+            value={value?.text || ""} onChange={(e) => (onText || onChange)({ text: e.target.value })} onDrop={(e) => e.preventDefault()} />
+          <div className="mt-1 text-right text-xs text-faint">{(value?.text || "").trim() ? (value.text as string).trim().split(/\s+/).length : 0} mot(s)</div>
+        </div>
       );
     case "ordering": return <Ordering q={q} value={value} onChange={onChange} />;
     case "matching": return <Matching q={q} value={value} onChange={onChange} />;
@@ -55,28 +59,44 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
   }
 }
 
+const LETTERS = "ABCDEFGHIJKLMNOP";
+
 function Mcq({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r: any) => void }) {
   const sel: string[] = value?.selected || [];
+  const single = q.type === "mcq_single";
   return (
-    <div className="space-y-2">
-      {(q.options || []).map((opt: any) => {
-        const checked = sel.includes(opt.id);
-        return (
-          <label key={opt.id} className={`flex gap-3 items-center p-3 rounded-md border cursor-pointer transition-colors ${checked ? "border-accent bg-surface-2" : "border-line hover:border-line-strong"}`}>
-            <input type={q.type === "mcq_single" ? "radio" : "checkbox"} name={`q-${q.id}`} checked={checked}
-              onChange={(e) => {
-                let next = sel.slice();
-                if (q.type === "mcq_single") next = e.target.checked ? [opt.id] : [];
-                else next = e.target.checked ? [...next, opt.id] : next.filter((x) => x !== opt.id);
-                onChange({ selected: next });
-              }} />
-            <div className="flex-1">
-              <div>{opt.text}</div>
-              {opt.image_url && <img src={opt.image_url} alt="" className="mt-1 max-h-32 rounded border border-line" draggable={false} />}
-            </div>
-          </label>
-        );
-      })}
+    <div>
+      <p className="text-xs text-muted mb-3 flex items-center gap-2">
+        <span className={`inline-block w-2 h-2 ${single ? "rounded-full" : "rounded-sm"} bg-accent`} aria-hidden />
+        {single ? "Une seule bonne réponse." : "Plusieurs réponses possibles : cochez toutes les bonnes."}
+      </p>
+      <div className="grid gap-2.5">
+        {(q.options || []).map((opt: any, k: number) => {
+          const checked = sel.includes(opt.id);
+          return (
+            <label key={opt.id}
+              className={`group relative flex gap-4 items-center p-4 rounded-xl border cursor-pointer transition-all duration-150
+                ${checked ? "border-accent bg-gradient-to-r from-accent/15 to-transparent shadow-[0_0_0_1px_rgba(253,113,25,0.35),0_8px_24px_-12px_rgba(253,113,25,0.6)]"
+                  : "border-line bg-surface-2/60 hover:border-line-strong hover:bg-surface-2 hover:-translate-y-px"}`}>
+              <input className="sr-only peer" type={single ? "radio" : "checkbox"} name={`q-${q.id}`} checked={checked}
+                onChange={(e) => {
+                  let next = sel.slice();
+                  if (single) next = e.target.checked ? [opt.id] : [];
+                  else next = e.target.checked ? [...next, opt.id] : next.filter((x) => x !== opt.id);
+                  onChange({ selected: next });
+                }} />
+              <span aria-hidden className={`shrink-0 w-9 h-9 grid place-items-center font-display text-sm transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-accent
+                ${single ? "rounded-full" : "rounded-lg"} ${checked ? "bg-accent text-bg" : "bg-bg border border-line-strong text-muted group-hover:text-fg"}`}>
+                {checked ? "✓" : LETTERS[k] || k + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className={checked ? "text-fg" : "text-fg/90"}>{opt.text}</div>
+                {opt.image_url && <img src={opt.image_url} alt="" className="mt-2 max-h-32 rounded-lg border border-line" draggable={false} />}
+              </div>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -85,6 +105,7 @@ function Ordering({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
   const byId = useMemo(() => new Map((q.options || []).map((o: any) => [o.id, o.text])), [q.options]);
   const order: string[] = value?.order || (q.options || []).map((o: any) => o.id);
   const [drag, setDrag] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
   const move = (from: number, to: number) => {
     if (to < 0 || to >= order.length || from === to) return;
     const next = order.slice(); const [x] = next.splice(from, 1); next.splice(to, 0, x);
@@ -92,17 +113,20 @@ function Ordering({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
   };
   return (
     <div>
-      <p className="text-xs text-muted mb-2">Glissez les étapes ou utilisez les flèches. L&apos;ordre affiché est votre réponse.</p>
-      <ol className="space-y-2">
+      <p className="text-xs text-muted mb-3">Glissez les étapes ou utilisez les flèches. L&apos;ordre affiché est votre réponse.</p>
+      <ol className="relative space-y-2.5 before:absolute before:left-[1.35rem] before:top-4 before:bottom-4 before:w-px before:bg-gradient-to-b before:from-accent/60 before:to-line">
         {order.map((id, i) => (
-          <li key={id} draggable onDragStart={() => setDrag(i)} onDragOver={(e) => e.preventDefault()}
-            onDrop={() => { if (drag !== null) move(drag, i); setDrag(null); }}
-            className={`flex items-center gap-3 p-3 rounded-md border bg-surface-2 cursor-grab ${drag === i ? "border-accent opacity-60" : "border-line"}`}>
-            <span className="font-display text-accent w-6 text-center">{i + 1}</span>
+          <li key={id} draggable onDragStart={() => setDrag(i)} onDragEnd={() => { setDrag(null); setOver(null); }}
+            onDragOver={(e) => { e.preventDefault(); setOver(i); }}
+            onDrop={() => { if (drag !== null) move(drag, i); setDrag(null); setOver(null); }}
+            className={`relative flex items-center gap-4 pl-1 pr-3 py-2.5 rounded-xl border bg-surface-2 cursor-grab active:cursor-grabbing transition-all
+              ${drag === i ? "opacity-50 scale-[0.99] border-accent" : over === i && drag !== null ? "border-accent shadow-[0_0_0_1px_rgba(253,113,25,0.4)]" : "border-line hover:border-line-strong"}`}>
+            <span className="relative z-10 shrink-0 w-10 h-10 grid place-items-center rounded-full bg-bg border-2 border-accent/70 font-display text-accent">{i + 1}</span>
             <span className="flex-1">{String(byId.get(id) ?? "")}</span>
+            <span aria-hidden className="text-faint select-none tracking-tighter mr-1">⋮⋮</span>
             <span className="flex gap-1">
-              <button type="button" className="btn-secondary !px-2 !py-1 text-xs" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Monter">↑</button>
-              <button type="button" className="btn-secondary !px-2 !py-1 text-xs" onClick={() => move(i, i + 1)} disabled={i === order.length - 1} aria-label="Descendre">↓</button>
+              <button type="button" className="w-8 h-8 grid place-items-center rounded-md border border-line-strong text-muted hover:text-accent hover:border-accent disabled:opacity-30" onClick={() => move(i, i - 1)} disabled={i === 0} aria-label="Monter">↑</button>
+              <button type="button" className="w-8 h-8 grid place-items-center rounded-md border border-line-strong text-muted hover:text-accent hover:border-accent disabled:opacity-30" onClick={() => move(i, i + 1)} disabled={i === order.length - 1} aria-label="Descendre">↓</button>
             </span>
           </li>
         ))}
@@ -135,6 +159,8 @@ function Matching({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
     setActive(nextEmpty ? nextEmpty.id : null);
   };
   const textOf = (id?: string) => right.find((r) => r.id === id)?.text;
+  const PAIR = ["#fd7119", "#34d399", "#60a5fa", "#f472b6", "#fbbf24", "#a78bfa", "#22d3ee", "#f87171"];
+  const colorOf = (l: string) => PAIR[left.findIndex((x) => x.id === l) % PAIR.length];
   return (
     <div className="grid md:grid-cols-[1.3fr_1fr] gap-4">
       <ul className="space-y-2">
@@ -142,10 +168,13 @@ function Matching({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
           const isActive = active === l.id;
           return (
             <li key={l.id}>
-              <div className={`rounded-md border p-3 transition-colors ${isActive ? "border-accent bg-accent/10" : pairs[l.id] ? "border-line-strong bg-surface-2" : "border-line bg-surface-2"}`}>
+              <div className={`rounded-xl border p-3 transition-all ${isActive ? "border-accent bg-accent/10 shadow-[0_0_0_1px_rgba(253,113,25,0.35)]" : pairs[l.id] ? "border-line-strong bg-surface-2" : "border-line bg-surface-2/60"}`}
+                style={pairs[l.id] && !isActive ? { borderLeft: `4px solid ${colorOf(l.id)}` } : undefined}>
                 <button type="button" className="w-full text-left flex items-center gap-3" onClick={() => setActive(isActive ? null : l.id)} aria-pressed={isActive}>
                   <span className="font-medium flex-1">{l.text}</span>
-                  <span className={`text-sm px-2 py-1 rounded ${pairs[l.id] ? "bg-accent/15 text-accent-light" : "text-faint border border-dashed border-line"}`}>
+                  <span aria-hidden className="text-faint">→</span>
+                  <span className={`text-sm px-2.5 py-1 rounded-lg ${pairs[l.id] ? "font-medium text-bg" : "text-faint border border-dashed border-line-strong"}`}
+                    style={pairs[l.id] ? { background: colorOf(l.id) } : undefined}>
                     {textOf(pairs[l.id]) || (isActive ? "choisissez à droite" : "à associer")}
                   </span>
                 </button>
@@ -166,7 +195,8 @@ function Matching({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r
             const owner = used.get(r.id);
             return (
               <button type="button" key={r.id} onClick={() => pick(r.id)}
-                className={`px-3 py-2 rounded-md border text-sm text-left transition-colors ${owner ? "border-line text-faint bg-bg" : "border-line-strong bg-surface-2 hover:border-accent"}`}>
+                className={`px-3.5 py-2.5 rounded-xl border text-sm text-left transition-all ${owner ? "bg-bg text-muted" : "border-line-strong bg-surface-2 hover:border-accent hover:-translate-y-px"}`}
+                style={owner ? { borderColor: colorOf(owner), boxShadow: `inset 3px 0 0 ${colorOf(owner)}` } : undefined}>
                 {r.text}{owner && <span className="sr-only"> (déjà associé)</span>}
               </button>
             );
@@ -185,13 +215,23 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
     const on = sel.includes(id);
     onChange({ selected: on ? sel.filter((x) => x !== id) : multi ? [...sel, id] : [id] });
   };
-  const mark = (id: string) => sel.includes(id) ? "bg-accent/15 outline outline-1 outline-accent" : "hover:bg-surface-2";
-  const hint = <p className="text-xs text-muted mb-2">{multi ? "Cliquez sur tous les éléments concernés (une erreur retire des points)." : "Cliquez sur un seul élément."} Recliquez pour désélectionner.</p>;
+  const mark = (id: string) => sel.includes(id) ? "bg-accent/20 shadow-[inset_3px_0_0_#fd7119]" : "hover:bg-white/5";
+  const hint = (
+    <p className="text-xs text-muted mb-3 flex flex-wrap items-center gap-2">
+      <span>{multi ? "Cliquez sur tous les éléments concernés (une erreur retire des points)." : "Cliquez sur un seul élément."} Recliquez pour désélectionner.</span>
+      {sel.length > 0 && <span className="badge border-accent/50 text-accent">{sel.length} sélectionné{sel.length > 1 ? "s" : ""}</span>}
+    </p>
+  );
 
   if (o.layout === "email") {
     return (
       <div>{hint}
-        <div className="rounded-lg border border-line bg-[#f6e9e0] text-[#0a1047] overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden shadow-[0_20px_50px_-25px_rgba(0,0,0,0.9)]">
+          <div className="flex items-center gap-2 px-3 py-2 bg-surface-2 border-b border-line">
+            <span className="w-3 h-3 rounded-full bg-[#ff5f57]" /><span className="w-3 h-3 rounded-full bg-[#febc2e]" /><span className="w-3 h-3 rounded-full bg-[#28c840]" />
+            <span className="ml-3 text-xs text-muted">Messagerie · Boîte de réception</span>
+          </div>
+          <div className="bg-[#f6e9e0] text-[#0a1047]">
           <div className="px-4 py-3 border-b border-[#0a1047]/15 text-sm space-y-0.5">
             {o.header?.from && <div><span className="opacity-60">De : </span>{o.header.from}</div>}
             {o.header?.to && <div><span className="opacity-60">À : </span>{o.header.to}</div>}
@@ -205,6 +245,7 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
                 {s.text}
               </button>
             ))}
+          </div>
           </div>
         </div>
       </div>
@@ -230,7 +271,12 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
   }
   return (
     <div>{hint}
-      <div className="rounded-lg border border-line bg-[#05070d] font-mono text-[13px] overflow-x-auto py-2">
+      <div className="rounded-xl border border-line overflow-hidden shadow-[0_20px_50px_-25px_rgba(0,0,0,0.9)]">
+        <div className="flex items-center gap-2 px-3 py-2 bg-surface-2 border-b border-line">
+          <span className="w-3 h-3 rounded-full bg-[#ff5f57]" /><span className="w-3 h-3 rounded-full bg-[#febc2e]" /><span className="w-3 h-3 rounded-full bg-[#28c840]" />
+          <span className="ml-3 text-xs text-muted font-mono">{o.layout === "log" ? "journal.log" : o.filename || "source"}</span>
+        </div>
+      <div className="bg-[#05070d] font-mono text-[13px] overflow-x-auto py-2">
         {(o.segments || []).map((s: any, i: number) => (
           <button type="button" key={s.id} onClick={() => toggle(s.id)}
             className={`flex w-full text-left px-3 py-0.5 whitespace-pre ${mark(s.id)}`}>
@@ -238,6 +284,7 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
             <span className={o.layout === "log" ? "text-[#c9d1e3]" : "text-fg"}>{s.text}</span>
           </button>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -266,7 +313,7 @@ function ShortAnswer({ q, value, onChange }: { q: PublicQ; value: any; onChange:
             <input className="input max-w-xs" placeholder="Filtrer les lignes…" value={filter} onChange={(e) => setFilter(e.target.value)} />
             <span className="text-xs text-muted">{rows.length} ligne(s) · cliquez un en-tête pour trier</span>
           </div>
-          <div className="overflow-auto max-h-80 rounded-lg border border-line">
+          <div className="overflow-auto max-h-80 rounded-xl border border-line">
             <table className="w-full text-sm">
               <thead className="bg-surface-2 sticky top-0">
                 <tr>{(d.columns || []).map((c: string, i: number) => (
@@ -276,14 +323,17 @@ function ShortAnswer({ q, value, onChange }: { q: PublicQ; value: any; onChange:
                   </th>
                 ))}</tr>
               </thead>
-              <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line">{r.map((c, j) => <td key={j} className="px-3 py-1.5 font-mono text-xs">{c}</td>)}</tr>)}</tbody>
+              <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line odd:bg-white/[0.02] hover:bg-accent/5">{r.map((c, j) => <td key={j} className="px-3 py-1.5 font-mono text-xs">{c}</td>)}</tr>)}</tbody>
             </table>
           </div>
         </div>
       )}
       {d?.kind === "text" && <pre className="rounded-lg border border-line bg-[#05070d] p-3 font-mono text-xs whitespace-pre-wrap max-h-80 overflow-auto text-[#c9d1e3]">{d.text}</pre>}
-      <input className="input font-mono" maxLength={500} placeholder={q.options?.placeholder || "Votre réponse"} autoComplete="off" spellCheck={false}
-        value={value?.text || ""} onChange={(e) => onChange({ text: e.target.value })} />
+      <label className="block">
+        <span className="text-xs uppercase tracking-wider text-muted">Votre réponse</span>
+        <input className="input mt-1 font-mono !text-base !py-3 !rounded-xl" maxLength={500} placeholder={q.options?.placeholder || "Votre réponse"} autoComplete="off" spellCheck={false}
+          value={value?.text || ""} onChange={(e) => onChange({ text: e.target.value })} />
+      </label>
     </div>
   );
 }

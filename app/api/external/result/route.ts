@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { toolConfig, verifyResultSignature } from "@/lib/external/server";
+import { demoRecord, isDemoNonce } from "@/lib/demo/external";
 
 /**
  * Résultat envoyé par le SERVEUR d'un outil qui note lui-même (Crime
@@ -29,6 +30,11 @@ export async function POST(req: NextRequest) {
   const seq = Number(b.seq), ratio = Number(b.score_ratio);
   if (typeof b.session_id !== "string" || !/^[0-9a-f-]{36}$/i.test(b.session_id) || typeof b.nonce !== "string" || !Number.isSafeInteger(seq) || seq < 1 || !Number.isFinite(ratio)) {
     return err(400, "bad_response");
+  }
+  // Épreuve d'essai : la note reste en mémoire, rien en base
+  if (isDemoNonce(b.nonce)) {
+    if (!demoRecord(b.session_id, b.nonce as string, ratio, b.completed === true)) return err(403, "session_invalid");
+    return NextResponse.json({ ok: true, completed: b.completed === true }, { headers: { "Cache-Control": "no-store" } });
   }
   const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const { data, error } = await adminClient().rpc("external_record", {

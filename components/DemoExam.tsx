@@ -19,6 +19,8 @@ type Check = { id: string; label: string; state: CheckState; detail?: string };
 export type DemoApi = {
   run: (command: string) => Promise<{ ok: boolean; data: any }>;
   grade: (answers: Record<string, any>, flag: string) => Promise<any>;
+  /** Exercice d'essai dans un outil (absent de la version statique). */
+  launch?: (tool: string) => Promise<any>;
 };
 
 const serverApi: DemoApi = {
@@ -30,11 +32,15 @@ const serverApi: DemoApi = {
     const r = await fetch("/api/demo/grade", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answers, flag }) });
     return r.json();
   },
+  launch: async (tool) => {
+    const r = await fetch("/api/demo/external", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tool }) });
+    return r.json().catch(() => ({ error: "Exercice indisponible." }));
+  },
 };
 
 const HINT: Record<string, string> = {
   mcq_single: "QCM", mcq_multi: "QCM", ordering: "Remettre dans l'ordre", matching: "Associer",
-  hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée",
+  hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée", external: "Exercice pratique",
 };
 
 export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo-blanc.svg", modelUrl = "/models" }: {
@@ -242,7 +248,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
           <>
             <div>
               <h1 className="h1"><span className="text-accent">Démo</span> de l&apos;épreuve</h1>
-              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous, question par question : une mission sur un serveur Linux compromis, un QCM, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
+              <p className="text-muted mt-2 max-w-2xl">Vérifiez votre poste puis entraînez-vous, question par question : une mission sur un serveur Linux compromis, un QCM{questions.some((x) => x.type === "external") ? ", une enquête dans Crime GeoGuess, un tri du phishing dans Cybersup OS" : ""}, une remise en ordre, une association, un mail de phishing, du code vulnérable et une analyse de données. Rien n&apos;est enregistré.</p>
               {staticSite && <p className="text-xs text-faint mt-2 max-w-2xl">Version de démonstration publiée sur GitHub Pages : tout s&apos;exécute dans votre navigateur. Dans la vraie plateforme, la machine, les réponses et la correction restent sur le serveur.</p>}
             </div>
             <section className="grid md:grid-cols-[1.1fr_1fr] gap-4">
@@ -293,10 +299,19 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
               </section>
             ) : q && (
               <section className="card">
-                <div className="text-xs text-muted">{HINT[q.type]} · {q.points} pt{q.points > 1 ? "s" : ""}</div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="px-2.5 py-1 rounded-full bg-accent/15 text-accent font-semibold uppercase tracking-wider">{HINT[q.type]}</span>
+                  <span className="px-2.5 py-1 rounded-full border border-line-strong text-muted">{q.points} pt{q.points > 1 ? "s" : ""}</span>
+                </div>
                 <div className="mt-1"><QuestionPrompt prompt={q.prompt} className="text-lg font-medium" /></div>
                 <div className="mt-4">
-                  <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setAnswers((a) => ({ ...a, [q.id]: r }))} />
+                  <QuestionBody q={q} value={answers[q.id]}
+                    onChange={(r) => setAnswers((a) => ({ ...a, [q.id]: q.type === "external" ? { ...a[q.id], ...r } : r }))}
+                    launchExternal={q.type === "external" && api.launch ? async () => {
+                      const r = await api.launch!(q.external!.tool);
+                      if (r?.sid) setAnswers((a) => ({ ...a, [q.id]: { ...a[q.id], sid: r.sid } }));
+                      return r;
+                    } : undefined} />
                 </div>
               </section>
             )}
