@@ -23,6 +23,8 @@ MISSION_MINUTES = 8
 NO_FLOOR = {"Énigmes CYBEROKU", "Mission terminal", "Enquête OSINT", "Détection du phishing"}
 
 # Exercices dans les outils de l'école : 1 Crime GeoGuess et 3 Cybersup OS par épreuve.
+FORMATION = {"b1": "Bachelor 1 Cybersécurité", "b3": "Bachelor 3 Cybersécurité", "mastere": "Mastère 1 Cybersécurité"}
+
 CRIME = {"points": 4, "minutes": 7, "count": 2,
          "difficulty": {"b1": "easy", "b3": "normal", "mastere": "expert"}}
 WIN95 = [  # (fichier, titre, consigne, points, minutes)
@@ -146,14 +148,14 @@ for name in ["b1", "b3", "mastere"]:
     print(name, f"{n_q} questions x {2 if variants else 1} variante(s)", "+ mission" if mission else "",
           f"| {total} pts, {duration} min, seuil {pass_mark}", dict(collections.Counter(it["domain"] for it in items if it.get("variant") != "B")))
 
-    json.dump({"title": m.TITLE, "description": desc, "duration_minutes": duration, "pass_mark": pass_mark,
+    json.dump({"title": m.TITLE, "description": desc, "formation": FORMATION[name], "duration_minutes": duration, "pass_mark": pass_mark,
                "domain_floors": floors, "questions": items},
               open(OUT / "admission-2026" / f"{name}.json", "w"), ensure_ascii=False, indent=1)
 
     sql.append("  insert into tests(owner_id, title, description, duration_minutes, is_published, invite_only, shuffle_questions,")
-    sql.append("                    shuffle_options, max_violations, pass_mark, domain_floors, interview_guide)")
+    sql.append("                    shuffle_options, max_violations, pass_mark, domain_floors, interview_guide, formation)")
     sql.append(f"    values (v_owner, {q(m.TITLE)}, {q(desc)}, {duration}, false, true, true, true, 3, {pass_mark},")
-    sql.append(f"            {q(json.dumps(floors, ensure_ascii=False))}::jsonb, {q(guide)}) returning id into v_test;")
+    sql.append(f"            {q(json.dumps(floors, ensure_ascii=False))}::jsonb, {q(guide)}, {q(FORMATION[name])}) returning id into v_test;")
     for it in items:
         grp = f"'{it['variant_group']}'" if it["variant_group"] else "null"
         if it["type"] == "external":
@@ -166,7 +168,7 @@ for name in ["b1", "b3", "mastere"]:
             sql.append(f"  insert into questions(test_id, position, type, prompt, points, domain) values (v_test, {it['position']}, 'terminal', {q(it['prompt'])}, {it['points']}, {q(it['domain'])}) returning id into v_q;")
             sql.append(f"  insert into question_terminals(question_id, scenario, flag) values (v_q, {q(json.dumps(it['scenario'], ensure_ascii=False))}::jsonb, null);")
             continue
-        sql.append(f"  insert into questions(test_id, position, type, prompt, options, points, domain, variant_group) values (v_test, {it['position']}, '{it['type']}', {q(it['prompt'])}, {q(json.dumps(it['options'], ensure_ascii=False))}::jsonb, 1, {q(it['domain'])}, {grp}) returning id into v_q;")
+        sql.append(f"  insert into questions(test_id, position, type, prompt, options, points, domain, variant_group, explanation) values (v_test, {it['position']}, '{it['type']}', {q(it['prompt'])}, {q(json.dumps(it['options'], ensure_ascii=False))}::jsonb, 1, {q(it['domain'])}, {grp}, {q(it['explanation'])}) returning id into v_q;")
         sql.append(f"  insert into answer_keys(question_id, correct) values (v_q, '{json.dumps(it['correct'])}'::jsonb);")
 
 sql += ["end", "$seed$;", ""]

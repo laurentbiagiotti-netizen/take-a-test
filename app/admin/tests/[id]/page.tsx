@@ -8,6 +8,7 @@ import TypeEditor from "@/components/admin/TypeEditor";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
+import ExcelTools from "@/components/admin/ExcelTools";
 
 type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
@@ -18,6 +19,7 @@ type Question = {
   prompt: string; options: Option[] | any; correct: string[] | any;
   points: number; image_url?: string | null;
   domain?: string | null; variant_group?: string | null;
+  explanation?: string | null; time_limit_s?: number | null;
   terminal?: { scenario: string; flag: string } | null;
   external?: ExternalDraft | null;
 };
@@ -146,6 +148,7 @@ export default function EditTest() {
         options: q.options, points: q.points,
         image_url: q.image_url ?? null,
         domain: q.domain?.trim() || null, variant_group: q.variant_group?.trim() || null,
+        explanation: q.explanation?.trim() || null, time_limit_s: q.time_limit_s || null,
       }));
       const { data: inserted } = await supabase.from("questions").insert(rows).select("id");
       // Re-attach answer keys (only for MCQ)
@@ -374,7 +377,12 @@ export default function EditTest() {
         )}
       </div>
 
-      <h2 className="h2 mt-8">Questions</h2>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="h2">Questions</h2>
+        <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
+          onFormation={(f) => updateTest({ formation: f || null })}
+          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
+      </div>
       <div className="mt-2 flex flex-wrap gap-2">
         <button className="btn-secondary" onClick={() => addQuestion("mcq_single")}>+ QCM (une réponse)</button>
         <button className="btn-secondary" onClick={() => addQuestion("mcq_multi")}>+ QCM (plusieurs réponses)</button>
@@ -397,8 +405,8 @@ export default function EditTest() {
             <textarea className="input" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
               const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, prompt: v } : x));
             }} />
-            <div className="grid sm:grid-cols-2 gap-2 text-sm">
-              <label>Domaine (compétence)
+            <div className="grid sm:grid-cols-4 gap-2 text-sm">
+              <label className="sm:col-span-2">Domaine (compétence)
                 <input className="input mt-1" list="domains" value={q.domain || ""} placeholder="ex. Réseaux" onChange={(e) => {
                   const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, domain: v } : x));
                 }} />
@@ -406,6 +414,17 @@ export default function EditTest() {
               <label title="Les questions d'un même groupe sont des variantes : une seule est tirée pour chaque candidat">Groupe de variantes (facultatif)
                 <input className="input mt-1" value={q.variant_group || ""} placeholder="ex. reseau-q03" onChange={(e) => {
                   const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, variant_group: v } : x));
+                }} />
+              </label>
+              <label title="Utilisé quand l'épreuve est chronométrée question par question ; vide = temps par défaut">Temps (secondes)
+                <input className="input mt-1" inputMode="numeric" value={q.time_limit_s ?? ""} placeholder="défaut" onChange={(e) => {
+                  const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                  setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, time_limit_s: Number.isFinite(n) ? Math.min(3600, n) : null } : x));
+                }} />
+              </label>
+              <label className="sm:col-span-4">Explication (équipe et fiche de correction, jamais le candidat)
+                <input className="input mt-1" maxLength={5000} value={q.explanation || ""} onChange={(e) => {
+                  const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, explanation: v } : x));
                 }} />
               </label>
             </div>

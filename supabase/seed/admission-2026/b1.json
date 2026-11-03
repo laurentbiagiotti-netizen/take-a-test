@@ -1,6 +1,7 @@
 {
  "title": "Admission Bachelor 1 Cybersécurité 2026",
  "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 55 questions dont 5 énigmes CYBEROKU, 71 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Plus une enquête Crime GeoGuess (7 minutes, 4 points) et trois exercices de détection du phishing dans Cybersup OS (9 minutes, 6 points). Seuil d'admissibilité proposé : 33/65.",
+ "formation": "Bachelor 1 Cybersécurité",
  "duration_minutes": 71,
  "pass_mark": 33,
  "domain_floors": {

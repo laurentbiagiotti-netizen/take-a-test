@@ -60,6 +60,8 @@ create table tests (
   interview_guide text check (interview_guide is null or length(interview_guide) <= 50000),
   -- Résultat sur 20 : « Test réussi » à partir de verdict_pass, « Test échoué » sous
   -- verdict_fail, « À statuer » entre les deux (et dès qu'une réponse reste à corriger).
+  -- Formation visée (import Excel : garde les questions de cette formation et les communes)
+  formation text check (formation is null or length(formation) <= 100),
   verdict_pass numeric not null default 10 check (verdict_pass between 0 and 20),
   verdict_fail numeric not null default 8 check (verdict_fail between 0 and 20),
   created_at timestamptz not null default now(),
@@ -96,7 +98,11 @@ create table questions (
   -- Compétence évaluée (scores par domaine, planchers, statistiques)
   domain text check (domain is null or length(domain) <= 100),
   -- Variantes jumelles : une seule question par groupe est tirée pour chaque candidat
-  variant_group text check (variant_group is null or length(variant_group) <= 100)
+  variant_group text check (variant_group is null or length(variant_group) <= 100),
+  -- Explication de la bonne réponse (équipe et fiche de correction, jamais le candidat)
+  explanation text check (explanation is null or length(explanation) <= 5000),
+  -- Temps propre à la question quand l'épreuve est chronométrée question par question
+  time_limit_s int check (time_limit_s is null or time_limit_s between 5 and 3600)
 );
 create index on questions(test_id);
 

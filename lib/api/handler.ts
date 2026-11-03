@@ -118,7 +118,7 @@ export const TEST_FIELDS = [
   "title", "description", "duration_minutes", "is_published", "require_seb", "invite_only", "require_id_check",
   "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
   "grace_seconds", "opens_at", "closes_at", "retention_days", "id_verify_before_start", "seb_accept_config_key",
-  "pass_mark", "domain_floors", "interview_guide", "verdict_pass", "verdict_fail",
+  "pass_mark", "domain_floors", "interview_guide", "verdict_pass", "verdict_fail", "formation",
 ] as const;
 
 export function pickTestFields(input: any): Record<string, unknown> {
