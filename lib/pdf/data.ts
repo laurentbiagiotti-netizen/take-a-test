@@ -1,3 +1,4 @@
+import { feedSummary, feedVerdicts } from "@/lib/questions/feed";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { EVENT_LABEL } from "@/lib/exam/client";
 import type { RecapData, RecapQuestion } from "./recap";
@@ -83,6 +84,10 @@ export async function recapData(admin: SupabaseClient, attemptId: string): Promi
       base.answer = r.query || "";
     } else if (q.type === "bash") {
       base.answer = r.script || "";
+    } else if (q.type === "feed") {
+      const kv = feedVerdicts(key);
+      base.answer = (q.options?.posts || []).map((p: any) => `${p.author} : ${r.verdicts?.[p.id] || "?"}${kv[p.id] && r.verdicts?.[p.id] !== kv[p.id] ? ` (attendu ${kv[p.id]})` : ""}`).join("  ");
+      base.extra = [feedSummary(q.options || {}, key, r)];
     } else if (q.type === "decode") {
       base.answer = r.text || "";
       base.expected = (key?.answers || []).join(" ; ");

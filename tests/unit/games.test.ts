@@ -97,16 +97,29 @@ describe("mission Linux B1", () => {
   });
 });
 
-import { gradeFeed } from "@/lib/questions/feed";
+import { gradeFeed, feedSummary, validFeed } from "@/lib/questions/feed";
 import { FEED_TEMPLATE, CULTURE_B1 } from "@/lib/questions/templates";
 describe("vrai ou fake", () => {
-  it("barème avec demi-point entre douteux et faux", () => {
+  it("ancien corrigé { id: verdict } : demi-point entre douteux et faux", () => {
+    const t = clone(FEED_TEMPLATE);
+    const old = t.correct.verdicts, o = { ...t.options, ask_reason: false };
+    expect(validFeed(o, old)).toBeNull();
+    expect(gradeFeed(o, old as any, { verdicts: old }, 10)).toBe(10);
+    expect(gradeFeed(o, old as any, { verdicts: { ...old, f1: "douteux", f2: "faux" } }, 10)).toBe(8.5);
+    expect(CULTURE_B1).toHaveLength(12);
+  });
+  it("profils, indices et réactions", () => {
     const t = clone(FEED_TEMPLATE);
     expect(validateQuestion("feed" as any, t.options, t.correct)).toBeNull();
-    expect(gradeFeed(t.options, t.correct, { verdicts: t.correct }, 3)).toBe(3);
-    const v = { ...t.correct, f1: "douteux", f2: "faux" };
-    expect(gradeFeed(t.options, t.correct, { verdicts: v }, 7)).toBe(5.5);
-    expect(CULTURE_B1).toHaveLength(12);
+    const all = { verdicts: t.correct.verdicts, reasons: t.correct.reasons };
+    expect(gradeFeed(t.options, t.correct as any, all, 4)).toBe(4);
+    expect(gradeFeed(t.options, t.correct as any, { verdicts: t.correct.verdicts }, 4)).toBe(2.8);
+    const noisy = Object.fromEntries(Object.entries(t.correct.reasons).map(([k, v]) => [k, [...(v as string[]), "vend", "deja_vu"].filter((x, i, a) => a.indexOf(x) === i)]));
+    expect(gradeFeed(t.options, t.correct as any, { verdicts: t.correct.verdicts, reasons: noisy }, 4)).toBeLessThan(4);
+    expect(t.options.posts.find((p: any) => p.id === "f9")!.profile!.posts!.some((p: any) => p.text.includes("Nice"))).toBe(true);
+    expect(feedSummary(t.options, t.correct, { actions: { f1: ["share"], f6: ["report"], f2: ["like"] }, opened: ["f9", "f10"] }))
+      .toBe("2/10 profil(s) consulté(s) · 1 publication(s) fausse(s) partagée(s) · 1 signalée(s)");
+    expect(validFeed(t.options, { ...t.correct, reasons: { f1: ["inconnu"] } })).toMatch(/Indices inconnus/);
   });
 });
 

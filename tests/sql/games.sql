@@ -9,8 +9,9 @@ insert into questions(id,test_id,position,type,prompt,points,options) values
  ('c0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111',1,'robot','Q2',3,'{"levels":[]}'),
  ('c0000000-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111',2,'adsim','Q3',4,'{"initial":{}}'),
  ('c0000000-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111',3,'tickets','Q4',3,'{"tickets":[]}'),
- ('c0000000-0000-0000-0000-000000000005','11111111-1111-1111-1111-111111111111',4,'bash','Q5',3,'{"mission":"m","files":{"a.txt":"x"},"checks":[{"label":"l"}]}');
-insert into answer_keys values ('c0000000-0000-0000-0000-000000000001','[]'),('c0000000-0000-0000-0000-000000000002','[]'),('c0000000-0000-0000-0000-000000000003','{"checks":[]}'),('c0000000-0000-0000-0000-000000000004','{}'),('c0000000-0000-0000-0000-000000000005','{"solution":"cat a.txt","checks":[{"label":"l","kind":"stdout"}]}');
+ ('c0000000-0000-0000-0000-000000000005','11111111-1111-1111-1111-111111111111',4,'bash','Q5',3,'{"mission":"m","files":{"a.txt":"x"},"checks":[{"label":"l"}]}'),
+ ('c0000000-0000-0000-0000-000000000006','11111111-1111-1111-1111-111111111111',5,'feed','Q6',4,'{"posts":[{"id":"f1","text":"t"}],"ask_reason":true}');
+insert into answer_keys values ('c0000000-0000-0000-0000-000000000001','[]'),('c0000000-0000-0000-0000-000000000002','[]'),('c0000000-0000-0000-0000-000000000003','{"checks":[]}'),('c0000000-0000-0000-0000-000000000004','{}'),('c0000000-0000-0000-0000-000000000005','{"solution":"cat a.txt","checks":[{"label":"l","kind":"stdout"}]}'),('c0000000-0000-0000-0000-000000000006','{"verdicts":{"f1":"faux"}}');
 set role service_role;
 select exam_prepare('00000000-0000-0000-0000-00000000000c','11111111-1111-1111-1111-111111111111')->>'linear';
 select id as att from attempts limit 1 \gset
@@ -32,6 +33,9 @@ select exam_next('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),3,
 select exam_save_answer('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'c0000000-0000-0000-0000-000000000005','{"script":["rm -rf /"]}','1','UA');
 select exam_save_answer('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'c0000000-0000-0000-0000-000000000005','{"script":"cat a.txt","extra":1}','1','UA')->>'response';
 select exam_set_auto_score(:'att','c0000000-0000-0000-0000-000000000005','{"script":"cat a.txt"}',3)->>'ok';
+select exam_next('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),4,'1','UA')->>'current_index';
+select exam_save_answer('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'c0000000-0000-0000-0000-000000000006','{"verdicts":{"f1":"faux"},"actions":{"f1":["hack"]}}','1','UA');
+select exam_save_answer('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'c0000000-0000-0000-0000-000000000006','{"verdicts":{"f1":"faux"},"reasons":{"f1":["urgence"]},"actions":{"f1":["report"]},"opened":["f1"],"x":1}','1','UA')->>'response';
 select exam_submit('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'1','UA')->>'status';
 reset role;
 select q.type, an.score from answers an join questions q on q.id = an.question_id order by q.position;

@@ -1,4 +1,4 @@
--- Script Bash noté sur l'état final de la machine (just-bash, Apache 2.0).
+-- Script Bash noté sur l'état final de la machine (just-bash, Apache 2.0) ; fil d'actualité enrichi (indices, réactions, profils consultés).
 
 alter type question_type add value if not exists 'bash';
 
@@ -289,11 +289,18 @@ begin
     end if;
     p_response := jsonb_build_object('answers', p_response->'answers');
   elsif q.type = 'feed' then
-    if coalesce(jsonb_typeof(p_response->'verdicts'), '') <> 'object' or length(p_response::text) > 3000
-       or exists (select 1 from jsonb_each(p_response->'verdicts') e where (e.value #>> '{}') not in ('fiable', 'douteux', 'faux')) then
+    if coalesce(jsonb_typeof(p_response->'verdicts'), '') <> 'object' or length(p_response::text) > 8000
+       or exists (select 1 from jsonb_each(p_response->'verdicts') e where (e.value #>> '{}') not in ('fiable', 'douteux', 'faux'))
+       or (p_response ? 'reasons' and jsonb_typeof(p_response->'reasons') <> 'object')
+       or (p_response ? 'reasons' and exists (select 1 from jsonb_each(p_response->'reasons') e where jsonb_typeof(e.value) <> 'array'))
+       or (p_response ? 'actions' and jsonb_typeof(p_response->'actions') <> 'object')
+       or (p_response ? 'actions' and exists (select 1 from jsonb_each(p_response->'actions') e where jsonb_typeof(e.value) <> 'array'
+             or exists (select 1 from jsonb_array_elements(e.value) x where (x #>> '{}') not in ('like', 'share', 'report'))))
+       or (p_response ? 'opened' and jsonb_typeof(p_response->'opened') <> 'array') then
       raise exception 'bad_response' using errcode = 'P0001';
     end if;
-    p_response := jsonb_build_object('verdicts', p_response->'verdicts');
+    p_response := jsonb_build_object('verdicts', p_response->'verdicts', 'reasons', coalesce(p_response->'reasons', '{}'::jsonb),
+                                     'actions', coalesce(p_response->'actions', '{}'::jsonb), 'opened', coalesce(p_response->'opened', '[]'::jsonb));
   elsif q.type = 'tickets' then
     if coalesce(jsonb_typeof(p_response->'tickets'), '') <> 'object' or length(p_response::text) > 6000 then
       raise exception 'bad_response' using errcode = 'P0001';

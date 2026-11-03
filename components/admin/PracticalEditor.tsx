@@ -255,7 +255,7 @@ const JSON_HELP: Record<string, string> = {
   robot: "levels : liste de niveaux { map, start: [x, y], dir (0 haut, 1 droite, 2 bas, 3 gauche), main, p1 }. Plan : # vide, . sol, L lampe ; main et p1 = nombre de cases.",
   adsim: "initial : annuaire de départ (ous, users, groups, gpos) ; tasks : demandes affichées. Correction : checks (exists, user_in_ou, in_group, not_in_group, disabled, enabled, must_change, gpo_linked, gpo_not_linked).",
   evtx: "logs : événements { rid, log (Sécurité, Système, Application), level, time (AAAA-MM-JJ hh:mm:ss), source, eventId, task, computer, message, data } ; questions : { id, label, placeholder }. Correction : pour chaque question, la réponse (ou une liste de réponses acceptées). Pour de vrais journaux : evtx_dump -o jsonl fichier.evtx (outil omerbenamram/evtx), puis collez la sortie ci-dessous.",
-  feed: "posts : { id, author, handle, badge (officiel, media, nouveau), age, date, text, link { title, url }, stats }. Correction : pour chaque id, fiable, douteux ou faux.",
+  feed: "posts : { id, author, handle, badge (officiel, media, nouveau), age, date, text, image (description d'une photo), link { title, url }, stats, profile { bio, created, followers, following, posts [{ date, text }] } }. ask_reason : demander les indices. Correction : { verdicts: { id: fiable|douteux|faux }, reasons: { id: [indices] } } ; indices possibles : source_fiable, lien_coherent, compte_recent, imitation, lien_suspect, urgence, donnees, trop_beau, sans_source, deja_vu, vend. Avec les indices : 70 % verdicts, 30 % indices.",
   tickets: "tickets : { id, title, from, text } ; groups : groupes d'attribution. Correction : pour chaque id, { impact, urgence, groupe } (haute, moyenne ou basse).",
 };
 

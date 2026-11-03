@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isSolved, parseLevel, replay, step, type SokoOptions } from "@/lib/questions/sokoban";
 import { CMD_LABEL, parseMap, run, sanitize, type RobotCmd, type RobotOptions, type RobotProgram } from "@/lib/questions/robot";
 import { LEVELS, priority, PRIORITY_LABEL, type TicketsOptions } from "@/lib/questions/tickets";
-import { VERDICTS, type FeedOptions } from "@/lib/questions/feed";
+import { ACTIONS, REASONS, VERDICTS, type Action, type FeedOptions, type Post } from "@/lib/questions/feed";
 
 /* ---------------- Caisses à pousser ---------------- */
 
@@ -192,35 +192,110 @@ export function Tickets({ q, value, onChange }: { q: any; value: any; onChange: 
 /* ---------------- Fil d'actualité : vrai ou fake ? ---------------- */
 
 
+function Avatar({ p, big }: { p: Post; big?: boolean }) {
+  const hue = [...p.handle].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+  return <span aria-hidden className={`${big ? "w-12 h-12 text-lg" : "w-10 h-10 text-sm"} rounded-full grid place-items-center font-bold text-white shrink-0`} style={{ background: `hsl(${hue} 45% 38%)` }}>{p.author.slice(0, 1)}</span>;
+}
+
+function Badge({ p }: { p: Post }) {
+  if (p.badge === "officiel") return <span className="text-[10px] px-1.5 rounded bg-[#1d9bf0]/20 text-[#7cc4f5]">compte officiel</span>;
+  if (p.badge === "media") return <span className="text-[10px] px-1.5 rounded bg-ok/15 text-ok">média</span>;
+  if (p.badge === "nouveau") return <span className="text-[10px] px-1.5 rounded bg-warn/15 text-warn">compte créé {p.age || "récemment"}</span>;
+  return null;
+}
+
+/** Fil d'actualité : profils consultables, verdict, indices et réactions (inspiré de The Misinformation Game, CC BY 4.0). */
 export function Feed({ q, value, onChange }: { q: any; value: any; onChange: (r: any) => void }) {
   const o: FeedOptions = q.options || { posts: [] };
   const v: Record<string, string> = value?.verdicts || {};
+  const reasons: Record<string, string[]> = value?.reasons || {};
+  const actions: Record<string, Action[]> = value?.actions || {};
+  const opened: string[] = Array.isArray(value?.opened) ? value.opened : [];
+  const [profile, setProfile] = useState<string | null>(null);
+  const save = (patch: any) => onChange({ verdicts: v, reasons, actions, opened, ...patch });
+  const toggleProfile = (p: Post) => {
+    if (!p.profile) return;
+    setProfile(profile === p.id ? null : p.id);
+    if (!opened.includes(p.id)) save({ opened: [...opened, p.id] });
+  };
+  const done = o.posts.filter((p) => v[p.id]).length;
+
   return (
     <div className="max-w-xl mx-auto space-y-3">
-      {o.posts.map((p) => (
-        <article key={p.id} className="rounded-xl border border-line bg-surface-2/60 p-4">
-          <header className="flex items-center gap-2">
-            <span className="w-9 h-9 rounded-full bg-line-strong grid place-items-center text-sm font-bold" aria-hidden>{p.author.slice(0, 1)}</span>
-            <div className="min-w-0">
-              <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">{p.author}
-                {p.badge === "officiel" && <span className="text-[10px] px-1.5 rounded bg-[#1d9bf0]/20 text-[#7cc4f5]">compte officiel</span>}
-                {p.badge === "media" && <span className="text-[10px] px-1.5 rounded bg-ok/15 text-ok">média</span>}
-                {p.badge === "nouveau" && <span className="text-[10px] px-1.5 rounded bg-warn/15 text-warn">compte créé {p.age || "récemment"}</span>}
+      <div className="sticky top-0 z-10 rounded-lg border border-line bg-bg/90 backdrop-blur px-3 py-2 text-xs text-muted flex items-center gap-3">
+        <span>{done}/{o.posts.length} publications jugées</span>
+        <span className="flex-1 h-1.5 rounded bg-line overflow-hidden"><span className="block h-full bg-accent transition-all" style={{ width: `${(100 * done) / Math.max(1, o.posts.length)}%` }} /></span>
+      </div>
+      {o.posts.map((p) => {
+        const mine = actions[p.id] || [];
+        const act = (a: Action) => save({ actions: { ...actions, [p.id]: mine.includes(a) ? mine.filter((x) => x !== a) : [...mine, a] } });
+        const rs = reasons[p.id] || [];
+        return (
+          <article key={p.id} className="rounded-xl border border-line bg-surface-2/60 p-4">
+            <header className="flex items-center gap-2">
+              <button type="button" onClick={() => toggleProfile(p)} disabled={!p.profile} aria-expanded={profile === p.id}
+                className="flex items-center gap-2 min-w-0 text-left rounded-lg -m-1 p-1 hover:bg-white/5 disabled:hover:bg-transparent" title={p.profile ? "Voir le profil" : undefined}>
+                <Avatar p={p} />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold flex items-center gap-1.5 flex-wrap">{p.author} <Badge p={p} /></div>
+                  <div className="text-xs text-faint">{p.handle} · {p.date}</div>
+                </div>
+              </button>
+              {p.profile && <button type="button" className="ml-auto text-xs text-accent hover:underline shrink-0" onClick={() => toggleProfile(p)}>{profile === p.id ? "Fermer le profil" : "Voir le profil"}</button>}
+            </header>
+
+            {profile === p.id && p.profile && (
+              <div className="mt-3 rounded-lg border border-line-strong bg-bg p-3 text-sm space-y-2">
+                <div className="flex items-center gap-3"><Avatar p={p} big />
+                  <div><div className="font-semibold">{p.author}</div><div className="text-xs text-faint">{p.handle}</div></div></div>
+                {p.profile.bio && <p className="text-[13px]">{p.profile.bio}</p>}
+                <div className="text-xs text-muted flex flex-wrap gap-x-4 gap-y-1">
+                  <span>📅 Compte créé {p.profile.created}</span>
+                  <span><b className="text-fg">{p.profile.followers}</b> abonnés</span>
+                  {p.profile.following && <span><b className="text-fg">{p.profile.following}</b> abonnements</span>}
+                </div>
+                {!!p.profile.posts?.length && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[11px] uppercase tracking-wider text-faint">Publications précédentes</div>
+                    {p.profile.posts.map((x, k) => <div key={k} className="rounded border border-line px-2.5 py-1.5 text-[13px]"><span className="text-faint text-xs">{x.date} · </span>{x.text}</div>)}
+                  </div>
+                )}
               </div>
-              <div className="text-xs text-faint">{p.handle} · {p.date}</div>
+            )}
+
+            <p className="mt-3 text-[15px] whitespace-pre-wrap leading-relaxed">{p.text}</p>
+            {p.image && <div className="mt-3 rounded-lg border border-line bg-gradient-to-br from-slate-700/40 to-slate-900/60 aspect-[16/5] grid place-items-center px-6 text-center text-xs text-muted">🖼️ {p.image}</div>}
+            {p.link && <div className="mt-3 rounded-lg border border-line bg-bg px-3 py-2"><div className="text-sm font-medium">{p.link.title}</div><div className="text-xs text-muted font-mono break-all">{p.link.url}</div></div>}
+            <div className="mt-2 flex items-center gap-1 text-xs">
+              {p.stats && <span className="text-faint mr-auto">{p.stats}</span>}
+              {ACTIONS.map(([a, l]) => (
+                <button key={a} type="button" aria-pressed={mine.includes(a)} onClick={() => act(a)}
+                  className={`px-2 py-1 rounded-md ${mine.includes(a) ? (a === "report" ? "text-danger bg-danger/10" : a === "share" ? "text-ok bg-ok/10" : "text-[#f7768e] bg-[#f7768e]/10") : "text-muted hover:text-fg hover:bg-white/5"}`}>
+                  {a === "like" ? (mine.includes(a) ? "♥" : "♡") : a === "share" ? "↻" : "⚑"} {l}
+                </button>
+              ))}
             </div>
-          </header>
-          <p className="mt-3 text-[15px] whitespace-pre-wrap leading-relaxed">{p.text}</p>
-          {p.link && <div className="mt-3 rounded-lg border border-line bg-bg px-3 py-2"><div className="text-sm font-medium">{p.link.title}</div><div className="text-xs text-muted font-mono break-all">{p.link.url}</div></div>}
-          {p.stats && <div className="mt-2 text-xs text-faint">{p.stats}</div>}
-          <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={`Votre avis sur la publication de ${p.author}`}>
-            {VERDICTS.map(([k, l]) => (
-              <button key={k} type="button" role="radio" aria-checked={v[p.id] === k} onClick={() => onChange({ verdicts: { ...v, [p.id]: k } })}
-                className={`px-3 py-1.5 rounded-md border text-sm ${v[p.id] === k ? (k === "fiable" ? "border-ok bg-ok/15" : k === "faux" ? "border-danger bg-danger/15" : "border-warn bg-warn/15") : "border-line text-muted hover:text-fg"}`}>{l}</button>
-            ))}
-          </div>
-        </article>
-      ))}
+
+            <div className="mt-3 pt-3 border-t border-line flex flex-wrap gap-2" role="radiogroup" aria-label={`Votre avis sur la publication de ${p.author}`}>
+              {VERDICTS.map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={v[p.id] === k} onClick={() => save({ verdicts: { ...v, [p.id]: k } })}
+                  className={`px-3 py-1.5 rounded-md border text-sm ${v[p.id] === k ? (k === "fiable" ? "border-ok bg-ok/15" : k === "faux" ? "border-danger bg-danger/15" : "border-warn bg-warn/15") : "border-line text-muted hover:text-fg"}`}>{l}</button>
+              ))}
+            </div>
+            {o.ask_reason && v[p.id] && (
+              <fieldset className="mt-3">
+                <legend className="text-xs text-muted mb-1.5">Qu&apos;est-ce qui vous a guidé ? Cochez tout ce qui s&apos;applique.</legend>
+                <div className="flex flex-wrap gap-1.5">
+                  {REASONS.map(([k, l]) => (
+                    <button key={k} type="button" aria-pressed={rs.includes(k)} onClick={() => save({ reasons: { ...reasons, [p.id]: rs.includes(k) ? rs.filter((x) => x !== k) : [...rs, k] } })}
+                      className={`px-2 py-1 rounded-full border text-xs ${rs.includes(k) ? "border-accent bg-accent/15 text-fg" : "border-line text-muted hover:text-fg"}`}>{l}</button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }
