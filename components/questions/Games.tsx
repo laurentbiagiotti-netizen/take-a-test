@@ -4,6 +4,7 @@ import { isSolved, parseLevel, replay, step, type SokoOptions } from "@/lib/ques
 import { CMD_LABEL, parseMap, run, sanitize, type RobotCmd, type RobotOptions, type RobotProgram } from "@/lib/questions/robot";
 import { LEVELS, priority, PRIORITY_LABEL, type TicketsOptions } from "@/lib/questions/tickets";
 import AppWindow from "@/components/questions/AppWindow";
+import { ART, SitePage } from "@/components/questions/FeedArt";
 import { ACTIONS, REASONS, VERDICTS, type Action, type FeedOptions, type Post } from "@/lib/questions/feed";
 
 /* ---------------- Caisses à pousser ---------------- */
@@ -267,27 +268,29 @@ function Badge({ p }: { p: Post }) {
   return null;
 }
 
-/** Fil d'actualité dans un téléphone : profils consultables, verdict, indices et réactions (inspiré de The Misinformation Game, CC BY 4.0). */
+/** Vrai ou fake, une publication à la fois dans un téléphone : profils, liens vers de faux sites, réactions
+ *  (inspiré de The Misinformation Game, CC BY 4.0). La réponse se donne dans le panneau à côté. */
 export function Feed({ q, value, onChange }: { q: any; value: any; onChange: (r: any) => void }) {
   const o: FeedOptions = q.options || { posts: [] };
   const v: Record<string, string> = value?.verdicts || {};
   const reasons: Record<string, string[]> = value?.reasons || {};
   const actions: Record<string, Action[]> = value?.actions || {};
   const opened: string[] = Array.isArray(value?.opened) ? value.opened : [];
-  const [profile, setProfile] = useState<string | null>(null);
-  const [sel, setSel] = useState<string>(o.posts[0]?.id || "");
+  const [ci, setCi] = useState(0);
+  const [view, setView] = useState<"post" | "profil" | "site">("post");
   const save = (patch: any) => onChange({ verdicts: v, reasons, actions, opened, ...patch });
-  const showProfile = (p: Post) => {
-    if (!p.profile) return;
-    setProfile(p.id); setSel(p.id);
-    if (!opened.includes(p.id)) save({ opened: [...opened, p.id] });
-  };
+  const mark = (id: string) => { if (!opened.includes(id)) save({ opened: [...opened, id] }); };
+  const cur = o.posts[ci];
+  if (!cur) return null;
+  const mine = actions[cur.id] || [];
+  const act = (a: Action) => save({ actions: { ...actions, [cur.id]: mine.includes(a) ? mine.filter((x) => x !== a) : [...mine, a] } });
+  const rs = reasons[cur.id] || [];
   const done = o.posts.filter((p) => v[p.id]).length;
-  const prof = o.posts.find((p) => p.id === profile);
-  const cur = o.posts.find((p) => p.id === sel) || o.posts[0];
-  const ci = cur ? o.posts.indexOf(cur) : 0;
-  const rs = cur ? reasons[cur.id] || [] : [];
-  const go = (k: number) => { const p = o.posts[k]; if (!p) return; setSel(p.id); setProfile(null); document.getElementById(`post-${p.id}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+  const go = (k: number) => { if (k >= 0 && k < o.posts.length) { setCi(k); setView("post"); } };
+  const openProfile = () => { if (cur.profile) { setView("profil"); mark(cur.id); } };
+  const openSite = () => { if (cur.link) { setView("site"); mark(`lien:${cur.id}`); } };
+  const Art = cur.art ? ART[cur.art] : null;
+  const domain = (u: string) => (u.match(/^https?:\/\/([^/]+)/) || [])[1] || u;
 
   return (
     <div className="grid lg:grid-cols-[430px_1fr] gap-6 items-start">
@@ -296,125 +299,130 @@ export function Feed({ q, value, onChange }: { q: any; value: any; onChange: (r:
           <div className="flex items-center justify-between px-7 pt-3 pb-1 text-[13px] font-semibold" aria-hidden>
             <span>09:41</span><span className="absolute left-1/2 -translate-x-1/2 top-2.5 w-28 h-7 rounded-full bg-black" /><span>📶 🔋</span>
           </div>
-          <div className="flex items-center px-4 py-2.5 border-b border-[#eff3f4]">
-            {prof ? <button type="button" className="text-[22px] mr-3" onClick={() => setProfile(null)} aria-label="Retour au fil">←</button> : <span className="w-8 h-8 rounded-full bg-[#ff6b00] text-white grid place-items-center text-sm font-bold mr-3" aria-hidden>P</span>}
-            <span className="font-bold text-[18px]">{prof ? prof.author : "Pulse"}</span>
-            {!prof && <span className="ml-auto text-[14px] text-[#536471]">Pour vous</span>}
-          </div>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            {prof && prof.profile ? (
-              <div>
-                <div className="h-24 bg-gradient-to-r from-[#cfd9de] to-[#e7ecef]" />
-                <div className="px-4 -mt-8"><Avatar p={prof} big /></div>
-                <div className="px-4 pt-2 pb-3 border-b border-[#eff3f4]">
-                  <div className="font-bold text-[20px] flex items-center gap-1.5">{prof.author} <Badge p={prof} /></div>
-                  <div className="text-[15px] text-[#536471]">{prof.handle}</div>
-                  {prof.profile.bio && <p className="mt-2 text-[15px]">{prof.profile.bio}</p>}
-                  <div className="mt-2 text-[14px] text-[#536471]">📅 A rejoint Pulse {prof.profile.created}</div>
-                  <div className="mt-1.5 text-[14px] text-[#536471] flex gap-4">
-                    {prof.profile.following && <span><b className="text-[#0f1419]">{prof.profile.following}</b> abonnements</span>}
-                    <span><b className="text-[#0f1419]">{prof.profile.followers}</b> abonnés</span>
-                  </div>
+          {view === "site" && cur.link ? (
+            <>
+              <div className="px-3 py-2 bg-[#f2f2f7] border-b border-[#d1d1d6] flex items-center gap-2">
+                <button type="button" className="text-[#007aff] text-[15px]" onClick={() => setView("post")}>‹ Pulse</button>
+                <div className="flex-1 rounded-lg bg-[#e3e3e8] px-3 py-1.5 text-[13px] text-center truncate">
+                  <span aria-hidden>{cur.link.url.startsWith("https") ? "🔒 " : "⚠️ "}</span><b>{domain(cur.link.url)}</b><span className="text-[#8e8e93]">{cur.link.url.replace(/^https?:\/\/[^/]+/, "")}</span>
                 </div>
-                <div className="flex text-[15px] font-semibold border-b border-[#eff3f4]"><span className="flex-1 text-center py-3 border-b-4 border-[#1d9bf0]">Publications</span><span className="flex-1 text-center py-3 text-[#536471]">Réponses</span><span className="flex-1 text-center py-3 text-[#536471]">Médias</span></div>
-                {[{ date: prof.date, text: prof.text }, ...(prof.profile.posts || [])].map((x, k) => (
-                  <div key={k} className="flex gap-3 px-4 py-3 border-b border-[#eff3f4]">
-                    <Avatar p={prof} />
-                    <div className="min-w-0 text-[15px]"><div><b>{prof.author}</b> <span className="text-[#536471]">· {x.date}</span></div><p className="whitespace-pre-wrap leading-snug">{x.text}</p></div>
-                  </div>
-                ))}
               </div>
-            ) : o.posts.map((p, k) => {
-              const mine = actions[p.id] || [];
-              const act = (a: Action) => save({ actions: { ...actions, [p.id]: mine.includes(a) ? mine.filter((x) => x !== a) : [...mine, a] } });
-              const isSel = cur?.id === p.id;
-              return (
-                <article key={p.id} id={`post-${p.id}`} onClick={() => setSel(p.id)}
-                  className={`relative px-4 py-3 border-b border-[#eff3f4] cursor-pointer ${isSel ? "bg-[#fff3e8]" : "hover:bg-[#f7f9f9]"}`}>
-                  {isSel && <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#ff6b00]" aria-hidden />}
-                  <span className={`absolute right-3 top-3 text-[11px] font-bold rounded-full px-2 py-0.5 ${v[p.id] ? "bg-[#0f1419] text-white" : "bg-[#eff3f4] text-[#536471]"}`}>{k + 1}{v[p.id] ? " ✓" : ""}</span>
-                  <div className="flex gap-3">
-                    <button type="button" className="self-start" onClick={(e) => { e.stopPropagation(); showProfile(p); }} disabled={!p.profile} aria-label={`Profil de ${p.author}`}><Avatar p={p} /></button>
-                    <div className="min-w-0 flex-1 pr-8">
-                      <div className="text-[15px] flex items-center gap-1 flex-wrap leading-5">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); showProfile(p); }} disabled={!p.profile} className="font-bold hover:underline">{p.author}</button> <Badge p={p} />
-                      </div>
-                      <div className="text-[14px] text-[#536471] truncate">{p.handle} · {p.date}</div>
-                      <p className="mt-1 text-[16px] whitespace-pre-wrap leading-[1.4]">{p.text}</p>
-                      {p.image && <div className="mt-2 rounded-2xl border border-[#cfd9de] bg-gradient-to-br from-[#5b6b7a] to-[#2c3a47] aspect-[16/9] grid place-items-center px-6 text-center text-[13px] text-white/85">🖼️ {p.image}</div>}
-                      {p.link && <div className="mt-2 rounded-2xl border border-[#cfd9de] overflow-hidden"><div className="px-3 py-2.5"><div className="text-[13px] text-[#536471] break-all">🔗 {p.link.url}</div><div className="text-[15px] leading-5 mt-0.5">{p.link.title}</div></div></div>}
-                      {p.stats && <div className="mt-2 text-[13px] text-[#536471]">{p.stats}</div>}
-                      <div className="mt-1 flex items-center gap-6 text-[14px] text-[#536471]">
-                        {ACTIONS.map(([a, l]) => (
-                          <button key={a} type="button" aria-pressed={mine.includes(a)} onClick={(e) => { e.stopPropagation(); act(a); }} aria-label={l}
-                            className={`flex items-center gap-1 py-1 ${mine.includes(a) ? (a === "like" ? "text-[#f91880]" : a === "share" ? "text-[#00ba7c]" : "text-[#f4212e]") : "hover:text-[#1d9bf0]"}`}>
-                            <span className="text-[18px]" aria-hidden>{a === "like" ? (mine.includes(a) ? "♥" : "♡") : a === "share" ? "⟲" : "⚑"}</span>
-                          </button>
-                        ))}
+              <div className="flex-1 overflow-y-auto">
+                {cur.link.site ? <SitePage site={cur.link.site} url={cur.link.url} /> : <div className="p-6 text-center text-[#666]">Page indisponible</div>}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center px-4 py-2.5 border-b border-[#eff3f4]">
+                {view === "profil" ? <button type="button" className="text-[22px] mr-3" onClick={() => setView("post")} aria-label="Retour à la publication">←</button>
+                  : <span className="w-8 h-8 rounded-full bg-[#ff6b00] text-white grid place-items-center text-sm font-bold mr-3" aria-hidden>P</span>}
+                <span className="font-bold text-[18px]">{view === "profil" ? cur.author : "Pulse"}</span>
+                {view === "post" && <span className="ml-auto text-[13px] text-[#536471]">Publication {ci + 1}/{o.posts.length}</span>}
+              </div>
+              <div className="flex-1 overflow-y-auto overscroll-contain">
+                {view === "profil" && cur.profile ? (
+                  <div>
+                    <div className="h-24 bg-gradient-to-r from-[#cfd9de] to-[#e7ecef]" />
+                    <div className="px-4 -mt-8"><Avatar p={cur} big /></div>
+                    <div className="px-4 pt-2 pb-3 border-b border-[#eff3f4]">
+                      <div className="font-bold text-[20px] flex items-center gap-1.5">{cur.author} <Badge p={cur} /></div>
+                      <div className="text-[15px] text-[#536471]">{cur.handle}</div>
+                      {cur.profile.bio && <p className="mt-2 text-[15px]">{cur.profile.bio}</p>}
+                      <div className="mt-2 text-[14px] text-[#536471]">📅 A rejoint Pulse {cur.profile.created}</div>
+                      <div className="mt-1.5 text-[14px] text-[#536471] flex gap-4">
+                        {cur.profile.following && <span><b className="text-[#0f1419]">{cur.profile.following}</b> abonnements</span>}
+                        <span><b className="text-[#0f1419]">{cur.profile.followers}</b> abonnés</span>
                       </div>
                     </div>
+                    <div className="flex text-[15px] font-semibold border-b border-[#eff3f4]"><span className="flex-1 text-center py-3 border-b-4 border-[#1d9bf0]">Publications</span><span className="flex-1 text-center py-3 text-[#536471]">Réponses</span><span className="flex-1 text-center py-3 text-[#536471]">Médias</span></div>
+                    {[{ date: cur.date, text: cur.text }, ...(cur.profile.posts || [])].map((x, k) => (
+                      <div key={k} className="flex gap-3 px-4 py-3 border-b border-[#eff3f4]">
+                        <Avatar p={cur} />
+                        <div className="min-w-0 text-[15px]"><div><b>{cur.author}</b> <span className="text-[#536471]">· {x.date}</span></div><p className="whitespace-pre-wrap leading-snug">{x.text}</p></div>
+                      </div>
+                    ))}
                   </div>
-                </article>
-              );
-            })}
-          </div>
-          <div className="flex justify-around py-3 border-t border-[#eff3f4] text-[22px] text-[#0f1419]" aria-hidden><span>⌂</span><span>⌕</span><span>🔔</span><span>✉</span></div>
+                ) : (
+                  <article className="px-4 py-4">
+                    <div className="flex gap-3 items-center">
+                      <button type="button" onClick={openProfile} disabled={!cur.profile} aria-label={`Profil de ${cur.author}`}><Avatar p={cur} /></button>
+                      <div className="min-w-0">
+                        <button type="button" onClick={openProfile} disabled={!cur.profile} className="font-bold text-[16px] hover:underline flex items-center gap-1">{cur.author} <Badge p={cur} /></button>
+                        <div className="text-[14px] text-[#536471] truncate">{cur.handle} · {cur.date}</div>
+                      </div>
+                      <span className="ml-auto text-[20px] text-[#536471]" aria-hidden>⋯</span>
+                    </div>
+                    <p className="mt-3 text-[17px] whitespace-pre-wrap leading-[1.45]">{cur.text}</p>
+                    {!cur.link && (Art || cur.image) && (
+                      <div className="mt-3 rounded-2xl border border-[#cfd9de] overflow-hidden">{Art ? <Art /> : <div className="aspect-[16/9] grid place-items-center bg-[#eff3f4] text-[13px] text-[#536471] px-6 text-center">🖼️ {cur.image}</div>}</div>
+                    )}
+                    {cur.link && (
+                      <button type="button" onClick={openSite} className="mt-3 w-full text-left rounded-2xl border border-[#cfd9de] overflow-hidden hover:bg-[#f7f9f9]">
+                        {Art ? <Art /> : <div className="h-24 bg-[#eff3f4] grid place-items-center text-2xl" aria-hidden>🔗</div>}
+                        <div className="px-3 py-2.5 border-t border-[#cfd9de]"><div className="text-[13px] text-[#536471]">{domain(cur.link.url)}</div><div className="text-[15px] leading-5">{cur.link.title}</div></div>
+                      </button>
+                    )}
+                    {cur.stats && <div className="mt-3 text-[14px] text-[#536471]">{cur.stats}</div>}
+                    <div className="mt-2 pt-2 border-t border-[#eff3f4] flex items-center justify-around text-[14px] text-[#536471]">
+                      {ACTIONS.map(([a, l]) => (
+                        <button key={a} type="button" aria-pressed={mine.includes(a)} onClick={() => act(a)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${mine.includes(a) ? (a === "like" ? "text-[#f91880] bg-[#f91880]/10" : a === "share" ? "text-[#00ba7c] bg-[#00ba7c]/10" : "text-[#f4212e] bg-[#f4212e]/10") : "hover:bg-[#eff3f4]"}`}>
+                          <span className="text-[18px]" aria-hidden>{a === "like" ? (mine.includes(a) ? "♥" : "♡") : a === "share" ? "⟲" : "⚑"}</span>{l}
+                        </button>
+                      ))}
+                    </div>
+                    {(cur.profile || cur.link) && <p className="mt-4 text-center text-[12px] text-[#8b98a5]">{cur.profile ? "Touchez le nom pour voir le profil" : ""}{cur.profile && cur.link ? " · " : ""}{cur.link ? "touchez l'aperçu pour ouvrir le lien" : ""}</p>}
+                  </article>
+                )}
+              </div>
+            </>
+          )}
+          <div className="flex justify-around py-3 border-t border-[#eff3f4] text-[22px] text-[#0f1419] bg-white" aria-hidden><span>⌂</span><span>⌕</span><span>🔔</span><span>✉</span></div>
         </div>
       </div>
 
-      {cur && (
-        <div className="lg:sticky lg:top-4 space-y-4">
-          <div className="flex flex-wrap gap-1.5" aria-label="Publications">
-            {o.posts.map((p, k) => (
-              <button key={p.id} type="button" onClick={() => go(k)} aria-label={`Publication ${k + 1}`}
-                className={`w-9 h-9 rounded-lg text-sm font-bold border ${p.id === cur.id ? "border-accent bg-accent text-white" : v[p.id] ? "border-ok/60 bg-ok/15 text-ok" : "border-line text-muted hover:text-fg"}`}>{k + 1}</button>
-            ))}
-            <span className="ml-auto self-center text-sm text-muted">{done}/{o.posts.length} jugées</span>
-          </div>
-
-          <div className="rounded-xl border border-line bg-surface-2/60 p-5 space-y-5">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted">Publication {ci + 1} sur {o.posts.length}</div>
-              <div className="mt-1 text-lg font-semibold">{cur.author} <span className="text-muted font-normal text-base">{cur.handle}</span></div>
-              <p className="mt-1 text-[15px] text-fg/80 line-clamp-3">{cur.text}</p>
-              {cur.profile && <button type="button" className="mt-2 text-sm text-accent hover:underline" onClick={() => showProfile(cur)}>Ouvrir le profil de ce compte dans le téléphone</button>}
+      <div className="lg:sticky lg:top-4 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 rounded-full bg-line overflow-hidden"><div className="h-full bg-accent transition-all" style={{ width: `${(100 * done) / o.posts.length}%` }} /></div>
+          <span className="text-sm text-muted whitespace-nowrap">{done}/{o.posts.length} jugées</span>
+        </div>
+        <div className="rounded-xl border border-line bg-surface-2/60 p-5 space-y-5">
+          <div className="text-xs uppercase tracking-wider text-muted">Publication {ci + 1} sur {o.posts.length} · {cur.author}</div>
+          <div>
+            <div className="text-base font-semibold mb-2">Cette publication est…</div>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={`Votre avis sur la publication de ${cur.author}`}>
+              {VERDICTS.map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={v[cur.id] === k} onClick={() => save({ verdicts: { ...v, [cur.id]: k } })}
+                  className={`py-3 rounded-lg border-2 text-base font-semibold ${v[cur.id] === k ? (k === "fiable" ? "border-ok bg-ok/20 text-fg" : k === "faux" ? "border-danger bg-danger/20 text-fg" : "border-warn bg-warn/20 text-fg") : "border-line text-muted hover:text-fg hover:border-line-strong"}`}>
+                  {k === "fiable" ? "✅ " : k === "faux" ? "❌ " : "⚠️ "}{l}
+                </button>
+              ))}
             </div>
-
+          </div>
+          {o.ask_reason && v[cur.id] && (
             <div>
-              <div className="text-base font-semibold mb-2">1. Cette publication est…</div>
-              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label={`Votre avis sur la publication de ${cur.author}`}>
-                {VERDICTS.map(([k, l]) => (
-                  <button key={k} type="button" role="radio" aria-checked={v[cur.id] === k} onClick={() => save({ verdicts: { ...v, [cur.id]: k } })}
-                    className={`py-3 rounded-lg border-2 text-base font-semibold ${v[cur.id] === k ? (k === "fiable" ? "border-ok bg-ok/20 text-fg" : k === "faux" ? "border-danger bg-danger/20 text-fg" : "border-warn bg-warn/20 text-fg") : "border-line text-muted hover:text-fg hover:border-line-strong"}`}>
-                    {k === "fiable" ? "✅ " : k === "faux" ? "❌ " : "⚠️ "}{l}
-                  </button>
+              <div className="text-base font-semibold mb-2">Pourquoi ? <span className="text-sm font-normal text-muted">Cochez ce qui vous a guidé</span></div>
+              <div className="flex flex-wrap gap-2">
+                {REASONS.map(([k, l]) => (
+                  <button key={k} type="button" aria-pressed={rs.includes(k)} onClick={() => save({ reasons: { ...reasons, [cur.id]: rs.includes(k) ? rs.filter((x) => x !== k) : [...rs, k] } })}
+                    className={`px-3 py-1.5 rounded-full border text-sm ${rs.includes(k) ? "border-accent bg-accent text-white" : "border-line text-muted hover:text-fg"}`}>{rs.includes(k) ? "✓ " : ""}{l}</button>
                 ))}
               </div>
             </div>
-
-            {o.ask_reason && (
-              <div className={v[cur.id] ? "" : "opacity-40 pointer-events-none"}>
-                <div className="text-base font-semibold mb-2">2. Ce qui vous a guidé <span className="text-sm font-normal text-muted">(cochez tout ce qui s&apos;applique)</span></div>
-                <div className="grid sm:grid-cols-2 gap-2">
-                  {REASONS.map(([k, l]) => (
-                    <label key={k} className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 text-[15px] cursor-pointer ${rs.includes(k) ? "border-accent bg-accent/10" : "border-line hover:border-line-strong"}`}>
-                      <input type="checkbox" className="w-4 h-4 accent-[#ff6b00]" checked={rs.includes(k)} onChange={() => save({ reasons: { ...reasons, [cur.id]: rs.includes(k) ? rs.filter((x) => x !== k) : [...rs, k] } })} />
-                      {l}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex gap-2 pt-1">
-              <button type="button" className="btn-secondary" disabled={ci === 0} onClick={() => go(ci - 1)}>‹ Précédente</button>
-              <button type="button" className="btn ml-auto" disabled={ci >= o.posts.length - 1} onClick={() => go(ci + 1)}>Publication suivante ›</button>
-            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button type="button" className="btn-secondary" disabled={ci === 0} onClick={() => go(ci - 1)}>‹ Précédente</button>
+            <button type="button" className="btn ml-auto" disabled={ci >= o.posts.length - 1} onClick={() => go(ci + 1)}>Publication suivante ›</button>
           </div>
-          <p className="text-xs text-faint">Touchez une publication dans le téléphone pour la sélectionner, et le nom ou la photo d&apos;un compte pour ouvrir son profil. Les boutons ♡ ⟲ ⚑ (aimer, partager, signaler) marchent comme sur un vrai réseau.</p>
         </div>
-      )}
+        <div className="flex flex-wrap gap-1.5" aria-label="Aller à une publication">
+          {o.posts.map((p, k) => (
+            <button key={p.id} type="button" onClick={() => go(k)} aria-label={`Publication ${k + 1}`}
+              className={`w-8 h-8 rounded-md text-xs font-bold border ${k === ci ? "border-accent bg-accent text-white" : v[p.id] ? "border-ok/60 bg-ok/15 text-ok" : "border-line text-muted hover:text-fg"}`}>{k + 1}</button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

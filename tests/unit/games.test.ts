@@ -118,7 +118,7 @@ describe("vrai ou fake", () => {
     expect(gradeFeed(t.options, t.correct as any, { verdicts: t.correct.verdicts, reasons: noisy }, 4)).toBeLessThan(4);
     expect(t.options.posts.find((p: any) => p.id === "f9")!.profile!.posts!.some((p: any) => p.text.includes("Nice"))).toBe(true);
     expect(feedSummary(t.options, t.correct, { actions: { f1: ["share"], f6: ["report"], f2: ["like"] }, opened: ["f9", "f10"] }))
-      .toBe("2/10 profil(s) consulté(s) · 1 publication(s) fausse(s) partagée(s) · 1 signalée(s)");
+      .toBe("2/10 profil(s) consulté(s) · 0/6 lien(s) ouvert(s) · 1 publication(s) fausse(s) partagée(s) · 1 signalée(s)");
     expect(validFeed(t.options, { ...t.correct, reasons: { f1: ["inconnu"] } })).toMatch(/Indices inconnus/);
   });
 });

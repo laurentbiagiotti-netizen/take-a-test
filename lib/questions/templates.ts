@@ -358,55 +358,55 @@ PACKS.b1.minutes = 39;
 /* ---------------- Esprit critique (fake news) et culture informatique, pour les B1 ---------------- */
 
 export const FEED_TEMPLATE = {
-  prompt: "Ces publications circulent sur un réseau social. Pour chacune, dites si elle est fiable, douteuse (à vérifier avant de la croire) ou fausse, puis cochez les indices qui vous ont guidé. Cliquez sur le nom d'un compte pour voir son profil : c'est souvent là que se cache la réponse. Vous pouvez aussi aimer, partager ou signaler, comme sur un vrai réseau.",
+  prompt: "Dix publications circulent sur un réseau social, présentées une par une. Pour chacune, dites si elle est fiable, douteuse (à vérifier avant de la croire) ou fausse, puis cochez ce qui vous a guidé. Enquêtez comme dans la vraie vie : touchez le nom d'un compte pour voir son profil, et l'aperçu d'un lien pour ouvrir le site.",
   options: { help: true, ask_reason: true, posts: [
-    { id: "f1", author: "Info Rapide 24", handle: "@inforapide24_", badge: "nouveau", age: "il y a 3 jours", date: "il y a 2 h",
+    { id: "f1", art: "appli_payante", author: "Info Rapide 24", handle: "@inforapide24_", badge: "nouveau", age: "il y a 3 jours", date: "il y a 2 h",
       text: "🚨 URGENT !!! À partir de lundi, l'application MessaGo deviendra PAYANTE (4,99 €/mois) sauf si vous partagez ce message à 10 contacts. PARTAGEZ AVANT QUE CE SOIT SUPPRIMÉ !!!", stats: "18 400 partages",
       profile: { bio: "L'info AVANT tout le monde 🔥 Partagez !", created: "il y a 3 jours", followers: "112", following: "4 800", posts: [
         { date: "hier", text: "🚨 Le réseau Wi-Fi des trains sera coupé DÉFINITIVEMENT demain, PARTAGEZ !!!" },
         { date: "il y a 2 jours", text: "Votre forfait mobile va DOUBLER sauf si vous envoyez STOP à ce numéro 👉 …" }] } },
-    { id: "f2", author: "Cybersup", handle: "@cybersup", badge: "officiel", date: "hier",
+    { id: "f2", art: "maintenance", author: "Cybersup", handle: "@cybersup", badge: "officiel", date: "hier",
       text: "Maintenance de l'espace candidat samedi de 8 h à 10 h. Les inscriptions restent possibles ensuite. Merci de votre patience.",
-      link: { title: "Planning des maintenances", url: "https://www.cybersup.ai/maintenance" }, stats: "42 j'aime",
+      link: { title: "Planning des maintenances", url: "https://www.cybersup.ai/maintenance", site: {"kind": "officiel", "brand": "Cybersup", "color": "#0e1116", "art": "maintenance", "date": "Publié hier", "title": "Maintenance de l'espace candidat", "text": ["L'espace candidat sera indisponible samedi de 8 h à 10 h pour une mise à jour.", "Les inscriptions restent ouvertes ensuite. Aucune action n'est demandée de votre part : nous ne vous demanderons jamais votre mot de passe par mail ou par message."]} }, stats: "42 j'aime",
       profile: { bio: "École de cybersécurité et d'intelligence artificielle.", created: "en mars 2021", followers: "8 900", following: "310", posts: [
         { date: "il y a 4 jours", text: "Portes ouvertes le 15 novembre : venez rencontrer nos formateurs." }] } },
-    { id: "f3", author: "Aide Étudiants France", handle: "@aide_etudiants_fr2026", badge: "nouveau", age: "il y a 1 semaine", date: "il y a 5 h",
+    { id: "f3", art: "cadeau", author: "Aide Étudiants France", handle: "@aide_etudiants_fr2026", badge: "nouveau", age: "il y a 1 semaine", date: "il y a 5 h",
       text: "Bonne nouvelle 🎉 L'État verse une prime numérique de 500 € à TOUS les étudiants. Inscrivez-vous avant minuit avec votre numéro de carte bancaire pour la recevoir.",
-      link: { title: "Prime numérique étudiante : inscription", url: "https://prime-etudiant-gouv.info-officiel.co/inscription" }, stats: "9 100 partages",
+      link: { title: "Prime numérique étudiante : inscription", url: "https://prime-etudiant-gouv.info-officiel.co/inscription", site: {"kind": "phishing", "brand": "Portail Aide Etudiant", "color": "#1e3a8a", "art": "cadeau", "title": "Prime numérique de 500 € : dernier jour !", "text": ["Pour recevoir votre prime IMMEDIATEMENT, remplisez le formulaire ci dessous avant minuit.", "Les frais de dossier de 1 € seront prélevés sur votre carte pour vérifier votre identitée."], "form": ["Nom et prénom", "Numéro de carte bancaire", "Date d'expiration", "Code de sécurité (3 chiffres au dos)"], "cta": "Recevoir mes 500 €"} }, stats: "9 100 partages",
       profile: { bio: "Les bons plans pour les étudiants 💸", created: "il y a 1 semaine", followers: "57", following: "2 300", posts: [
         { date: "il y a 3 jours", text: "Gagnez un téléphone dernier cri : il suffit de remplir ce formulaire avec votre adresse et votre date de naissance 📱" }] } },
-    { id: "f4", author: "Actu Jeunes", handle: "@actujeunes", date: "il y a 1 jour",
+    { id: "f4", art: "manette", author: "Actu Jeunes", handle: "@actujeunes", date: "il y a 1 jour",
       text: "Selon une étude, les jeunes qui jouent aux jeux vidéo ont de meilleures notes en maths. 🎮➕📈", stats: "31 000 j'aime",
       profile: { bio: "Tendances, buzz et vidéos qui font parler.", created: "en 2019", followers: "240 000", following: "120", posts: [
         { date: "il y a 2 jours", text: "Les chats comprendraient leur prénom, selon des chercheurs 😺" }] } },
-    { id: "f5", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique", badge: "media", date: "il y a 3 h",
+    { id: "f5", art: "faille", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique", badge: "media", date: "il y a 3 h",
       text: "Une faille de sécurité dans l'application MessaGo a été corrigée. L'éditeur recommande d'installer la dernière mise à jour depuis le magasin d'applications.",
-      link: { title: "Faille dans MessaGo : ce qu'il faut faire", url: "https://www.quotidien-numerique.fr/securite/faille-messago-corrigee" }, stats: "1 200 partages",
+      link: { title: "Faille dans MessaGo : ce qu'il faut faire", url: "https://www.quotidien-numerique.fr/securite/faille-messago-corrigee", site: {"kind": "media", "brand": "Le Quotidien du Numérique", "color": "#0f766e", "art": "faille", "date": "Sécurité · il y a 3 h · par la rédaction", "title": "Faille dans MessaGo : ce qu'il faut faire", "text": ["L'éditeur de MessaGo a corrigé hier une faille qui pouvait permettre de lire certains messages. Aucune exploitation massive n'a été constatée selon l'éditeur.", "Pour être protégé, il suffit d'installer la version 4.12.1 depuis le magasin d'applications officiel de votre téléphone. Méfiez-vous des liens « de mise à jour » reçus par message : ils peuvent être piégés."]} }, stats: "1 200 partages",
       profile: { bio: "Journal en ligne consacré au numérique. Rédaction à Paris.", created: "en 2012", followers: "410 000", following: "900", posts: [
         { date: "hier", text: "Ce que change la nouvelle loi sur les données personnelles, expliqué simplement." }] } },
-    { id: "f6", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique_officiel_", badge: "nouveau", age: "il y a 2 jours", date: "il y a 40 min",
+    { id: "f6", art: "video_choc", author: "Le Quotidien du Numérique", handle: "@quotidien_numerique_officiel_", badge: "nouveau", age: "il y a 2 jours", date: "il y a 40 min",
       text: "INCROYABLE 😱 Un célèbre youtubeur arrêté pour piratage, regardez la vidéo avant qu'elle soit censurée !",
-      link: { title: "La vidéo choc", url: "https://quotidien-numerique.fr.actu-choc.net/video" }, stats: "5 600 partages",
+      link: { title: "La vidéo choc", url: "https://quotidien-numerique.fr.actu-choc.net/video", site: {"kind": "choc", "brand": "ACTU-CHOC", "color": "#111111", "art": "video_choc", "title": "Le youtubeur arrêté : la vidéo qu'ils veulent censurer", "text": ["⚠️ Votre lecteur vidéo n'est pas à jour. Pour voir la vidéo, installez la mise à jour ci-dessous."], "cta": "Installer le lecteur vidéo (gratuit)"} }, stats: "5 600 partages",
       profile: { bio: "Compte officiel ✅✅", created: "il y a 2 jours", followers: "31", following: "5 000", posts: [
         { date: "hier", text: "😱 Une star de la télé ruinée, regardez avant suppression !" }] } },
     { id: "f7", author: "Thomas", handle: "@thomas_du_75", date: "il y a 6 h",
       text: "Il paraît qu'Internet va être coupé dans toute la France ce week-end pour une maintenance. Quelqu'un a des infos ?", stats: "230 réponses",
       profile: { bio: "Fan de foot et de jeux vidéo.", created: "en 2017", followers: "180", following: "260", posts: [
         { date: "il y a 3 jours", text: "Quelqu'un a testé le nouveau jeu de course ? Ça vaut le coup ?" }] } },
-    { id: "f8", author: "Ville de Lyon", handle: "@villedelyon", badge: "officiel", date: "il y a 4 h",
+    { id: "f8", art: "pont", author: "Ville de Lyon", handle: "@villedelyon", badge: "officiel", date: "il y a 4 h",
       text: "Travaux : le pont Lafayette sera fermé aux voitures du 12 au 16 novembre. Les bus et les vélos pourront toujours passer.",
-      link: { title: "Fermeture du pont Lafayette", url: "https://www.lyon.fr/actualite/travaux/pont-lafayette" }, stats: "860 partages",
+      link: { title: "Fermeture du pont Lafayette", url: "https://www.lyon.fr/actualite/travaux/pont-lafayette", site: {"kind": "ville", "brand": "Ville de Lyon", "color": "#c8102e", "art": "pont", "date": "Actualités · Travaux · il y a 4 h", "title": "Fermeture du pont Lafayette aux voitures", "text": ["Du 12 au 16 novembre, le pont Lafayette est fermé à la circulation automobile pour des travaux d'entretien de la chaussée.", "Les bus, les vélos et les piétons peuvent toujours passer. Des déviations sont mises en place par les quais."]} }, stats: "860 partages",
       profile: { bio: "Compte officiel de la Ville de Lyon.", created: "en 2010", followers: "320 000", following: "540", posts: [
         { date: "hier", text: "Collecte des encombrants samedi dans le 7e arrondissement." }] } },
-    { id: "f9", author: "Météo Choc", handle: "@meteo_choc", date: "il y a 1 h",
+    { id: "f9", art: "inondation", author: "Météo Choc", handle: "@meteo_choc", date: "il y a 1 h",
       text: "😢 Regardez ces images terribles des inondations d'hier soir à Marseille. Personne n'en parle !!",
       image: "Photo : une rue inondée, des voitures dans l'eau jusqu'aux fenêtres.", stats: "12 300 partages",
       profile: { bio: "Les images météo les plus folles.", created: "en août 2026", followers: "2 100", following: "3 900", posts: [
         { date: "il y a 2 semaines", text: "😢 Regardez ces images terribles des inondations à Nice. Personne n'en parle !! (même photo de rue inondée)" },
         { date: "il y a 2 mois", text: "Inondations à Bordeaux ce matin 😢 (même photo de rue inondée)" }] } },
-    { id: "f10", author: "Dr Julien Marchand", handle: "@dr_julien_sante", badge: "nouveau", age: "il y a 2 semaines", date: "il y a 3 h",
+    { id: "f10", art: "complement", author: "Dr Julien Marchand", handle: "@dr_julien_sante", badge: "nouveau", age: "il y a 2 semaines", date: "il y a 3 h",
       text: "Je suis médecin : ce complément naturel guérit la grippe en 24 h, les laboratoires ne veulent pas que vous le sachiez. -50 % avec mon code JULIEN50 !",
-      link: { title: "Boutique officielle", url: "https://super-immunite-shop.biz/julien50" }, stats: "3 400 j'aime",
+      link: { title: "Boutique officielle", url: "https://super-immunite-shop.biz/julien50", site: {"kind": "boutique", "brand": "Super Immunité Shop", "color": "#047857", "art": "complement", "title": "Super Immunité : guérit la grippe en 24 h*", "price": ["89,90 €", "44,95 €"], "text": ["Recommandé par le Dr Julien. 100 % naturel, résultat garanti ou remboursé.", "*Ce produit n'est pas un médicament. Offre valable encore 09:59 minutes !"], "cta": "J'en profite avec le code JULIEN50"} }, stats: "3 400 j'aime",
       profile: { bio: "Médecin 👨‍⚕️ Santé naturelle. Codes promo en lien.", created: "il y a 2 semaines", followers: "640", following: "7 100", posts: [
         { date: "il y a 5 jours", text: "Ce thé détox fait perdre 5 kg en une semaine, code JULIEN50 🍵" },
         { date: "il y a 1 semaine", text: "Les vaccins contre la grippe ne servent à rien, la nature suffit !" }] } },

@@ -8,9 +8,15 @@
 export type Verdict = "fiable" | "douteux" | "faux";
 export type Action = "like" | "share" | "report";
 export type Profile = { bio?: string; created: string; followers: string; following?: string; posts?: { date: string; text: string }[] };
+/** Faux site web ouvert quand on touche le lien d'une publication. */
+export type Site = {
+  kind: "officiel" | "media" | "ville" | "phishing" | "choc" | "boutique";
+  brand: string; color: string; art?: string; title: string; text: string[];
+  form?: string[]; cta?: string; date?: string; price?: [string, string];
+};
 export type Post = {
   id: string; author: string; handle: string; badge?: "officiel" | "media" | "nouveau" | null; age?: string; date: string; text: string;
-  link?: { title: string; url: string } | null; image?: string | null; stats?: string; profile?: Profile | null;
+  link?: { title: string; url: string; site?: Site } | null; image?: string | null; art?: string; stats?: string; profile?: Profile | null;
 };
 export type FeedOptions = { posts: Post[]; help?: boolean; ask_reason?: boolean };
 /** Corrigé : ancien format { id: verdict } ou { verdicts, reasons } (indices attendus par publication). */
@@ -72,9 +78,10 @@ export function feedSummary(o: FeedOptions, key: any, resp: any): string {
   const acts: Record<string, string[]> = resp?.actions || {};
   const shared = Object.entries(acts).filter(([id, a]) => a.includes("share") && kv[id] === "faux").length;
   const reported = Object.entries(acts).filter(([id, a]) => a.includes("report") && kv[id] === "faux").length;
-  const opened = Array.isArray(resp?.opened) ? resp.opened.length : 0;
-  const withProfile = (o.posts || []).filter((p) => p.profile).length;
-  return `${opened}/${withProfile} profil(s) consulté(s) · ${shared} publication(s) fausse(s) partagée(s) · ${reported} signalée(s)`;
+  const all: string[] = Array.isArray(resp?.opened) ? resp.opened.filter((x: any) => typeof x === "string") : [];
+  const opened = all.filter((x) => !x.startsWith("lien:")).length, links = all.filter((x) => x.startsWith("lien:")).length;
+  const withProfile = (o.posts || []).filter((p) => p.profile).length, withLink = (o.posts || []).filter((p) => p.link).length;
+  return `${opened}/${withProfile} profil(s) consulté(s) · ${links}/${withLink} lien(s) ouvert(s) · ${shared} publication(s) fausse(s) partagée(s) · ${reported} signalée(s)`;
 }
 
 export function validFeed(o: any, key: any): string | null {
