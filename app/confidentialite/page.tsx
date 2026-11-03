@@ -45,6 +45,7 @@ export default function Confidentialite() {
             <li><b>Vos réponses</b> et votre résultat, y compris par domaine.</li>
             <li><b>Le déroulé de l&apos;épreuve</b> : heures de début et de fin, sorties du plein écran, changements d&apos;onglet ou de fenêtre, coupures réseau, adresse IP et type de navigateur. Ce journal est protégé contre toute modification.</li>
             <li><b>Des photos de la caméra</b>, seulement lorsqu&apos;une anomalie est détectée. La détection (présence d&apos;un visage, d&apos;une autre personne, d&apos;un téléphone, caméra masquée ou figée) se fait sur votre ordinateur.</li>
+            <li><b>Une courte vidéo de la pièce</b> (15 à 60 secondes, sans son), seulement si l&apos;épreuve est mise en pause après plusieurs avertissements : vous la filmez vous-même avec votre téléphone. Elle est vue par un surveillant et supprimée en même temps que les photos.</li>
             <li><b>Une photo de pièce d&apos;identité et un selfie</b>, seulement si l&apos;épreuve demande une vérification d&apos;identité. Ils sont comparés à l&apos;œil par un surveillant, sans traitement biométrique.</li>
           </ul>
           <p className="mt-2 text-muted">La caméra peut capter votre environnement : installez-vous dans une pièce calme et neutre, et prévenez les personnes autour de vous.</p>
@@ -58,7 +59,7 @@ export default function Confidentialite() {
         <div>
           <h2 className="h2">Combien de temps</h2>
           <ul className="mt-2 list-disc pl-5 space-y-1">
-            <li>Photos de caméra, pièce d&apos;identité et selfie : supprimés automatiquement 30 jours après l&apos;épreuve, ou 60 jours après une suspicion de fraude signalée par un surveillant (le temps de la procédure).</li>
+            <li>Photos de caméra, vidéo de la pièce, pièce d&apos;identité et selfie : supprimés automatiquement 30 jours après l&apos;épreuve, ou 60 jours après une suspicion de fraude signalée par un surveillant (le temps de la procédure).</li>
             <li>Réponses, résultat et déroulé de l&apos;épreuve : {LEGAL.resultsRetention}.</li>
             <li>Compte : jusqu&apos;à votre demande de suppression ou la fin de la campagne d&apos;admission.</li>
           </ul>

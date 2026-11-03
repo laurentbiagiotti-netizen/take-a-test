@@ -1,4 +1,4 @@
-import { examError, examRoute, json, rpcError } from "@/lib/exam/guard";
+import { examError, examRoute, json, pauseState, rpcError } from "@/lib/exam/guard";
 import { kickWebhooks } from "@/lib/webhooks";
 
 export const POST = examRoute({ rotate: true }, async (ctx) => {
@@ -11,5 +11,5 @@ export const POST = examRoute({ rotate: true }, async (ctx) => {
   // Messages échangés avec le surveillant (la session vient d'être vérifiée par exam_heartbeat)
   const { data: messages } = await ctx.admin.from("exam_messages").select("id, sender, body, created_at")
     .eq("attempt_id", ctx.attemptId).order("id").limit(80);
-  return json({ ...data, messages: messages || [] });
+  return json({ ...data, ...(await pauseState(ctx)), messages: messages || [] });
 });

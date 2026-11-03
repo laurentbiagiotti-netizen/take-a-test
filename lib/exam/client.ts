@@ -18,7 +18,7 @@ export const EVENT_LABEL: Record<string, string> = {
   camera_covered: "caméra masquée",
   camera_frozen: "image figée",
   other_person: "autre personne (corps visible)",
-  phone_detected: "téléphone visible",
+  phone_detected: "téléphone visible", room_scan_requested: "scan de la pièce demandé (pause)", room_scan: "pièce filmée au téléphone", exam_resumed: "reprise après la pause", room_scan_missing: "pause sans scan de la pièce (30 min)", 
   fullscreen_exit: "sortie du plein écran",
   tab_hidden: "changement d'onglet",
   window_blur: "changement de fenêtre", fast_answers: "réponses anormalement rapides",

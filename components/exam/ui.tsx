@@ -117,6 +117,7 @@ export function examRules(maxViolations?: number): { icon: string; title: string
     { icon: "clock", title: "Chrono tenu par le serveur", text: "Fermer ou recharger la page ne l'arrête pas." },
     { icon: "lock", title: "Copier, coller, changer de fenêtre", text: maxViolations ? `Bloqués et comptés comme infractions : au-delà de ${maxViolations}, un surveillant examine votre épreuve.` : "Bloqués et comptés comme infractions, examinées par un surveillant." },
     { icon: "screen", title: "Un seul écran, un seul appareil", text: "Débranchez tout écran secondaire avant de commencer." },
+    { icon: "camera", title: "Scan de la pièce si besoin", text: "Gardez votre téléphone hors du champ de la caméra, écran vers le bas. Après plusieurs avertissements, l'épreuve se met en pause et vous filmez la pièce avec (QR code à l'écran). Le chrono est arrêté pendant ce temps." },
   ];
 }
 

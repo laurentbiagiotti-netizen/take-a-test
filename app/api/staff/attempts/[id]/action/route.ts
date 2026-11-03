@@ -10,6 +10,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const s = await requireStaff(req);
   if ("res" in s) return s.res;
   const body = await req.json().catch(() => null);
+  if (body?.action === "resume") {
+    const { data, error } = await adminClient().rpc("staff_resume", { p_actor: s.userId, p_attempt: id });
+    if (error) return NextResponse.json({ error: error.message.split(":")[0] }, { status: 400 });
+    return NextResponse.json(data);
+  }
   if (!body || !ACTIONS.has(body.action)) return NextResponse.json({ error: "bad_action" }, { status: 400 });
   const { data, error } = await adminClient().rpc("staff_action", {
     p_actor: s.userId, p_attempt: id, p_action: body.action, p_arg: body.arg ?? {},

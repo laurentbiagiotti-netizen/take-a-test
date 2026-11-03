@@ -11,7 +11,7 @@ const KIND: Record<string, string> = {
   fullscreen_exit: "sortie du plein écran", tab_hidden: "changement d'onglet", window_blur: "changement de fenêtre", fast_answers: "réponses anormalement rapides",
   multiple_screens: "écran secondaire", devtools_open: "outils de développement", camera_off: "caméra coupée",
   camera_refused: "caméra refusée", no_face: "aucun visage", multiple_faces: "plusieurs visages",
-  camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps)", phone_detected: "téléphone visible",
+  camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps)", phone_detected: "téléphone visible", room_scan_requested: "scan de la pièce demandé (pause)", room_scan: "pièce filmée au téléphone", exam_resumed: "reprise après la pause", room_scan_missing: "pause sans scan de la pièce (30 min)", 
   connection_gap: "coupure réseau", ip_changed: "changement d'IP", device_changed: "changement d'appareil",
   print_attempt: "impression", copy_blocked: "copie bloquée", paste_blocked: "collage bloqué", shortcut_blocked: "raccourci bloqué",
   attempt_terminated: "épreuve interrompue", violation_threshold: "SEUIL D'INFRACTIONS ATTEINT : à examiner", staff_suspicion: "suspicion signalée", attempt_expired: "temps écoulé",
@@ -92,9 +92,12 @@ export default function Live() {
 
   const [unread, setUnread] = useState<Record<string, number>>({});
   const [chat, setChat] = useState<Row | null>(null);
+  const [pausedIds, setPausedIds] = useState<Set<string>>(new Set());
   useEffect(() => {
     const ids = rows.filter(running).map((r) => r.id);
-    if (!ids.length) { setUnread({}); return; }
+    if (!ids.length) { setUnread({}); setPausedIds(new Set()); return; }
+    supabase.from("attempts").select("id").in("id", ids).not("paused_at", "is", null)
+      .then(({ data }) => setPausedIds(new Set((data || []).map((x: any) => x.id))));
     supabase.from("exam_messages").select("attempt_id").in("attempt_id", ids).eq("sender", "candidate").is("read_at", null)
       .then(({ data }) => {
         const m: Record<string, number> = {};
@@ -105,6 +108,10 @@ export default function Live() {
 
   const columns: Column<Row>[] = [
     ...baseColumns,
+    {
+      key: "pause", label: "Scan pièce", sort: (r) => (pausedIds.has(r.id) ? 1 : 0),
+      cell: (r) => pausedIds.has(r.id) ? <span className="badge-warn" title="Épreuve en pause, chrono arrêté : le candidat filme la pièce au téléphone">en pause</span> : <span className="text-faint">-</span>,
+    },
     {
       key: "messages", label: "Messages", sort: (r) => unread[r.id] || 0,
       cell: (r) => running(r)
@@ -125,6 +132,7 @@ export default function Live() {
         <span className="badge-ok">{active.length} en cours</span>
         <span className="badge-muted">{meta?.en_attente ?? 0} pas encore commencé(s)</span>
         <span className="badge-muted">{meta?.rendus ?? 0} copie(s) rendue(s)</span>
+        {pausedIds.size > 0 && <span className="badge-warn">{pausedIds.size} en pause (scan de la pièce)</span>}
         {totalUnread > 0 && <span className="badge-warn">{totalUnread} message(s) de candidat non lu(s)</span>}
         <span className="text-faint">Actualisation automatique toutes les 5 secondes{meta ? ` · ${new Date(meta.now).toLocaleTimeString("fr-FR")}` : ""}</span>
       </div>

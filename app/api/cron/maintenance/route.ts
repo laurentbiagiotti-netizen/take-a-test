@@ -7,7 +7,7 @@ import { timingSafeEqual } from "@/lib/security/tokens";
  * Tâche planifiée (toutes les minutes) :
  *  - clôt les épreuves dont le temps est écoulé (même si le candidat a fermé la page)
  *  - envoie les webhooks en attente
- *  - purge les photos (webcam, identité) au-delà de la durée de conservation (RGPD)
+ *  - purge les photos (webcam, identité) et les vidéos de la pièce au-delà de la durée de conservation (RGPD)
  * Appel : GET avec  Authorization: Bearer <CRON_SECRET>
  */
 export async function GET(req: NextRequest) {
@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < snaps.length; i += 100) await admin.storage.from("snapshots").remove(snaps.slice(i, i + 100));
     const ids = row.identity_paths ? Object.values(row.identity_paths as Record<string, string>) : [];
     if (ids.length) await admin.storage.from("identity").remove(ids);
+    const { data: scans } = await admin.storage.from("room-scans").list(row.attempt_id, { limit: 100 });
+    if (scans?.length) await admin.storage.from("room-scans").remove(scans.map((f) => `${row.attempt_id}/${f.name}`));
     await admin.rpc("mark_media_purged", { p_attempt: row.attempt_id });
     purged++;
   }

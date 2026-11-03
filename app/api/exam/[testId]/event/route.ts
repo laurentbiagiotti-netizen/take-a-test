@@ -1,4 +1,4 @@
-import { examError, examRoute, json, readJson, rpcError } from "@/lib/exam/guard";
+import { examError, examRoute, json, pauseState, readJson, rpcError } from "@/lib/exam/guard";
 import { kickWebhooks } from "@/lib/webhooks";
 
 /** Le client signale ; la base décide de la gravité et des sanctions. */
@@ -11,6 +11,6 @@ export const POST = examRoute({ rotate: true }, async (ctx, req) => {
     p_kind: body.kind, p_detail: body.detail ?? null, p_ip: ctx.ip, p_ua: ctx.ua,
   });
   if (error) return rpcError(error);
-  if (data?.status !== "in_progress") kickWebhooks();
-  return json(data);
+  if (data?.status !== "in_progress") { kickWebhooks(); return json(data); }
+  return json({ ...data, ...(await pauseState(ctx)) });
 });

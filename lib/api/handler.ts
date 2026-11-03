@@ -116,7 +116,7 @@ export async function body<T = any>(req: NextRequest, max = 512 * 1024): Promise
 /** Champs de test modifiables via l'API (liste blanche). */
 export const TEST_FIELDS = [
   "title", "description", "duration_minutes", "is_published", "require_seb", "invite_only", "require_id_check",
-  "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
+  "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "room_scan_after", "allow_resume",
   "grace_seconds", "opens_at", "closes_at", "retention_days", "id_verify_before_start", "seb_accept_config_key",
   "pass_mark", "domain_floors", "interview_guide", "verdict_pass", "verdict_fail", "formation",
   "timing", "question_time_s", "partial_points", "fast_answer_s",

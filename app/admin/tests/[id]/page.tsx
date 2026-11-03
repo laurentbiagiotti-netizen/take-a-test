@@ -263,14 +263,17 @@ export default function EditTest() {
             <input type="checkbox" checked={!!test.allow_resume} onChange={(e) => updateTest({ allow_resume: e.target.checked })} />
             Autoriser la reprise sur un autre appareil sans intervention du surveillant
           </label>
-          <div className="grid grid-cols-3 gap-3 pt-1">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
             <label title="Au-delà, le surveillant est alerté ; l'épreuve n'est jamais arrêtée automatiquement">Seuil d&apos;alerte (infractions)
               <input className="input mt-1" type="number" min={1} max={50} value={test.max_violations} onChange={(e) => updateTest({ max_violations: parseInt(e.target.value) || 1 })} />
+            </label>
+            <label title="Au N-ième avertissement, l'épreuve se met en pause et le candidat filme la pièce à 360° avec son téléphone (QR code). 0 = jamais">Scan de la pièce (dès N infractions, 0 = jamais)
+              <input className="input mt-1" type="number" min={0} max={50} value={test.room_scan_after ?? 3} onChange={(e) => updateTest({ room_scan_after: Math.max(0, parseInt(e.target.value) || 0) })} />
             </label>
             <label>Tolérance fin (s)
               <input className="input mt-1" type="number" min={0} max={600} value={test.grace_seconds} onChange={(e) => updateTest({ grace_seconds: parseInt(e.target.value) || 0 })} />
             </label>
-            <label>Conservation photos (j)
+            <label>Conservation photos et vidéos (j)
               <input className="input mt-1" type="number" min={1} max={3650} value={test.retention_days} onChange={(e) => updateTest({ retention_days: parseInt(e.target.value) || 90 })} />
             </label>
           </div>

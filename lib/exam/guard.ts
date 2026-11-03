@@ -52,7 +52,16 @@ const MESSAGES: Record<string, [number, string]> = {
   bad_path: [400, "Requête invalide."],
   bad_token: [400, "Requête invalide."],
   forbidden: [403, "Accès refusé."],
+  exam_paused: [409, "Épreuve en pause : filmez d'abord la pièce avec votre téléphone (QR code à l'écran)."],
+  scan_invalid: [410, "Ce lien n'est plus valable. Rescannez le QR code affiché sur l'ordinateur."],
 };
+
+/** État de pause d'une tentative (scan de la pièce demandé), ajouté aux réponses du poste. */
+export async function pauseState(ctx: ExamCtx): Promise<{ paused: boolean; pause_reason: string | null; q_deadline_at?: string | null }> {
+  if (!ctx.attemptId) return { paused: false, pause_reason: null };
+  const { data } = await ctx.admin.from("attempts").select("paused_at, pause_reason, q_deadline_at").eq("id", ctx.attemptId).single();
+  return { paused: !!data?.paused_at, pause_reason: data?.pause_reason ?? null, q_deadline_at: data?.q_deadline_at ?? null };
+}
 
 export function examError(code: string): NextResponse {
   const [status, message] = MESSAGES[code] || [500, "Erreur serveur."];

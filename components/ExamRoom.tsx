@@ -7,6 +7,7 @@ import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proc
 import { CameraChip, CheckRow, ConfirmBar, RulesList, StartRow } from "@/components/exam/ui";
 import { EVENT_LABEL, TYPE_HINT, faceReady, formatClock, fullscreenSupported, isAnswered, useAutoCamera, useTimeAlerts } from "@/lib/exam/client";
 import { ChatPanel, type ChatMessage } from "@/components/exam/ChatPanel";
+import { RoomScanOverlay } from "@/components/exam/RoomScanOverlay";
 
 /**
  * Salle d'examen. Le navigateur ne fait que SIGNALER : chrono, compteur
@@ -49,6 +50,9 @@ export default function ExamRoom(props: {
   const [questions, setQuestions] = useState<Q[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  pausedRef.current = paused;
   const [deadline, setDeadline] = useState<number>(0);
   // Temps par question (option du test) : fin de la question courante, 0 sinon
   const [qDeadline, setQDeadline] = useState<number>(0);
@@ -97,6 +101,8 @@ export default function ExamRoom(props: {
       if (j?.receipt) setReceipt(j.receipt);
       if (j?.status && j.status !== "in_progress" && phaseRef.current === "active") end(j.status);
       if (typeof j?.violation_count === "number") setViolations(j.violation_count);
+      if (typeof j?.paused === "boolean") setPaused(j.paused);
+      if (j?.error === "exam_paused") setPaused(true);
       // Après la remise de la copie, la session est fermée : une requête encore en file
       // (battement de cœur) reçoit « session invalide », ce n'est pas un blocage.
       if (!r.ok && phaseRef.current !== "ended" && ["session_invalid", "session_killed", "seb_required"].includes(j?.error)) {
@@ -116,7 +122,7 @@ export default function ExamRoom(props: {
       const t = Date.now();
       if (t - lastViolationAt.current < VIOLATION_DEBOUNCE_MS) return; // un seul geste = une infraction
       lastViolationAt.current = t;
-      setBanner(`Infraction signalée : ${EVENT_LABEL[kind] || kind}. Au-delà de ${maxViolations}, le surveillant examine votre épreuve.`);
+      if (!pausedRef.current) setBanner(`Infraction signalée : ${EVENT_LABEL[kind] || kind}. Au-delà de ${maxViolations}, le surveillant examine votre épreuve.`);
     }
     post("event", { kind, detail });
   }, [post, maxViolations]);
@@ -238,19 +244,28 @@ export default function ExamRoom(props: {
     return null;
   }, [post]);
 
-  // Battement de cœur : présence, IP, chrono serveur
+  // Battement de cœur : présence, IP, chrono serveur, messages, pause (plus fréquent en pause)
   useEffect(() => {
     if (phase !== "active") return;
-    const i = setInterval(async () => {
+    const beat = async () => {
       const { data } = await post("heartbeat");
       if (Array.isArray(data?.messages)) setMessages(data.messages);
       if (data?.deadline_at) {
         setDeadline(new Date(data.deadline_at).getTime());
         clockOffset.current = new Date(data.server_now).getTime() - Date.now();
       }
-    }, HEARTBEAT_MS);
+      if (data && "q_deadline_at" in data) setQDeadline(data.q_deadline_at ? new Date(data.q_deadline_at).getTime() : 0);
+    };
+    if (paused) beat();
+    const i = setInterval(beat, paused ? 4000 : HEARTBEAT_MS);
     return () => clearInterval(i);
-  }, [phase, post]);
+  }, [phase, post, paused]);
+
+  const getScanLink = useCallback(async () => {
+    const { ok, data } = await post("room-scan");
+    if (ok && data?.paused === false) setPaused(false);
+    return ok ? { url: data?.url } : { error: data?.message };
+  }, [post]);
 
   const sendFrame = useCallback(async (name: string, quality: number) => {
     const v = camera.videoRef.current; if (!v || !v.videoWidth) return;
@@ -303,10 +318,10 @@ export default function ExamRoom(props: {
   const nextRef = useRef<() => void>(() => {});
   const submitRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (phase !== "active" || !qDeadline || now < qDeadline || autoAdvanced.current === idx) return;
+    if (phase !== "active" || paused || !qDeadline || now < qDeadline || autoAdvanced.current === idx) return;
     autoAdvanced.current = idx;
     if (idx >= questions.length - 1) submitRef.current(); else nextRef.current();
-  }, [phase, qDeadline, now, idx, questions.length]);
+  }, [phase, paused, qDeadline, now, idx, questions.length]);
   const qRemaining = qDeadline ? Math.max(0, Math.ceil((qDeadline - now) / 1000)) : null;
 
   const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
@@ -458,7 +473,8 @@ export default function ExamRoom(props: {
         </div>
       </div>
 
-      {!isFull && !inSeb && (
+      {paused && <RoomScanOverlay getLink={getScanLink} />}
+      {!isFull && !inSeb && !paused && (
         <div className="fixed inset-0 z-[60] bg-bg flex items-center justify-center p-6" role="alertdialog" aria-labelledby="fs-title">
           <div className="card max-w-md text-center">
             <h2 id="fs-title" className="h1 text-danger">Plein écran obligatoire</h2>

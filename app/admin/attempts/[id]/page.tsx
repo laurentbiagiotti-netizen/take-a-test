@@ -38,6 +38,12 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
       signedSnapshots.push({ url: s.signedUrl, ts: snaps[i].created_at, anomaly: near?.kind });
     });
   }
+  const scanEvents = (events || []).filter((e: any) => e.kind === "room_scan" && e.detail?.path);
+  const scans: { url: string; ts: string; seconds?: number }[] = [];
+  if (scanEvents.length && !a.media_purged_at) {
+    const { data: signed } = await supabase.storage.from("room-scans").createSignedUrls(scanEvents.map((e: any) => e.detail.path), 1800);
+    (signed || []).forEach((s, i) => { if (s.signedUrl) scans.push({ url: s.signedUrl, ts: scanEvents[i].created_at, seconds: scanEvents[i].detail.seconds }); });
+  }
   let identity: { document?: string; selfie?: string } = {};
   if (a.identity_paths) {
     const paths = [a.identity_paths.document, a.identity_paths.selfie].filter(Boolean);
@@ -80,7 +86,24 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
 
       <VerdictPanel attemptId={a.id} report={report} finished={!["pending", "in_progress"].includes(a.status)} />
 
-      <StaffActions attemptId={a.id} status={a.status} identityStatus={a.identity_status} isAdmin={profile?.role === "admin"} suspicionAt={a.suspicion_at} />
+      <StaffActions attemptId={a.id} status={a.status} identityStatus={a.identity_status} isAdmin={profile?.role === "admin"} suspicionAt={a.suspicion_at} pausedAt={a.paused_at} />
+      {a.paused_at && a.status === "in_progress" && (
+        <p className="card border-warn/50 text-sm text-warn">En pause depuis {t(a.paused_at)} : le candidat doit filmer la pièce avec son téléphone. Le chrono est arrêté. Sans vidéo, l&apos;épreuve reprend seule au bout de 30 minutes.</p>
+      )}
+
+      {scans.length > 0 && (
+        <section>
+          <h2 className="h2">Scan de la pièce au téléphone ({scans.length})</h2>
+          <div className="grid sm:grid-cols-2 gap-3 mt-2">
+            {scans.map((v) => (
+              <figure key={v.url} className="card !p-2">
+                <video src={v.url} controls preload="metadata" playsInline className="w-full max-h-96 rounded bg-black" />
+                <figcaption className="text-xs text-muted mt-1">{t(v.ts)}{v.seconds ? ` · ${v.seconds} s` : ""}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       {(identity.document || identity.selfie) && (
         <section>
@@ -222,7 +245,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
           </div>
         </section>
       )}
-      {a.media_purged_at && <p className="text-sm text-muted">Photos supprimées le {t(a.media_purged_at)} (durée de conservation atteinte).</p>}
+      {a.media_purged_at && <p className="text-sm text-muted">Photos et vidéos supprimées le {t(a.media_purged_at)} (durée de conservation atteinte).</p>}
 
       {!!messages?.length && (
         <section>

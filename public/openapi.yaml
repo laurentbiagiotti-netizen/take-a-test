@@ -62,6 +62,7 @@ components:
         shuffle_questions: { type: boolean }
         shuffle_options: { type: boolean }
         max_violations: { type: integer }
+        room_scan_after: { type: integer, description: "Au N-ième avertissement, pause et scan de la pièce au téléphone (0 = jamais)" }
         allow_resume: { type: boolean }
         grace_seconds: { type: integer }
         opens_at: { type: [string, "null"], format: date-time }

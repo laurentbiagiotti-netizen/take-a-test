@@ -1,7 +1,7 @@
 \set ON_ERROR_STOP 0
 insert into auth.users values ('00000000-0000-0000-0000-00000000000a','admin@cybersup.ai','{}'),('00000000-0000-0000-0000-00000000000c','eve@test.fr','{}');
 update profiles set role='admin' where email='admin@cybersup.ai';
-insert into tests(id, owner_id, title, is_published, invite_only, require_webcam, max_violations, shuffle_questions) values ('11111111-1111-1111-1111-111111111111','00000000-0000-0000-0000-00000000000a','T',true,false,false,10, false);
+insert into tests(id, owner_id, title, is_published, invite_only, require_webcam, max_violations, shuffle_questions, room_scan_after) values ('11111111-1111-1111-1111-111111111111','00000000-0000-0000-0000-00000000000a','T',true,false,false,10, false, 0);
 insert into questions(id,test_id,type,prompt,points) values ('33333333-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111','long_text','Q',5);
 set role service_role;
 select exam_prepare('00000000-0000-0000-0000-00000000000c','11111111-1111-1111-1111-111111111111')->>'unlocked' as ouvert;

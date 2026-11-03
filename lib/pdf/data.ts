@@ -15,7 +15,7 @@ const EXTRA_LABEL: Record<string, string> = {
   attempt_submitted: "copie rendue", attempt_expired: "temps écoulé", attempt_terminated: "épreuve interrompue",
   staff_verdict: "décision de l'équipe", staff_suspicion: "suspicion signalée", staff_extend_time: "temps ajouté",
   staff_reset_session: "reprise autorisée", violation_threshold: "seuil d'infractions atteint", camera_refused: "caméra refusée", fast_answers: "réponses anormalement rapides",
-  camera_off: "caméra coupée", no_face: "aucun visage", phone_detected: "téléphone visible", fullscreen_return: "retour en plein écran", snapshot: "photo (anomalie)",
+  camera_off: "caméra coupée", no_face: "aucun visage", phone_detected: "téléphone visible", room_scan_requested: "scan de la pièce demandé (pause)", room_scan: "pièce filmée au téléphone", exam_resumed: "reprise après la pause", room_scan_missing: "pause sans scan de la pièce (30 min)", fullscreen_return: "retour en plein écran", snapshot: "photo (anomalie)",
 };
 const TZ = { timeZone: "Europe/Paris" } as const;
 const fmt = (d?: string | null) => (d ? new Date(d).toLocaleString("fr-FR", { ...TZ, day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "");

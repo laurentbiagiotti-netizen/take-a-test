@@ -9,7 +9,7 @@ const LABEL: Record<string, string> = {
   fullscreen_exit: "sorties du plein écran", tab_hidden: "changements d'onglet", window_blur: "changements de fenêtre", fast_answers: "réponses anormalement rapides",
   multiple_screens: "écran secondaire", devtools_open: "outils de développement", camera_off: "caméra coupée",
   camera_refused: "caméra refusée", no_face: "absence de visage", multiple_faces: "plusieurs visages",
-  camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps visible)", phone_detected: "téléphone visible", snapshots_missing: "photos absentes",
+  camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps visible)", phone_detected: "téléphone visible", room_scan_requested: "scan de la pièce demandé (pause)", room_scan: "pièce filmée au téléphone", exam_resumed: "reprise après la pause", room_scan_missing: "pause sans scan de la pièce (30 min)", snapshots_missing: "photos absentes",
   device_changed: "changement d'appareil", ip_changed: "changement d'adresse IP", connection_gap: "coupures réseau",
   print_attempt: "tentatives d'impression", violation_threshold: "seuil d'infractions atteint", staff_suspicion: "suspicion de fraude signalée", paste_blocked: "collages bloqués", copy_blocked: "copies bloquées",
 };

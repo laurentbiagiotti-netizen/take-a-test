@@ -3,8 +3,8 @@ import { notify } from "@/components/Toaster";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function StaffActions({ attemptId, status, identityStatus, isAdmin, suspicionAt }: {
-  attemptId: string; status: string; identityStatus: string; isAdmin: boolean; suspicionAt?: string | null;
+export default function StaffActions({ attemptId, status, identityStatus, isAdmin, suspicionAt, pausedAt }: {
+  attemptId: string; status: string; identityStatus: string; isAdmin: boolean; suspicionAt?: string | null; pausedAt?: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -34,6 +34,7 @@ export default function StaffActions({ attemptId, status, identityStatus, isAdmi
     <div className="card space-y-3 text-sm">
       <div className="font-semibold">Actions du surveillant</div>
       <div className="flex flex-wrap gap-2">
+        {status === "in_progress" && pausedAt && <button className="btn" disabled={busy} onClick={() => act("resume", {}, "Reprendre l'épreuve sans scan de la pièce ? Le temps de la pause sera rendu au candidat.")}>Reprendre l&apos;épreuve</button>}
         {active && <button className="btn-secondary" disabled={busy} onClick={() => act("reset_session", {}, "Autoriser la reprise sur un nouvel appareil ?")}>Autoriser la reprise</button>}
         {active && <button className="btn-secondary" disabled={busy} onClick={() => {
           const m = prompt("Minutes supplémentaires (tiers-temps, incident) :", "10");
