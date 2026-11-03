@@ -119,6 +119,7 @@ export const TEST_FIELDS = [
   "draw_count", "shuffle_questions", "shuffle_options", "max_violations", "allow_resume",
   "grace_seconds", "opens_at", "closes_at", "retention_days", "id_verify_before_start", "seb_accept_config_key",
   "pass_mark", "domain_floors", "interview_guide", "verdict_pass", "verdict_fail", "formation",
+  "timing", "question_time_s", "partial_points", "fast_answer_s",
 ] as const;
 
 export function pickTestFields(input: any): Record<string, unknown> {
@@ -136,5 +137,13 @@ export function pickTestFields(input: any): Record<string, unknown> {
   for (const k of ["verdict_pass", "verdict_fail"] as const) {
     if (k in out && !(typeof out[k] === "number" && (out[k] as number) >= 0 && (out[k] as number) <= 20)) delete out[k];
   }
+  // Chronométrage et options de notation
+  if ("timing" in out && out.timing !== "global" && out.timing !== "question") delete out.timing;
+  const intIn = (k: string, lo: number, hi: number) => {
+    if (k in out && !(Number.isInteger(out[k]) && (out[k] as number) >= lo && (out[k] as number) <= hi)) delete out[k];
+  };
+  intIn("question_time_s", 10, 3600);
+  intIn("fast_answer_s", 0, 60);
+  if ("partial_points" in out && typeof out.partial_points !== "boolean") delete out.partial_points;
   return out;
 }

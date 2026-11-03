@@ -7,7 +7,7 @@ import { DataTable, type Column } from "@/components/admin/DataTable";
 
 /** Surveillance en direct : actualisée toute seule toutes les 5 secondes. */
 const KIND: Record<string, string> = {
-  fullscreen_exit: "sortie du plein écran", tab_hidden: "changement d'onglet", window_blur: "changement de fenêtre",
+  fullscreen_exit: "sortie du plein écran", tab_hidden: "changement d'onglet", window_blur: "changement de fenêtre", fast_answers: "réponses anormalement rapides",
   multiple_screens: "écran secondaire", devtools_open: "outils de développement", camera_off: "caméra coupée",
   camera_refused: "caméra refusée", no_face: "aucun visage", multiple_faces: "plusieurs visages",
   camera_covered: "caméra masquée", camera_frozen: "image figée", other_person: "autre personne (corps)",

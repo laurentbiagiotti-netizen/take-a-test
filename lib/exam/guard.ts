@@ -40,6 +40,8 @@ const MESSAGES: Record<string, [number, string]> = {
   test_not_open: [403, "Cet examen n'est pas encore ouvert."],
   no_questions: [409, "Cet examen ne contient aucune question."],
   time_over: [409, "Le temps est écoulé."],
+  question_time_over: [409, "Le temps de cette question est écoulé : passez à la suivante."],
+  notice_required: [400, "Cochez d'abord la case confirmant que vous avez lu la notice d'information."],
   question_locked: [409, "Cette question est verrouillée (navigation question par question)."],
   bad_question: [400, "Question invalide."],
   bad_response: [400, "Réponse invalide."],

@@ -6,3 +6,4 @@ attack5.sql 8
 attack6.sql 2
 seed.sql 0
 external.sql 12
+timing.sql 2

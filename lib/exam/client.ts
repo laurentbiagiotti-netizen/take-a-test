@@ -20,7 +20,7 @@ export const EVENT_LABEL: Record<string, string> = {
   other_person: "autre personne (corps visible)",
   fullscreen_exit: "sortie du plein écran",
   tab_hidden: "changement d'onglet",
-  window_blur: "changement de fenêtre",
+  window_blur: "changement de fenêtre", fast_answers: "réponses anormalement rapides",
   multiple_screens: "écran secondaire détecté",
   devtools_open: "outils de développement ouverts",
   camera_off: "caméra coupée",

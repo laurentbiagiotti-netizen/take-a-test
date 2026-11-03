@@ -1,4 +1,4 @@
-import { examError, examRoute, json, rpcError } from "@/lib/exam/guard";
+import { examError, examRoute, json, readJson, rpcError } from "@/lib/exam/guard";
 import { examCookieName, randomHex, sha256Hex } from "@/lib/security/tokens";
 
 /**
@@ -7,14 +7,17 @@ import { examCookieName, randomHex, sha256Hex } from "@/lib/security/tokens";
  * examen) ; le cookie existant ne sert qu'à reconnaître le même navigateur.
  * Émet aussi le premier jeton de requête tournant (en-tête X-Exam-Nonce).
  */
-export const POST = examRoute({ rotate: false }, async (ctx) => {
+export const POST = examRoute({ rotate: false }, async (ctx, req) => {
   if (!ctx.attemptId) return examError("attempt_not_found");
+  // Notice d'information cochée par le candidat (exigée au premier démarrage)
+  const body = await readJson<{ notice?: boolean }>(req, 1024);
   const token = randomHex(32);
   const nonce = randomHex(32);
   const { data, error } = await ctx.admin.rpc("exam_begin", {
     p_user: ctx.userId, p_attempt: ctx.attemptId,
     p_new_token_hash: await sha256Hex(token), p_prev_token_hash: ctx.tokenHash,
     p_ip: ctx.ip, p_ua: ctx.ua, p_nonce_hash: await sha256Hex(nonce),
+    p_notice: body?.notice === true,
   });
   if (error) return rpcError(error);
   const res = json(data);

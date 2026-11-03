@@ -14,7 +14,7 @@ const EXTRA_LABEL: Record<string, string> = {
   external_launch: "exercice ouvert", external_completed: "exercice terminé", attempt_started: "début de l'épreuve",
   attempt_submitted: "copie rendue", attempt_expired: "temps écoulé", attempt_terminated: "épreuve interrompue",
   staff_verdict: "décision de l'équipe", staff_suspicion: "suspicion signalée", staff_extend_time: "temps ajouté",
-  staff_reset_session: "reprise autorisée", violation_threshold: "seuil d'infractions atteint", camera_refused: "caméra refusée",
+  staff_reset_session: "reprise autorisée", violation_threshold: "seuil d'infractions atteint", camera_refused: "caméra refusée", fast_answers: "réponses anormalement rapides",
   camera_off: "caméra coupée", no_face: "aucun visage", fullscreen_return: "retour en plein écran", snapshot: "photo (anomalie)",
 };
 const TZ = { timeZone: "Europe/Paris" } as const;

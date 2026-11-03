@@ -46,6 +46,13 @@ create table tests (
   shuffle_questions boolean not null default true,
   shuffle_options boolean not null default true,
   max_violations int not null default 3 check (max_violations between 1 and 50),
+  -- Chronométrage : durée totale (global) ou temps par question (question), sans retour
+  timing text not null default 'global' check (timing in ('global', 'question')),
+  question_time_s int not null default 60 check (question_time_s between 10 and 3600),
+  -- QCM à plusieurs réponses : points partiels (bonnes cases moins mauvaises, au prorata)
+  partial_points boolean not null default false,
+  -- Réponses anormalement rapides : alerte après 3 réponses de suite en moins de N s (0 = désactivé)
+  fast_answer_s int not null default 4 check (fast_answer_s between 0 and 60),
   allow_resume boolean not null default false,
   grace_seconds int not null default 30 check (grace_seconds between 0 and 600),
   opens_at timestamptz,
@@ -169,6 +176,11 @@ create table attempts (
   last_event_hash text,
   request_nonce_hash text,
   current_index int not null default 0,
+  q_started_at timestamptz,
+  q_deadline_at timestamptz,
+  fast_streak int not null default 0,
+  -- Le candidat a coché « j'ai pris connaissance de la notice » avant de commencer
+  notice_ack_at timestamptz,
   recent_nonce_hashes text[] not null default '{}',
   resume_allowed boolean not null default false,
   -- Suspicion de fraude retenue par une personne de l'équipe (jamais automatique)
@@ -710,9 +722,12 @@ declare
   correct jsonb;
   v_total numeric := 0;
   v_max numeric := 0;
+  v_partial boolean;
+  v_good int; v_bad int; v_n int;
 begin
   select * into a from attempts where id = p_attempt for update;
   if a.id is null or a.status not in ('pending', 'in_progress') then return; end if;
+  select partial_points into v_partial from tests where id = a.test_id;
 
   for r in
     select q.id as qid, q.type, q.points, q.options, an.id as aid, an.response, k.correct, qt.flag,
@@ -731,6 +746,13 @@ begin
     if r.type = 'external' then
       s := round(r.points * least(1, greatest(0, coalesce(r.score_ratio, 0))), 2);
       update external_sessions set final = true where id = r.esid;
+    elsif r.type = 'mcq_multi' and v_partial and r.response is not null then
+      -- Points partiels : bonnes cases cochées moins mauvaises, au prorata, jamais négatif
+      v_n := jsonb_array_length(coalesce(r.correct, '[]'::jsonb));
+      select count(*) filter (where x in (select jsonb_array_elements_text(r.correct))),
+             count(*) filter (where x not in (select jsonb_array_elements_text(r.correct)))
+        into v_good, v_bad from jsonb_array_elements_text(coalesce(r.response->'selected', '[]'::jsonb)) x;
+      s := case when v_n = 0 then 0 else round(r.points * greatest(0, v_good - v_bad)::numeric / v_n, 2) end;
     else
       s := _grade(r.type, r.points, r.response, r.correct, r.flag, r.n_obj, coalesce(r.done_ids, '{}'));
     end if;
@@ -937,7 +959,8 @@ end; $$;
 -- Démarrage (ou reprise autorisée) : tirage des questions, chrono serveur,
 -- jeton de session unique.
 create or replace function public.exam_begin(p_user uuid, p_attempt uuid, p_new_token_hash text,
-                                             p_prev_token_hash text, p_ip text, p_ua text, p_nonce_hash text)
+                                             p_prev_token_hash text, p_ip text, p_ua text, p_nonce_hash text,
+                                             p_notice boolean default true)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   a attempts;
@@ -963,6 +986,8 @@ begin
 
   if a.status = 'pending' then
     if t.closes_at is not null and now() > t.closes_at then raise exception 'test_closed' using errcode = 'P0001'; end if;
+    -- Notice d'information lue avant de commencer (case à cocher)
+    if not coalesce(p_notice, false) then raise exception 'notice_required' using errcode = 'P0001'; end if;
     if t.opens_at is not null and now() < t.opens_at then raise exception 'test_not_open' using errcode = 'P0001'; end if;
 
     -- Tiers-temps fixé sur l'invitation après la création de la tentative
@@ -1011,7 +1036,9 @@ begin
       client_ip = p_ip, user_agent = left(coalesce(p_ua, ''), 500)
     where id = a.id returning * into a;
     v_token := 'new';
-    perform _log(a.id, 'exam_started', 'info', jsonb_build_object('ua', left(p_ua, 300)), p_ip);
+    update attempts set notice_ack_at = now() where id = a.id;
+    perform _log(a.id, 'exam_started', 'info', jsonb_build_object('ua', left(p_ua, 300), 'notice_acknowledged', true), p_ip);
+    a := _place_question(a.id);
 
   elsif a.status = 'in_progress' then
     if now() > a.deadline_at + make_interval(secs => t.grace_seconds) then
@@ -1088,6 +1115,7 @@ begin
   return jsonb_build_object('status', 'in_progress', 'token', v_token, 'attempt_id', a.id, 'deadline_at', a.deadline_at, 'server_now', now(),
     'questions', v_questions, 'answers', v_answers,
     'linear', true, 'current_index', a.current_index,
+    'timing', t.timing, 'q_deadline_at', a.q_deadline_at,
     'violation_count', a.violation_count, 'max_violations', t.max_violations);
 end; $$;
 
@@ -1121,6 +1149,60 @@ begin
   if array_position(a.question_order, p_question) is distinct from a.current_index + 1 then
     raise exception 'question_locked' using errcode = 'P0001';
   end if;
+  -- Temps par question : 3 s de marge réseau, puis plus rien n'est accepté sur cette question
+  if a.q_deadline_at is not null and now() > a.q_deadline_at + interval '3 seconds' then
+    raise exception 'question_time_over' using errcode = 'P0001';
+  end if;
+end; $$;
+
+-- Temps alloué à une question (secondes), tiers-temps compris (au prorata).
+create or replace function public._q_time(t tests, a attempts, p_question uuid)
+returns int language sql stable security definer set search_path = public as $$
+  select ceil(coalesce(q.time_limit_s, qe.time_limit_s, t.question_time_s)
+              * case when t.duration_minutes > 0 then (t.duration_minutes + a.extra_minutes)::numeric / t.duration_minutes else 1 end)::int
+  from questions q left join question_externals qe on qe.question_id = q.id
+  where q.id = p_question;
+$$;
+
+-- Démarre le chrono de la question courante. En temps par question, la fin
+-- de l'épreuve = fin de cette question + temps des questions suivantes.
+create or replace function public._place_question(p_attempt uuid)
+returns attempts language plpgsql security definer set search_path = public as $$
+declare a attempts; t tests; v_q int; v_rest int;
+begin
+  select * into a from attempts where id = p_attempt for update;
+  select * into t from tests where id = a.test_id;
+  if t.timing <> 'question' then
+    update attempts set q_started_at = now(), q_deadline_at = null where id = a.id returning * into a;
+    return a;
+  end if;
+  v_q := _q_time(t, a, a.question_order[a.current_index + 1]);
+  select coalesce(sum(_q_time(t, a, x)), 0) into v_rest
+    from unnest(a.question_order[a.current_index + 2 :]) x;
+  update attempts set q_started_at = now(), q_deadline_at = now() + make_interval(secs => v_q),
+    deadline_at = case when t.closes_at is null then now() + make_interval(secs => v_q + v_rest)
+                       else least(now() + make_interval(secs => v_q + v_rest), t.closes_at) end
+  where id = a.id returning * into a;
+  return a;
+end; $$;
+
+-- Réponses anormalement rapides : une réponse donnée en moins de fast_answer_s
+-- secondes allonge la série ; à 3 de suite, une alerte (jamais une infraction).
+create or replace function public._fast_answer_check(a attempts)
+returns void language plpgsql security definer set search_path = public as $$
+declare t tests; v_spent numeric; v_answered boolean; v_streak int;
+begin
+  select * into t from tests where id = a.test_id;
+  if t.fast_answer_s = 0 or a.q_started_at is null then return; end if;
+  v_spent := extract(epoch from now() - a.q_started_at);
+  select exists (select 1 from answers where attempt_id = a.id and question_id = a.question_order[a.current_index + 1]
+                   and response is not null and response <> '{}'::jsonb) into v_answered;
+  v_streak := case when v_answered and v_spent < t.fast_answer_s then a.fast_streak + 1 else 0 end;
+  update attempts set fast_streak = v_streak where id = a.id;
+  if v_streak > 0 and v_streak % 3 = 0 then
+    perform _log(a.id, 'fast_answers', 'warning',
+                 jsonb_build_object('count', v_streak, 'seconds', round(v_spent, 1), 'index', a.current_index + 1), null);
+  end if;
 end; $$;
 
 create or replace function public.exam_next(p_user uuid, p_attempt uuid, p_token_hash text,
@@ -1132,10 +1214,13 @@ begin
   if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
   -- Idempotent : rejouer « suivante » depuis la même question n'avance qu'une fois
   if p_from = a.current_index and a.current_index < cardinality(a.question_order) - 1 then
+    perform _fast_answer_check(a);
     update attempts set current_index = current_index + 1 where id = a.id returning * into a;
     perform _log(a.id, 'question_validated', 'info', jsonb_build_object('index', p_from + 1), p_ip);
+    a := _place_question(a.id);
   end if;
-  return jsonb_build_object('status', 'in_progress', 'current_index', a.current_index);
+  return jsonb_build_object('status', 'in_progress', 'current_index', a.current_index,
+    'q_deadline_at', a.q_deadline_at, 'deadline_at', a.deadline_at, 'server_now', now());
 end; $$;
 
 -- Enregistrement d'une réponse (forme validée, hors délai refusé).

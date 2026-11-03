@@ -315,6 +315,34 @@ export default function EditTest() {
           </label>
         </div>
 
+        <div className="border-t pt-3 space-y-2 text-sm">
+          <div className="font-medium">Chronométrage et notation</div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <label className="block">Chronométrage
+              <select className="input mt-1" value={test.timing || "global"} onChange={(e) => updateTest({ timing: e.target.value })}>
+                <option value="global">Durée totale de l&apos;épreuve</option>
+                <option value="question">Temps par question</option>
+              </select>
+            </label>
+            {test.timing === "question" && <label className="block">Temps par défaut d&apos;une question (s)
+              <input className="input mt-1 w-28" type="number" min={10} max={3600} value={test.question_time_s ?? 60}
+                onChange={(e) => { const v = parseInt(e.target.value); if (v >= 10 && v <= 3600) updateTest({ question_time_s: v }); }} />
+            </label>}
+            <label className="block" title="0 pour désactiver">Alerte « réponses trop rapides » sous (s)
+              <input className="input mt-1 w-28" type="number" min={0} max={60} value={test.fast_answer_s ?? 4}
+                onChange={(e) => { const v = parseInt(e.target.value); if (v >= 0 && v <= 60) updateTest({ fast_answer_s: v }); }} />
+            </label>
+          </div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={!!test.partial_points} onChange={(e) => updateTest({ partial_points: e.target.checked })} />
+            Points partiels aux QCM à plusieurs réponses (bonnes cases moins mauvaises, au prorata)
+          </label>
+          <p className="text-xs text-muted">
+            En temps par question, chaque question a son propre chrono (le temps fixé sur la question, sinon celui par défaut ; le tiers-temps s&apos;applique au prorata).
+            À zéro, la question est validée automatiquement. L&apos;alerte « réponses trop rapides » prévient le surveillant après 3 réponses de suite données sous le seuil.
+          </p>
+        </div>
+
         <div className="border-t pt-3">
           <div className="text-sm font-medium">Code d&apos;accès global</div>
           <p className="text-xs text-muted mt-1">Uniquement pour un test non restreint aux invités. Les invités utilisent leur code personnel.</p>

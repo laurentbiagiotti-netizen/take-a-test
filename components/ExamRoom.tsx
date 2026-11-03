@@ -48,6 +48,10 @@ export default function ExamRoom(props: {
   const [questions, setQuestions] = useState<Q[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [deadline, setDeadline] = useState<number>(0);
+  // Temps par question (option du test) : fin de la question courante, 0 sinon
+  const [qDeadline, setQDeadline] = useState<number>(0);
+  const autoAdvanced = useRef<number>(-1);
+  const [notice, setNotice] = useState(false);
   const [now, setNow] = useState<number>(Date.now());
   const [idx, setIdx] = useState(0);
   const [isFull, setIsFull] = useState(true);
@@ -128,7 +132,7 @@ export default function ExamRoom(props: {
     }
 
     setPhase("starting");
-    const { ok, data } = await post("begin");
+    const { ok, data } = await post("begin", { notice: notice || resuming });
     if (!ok || data?.status !== "in_progress") {
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       if (data?.status && data.status !== "in_progress") { end(data.status); return; }
@@ -138,6 +142,7 @@ export default function ExamRoom(props: {
     }
     clockOffset.current = new Date(data.server_now).getTime() - Date.now();
     setDeadline(new Date(data.deadline_at).getTime());
+    setQDeadline(data.q_deadline_at ? new Date(data.q_deadline_at).getTime() : 0);
     setQuestions(data.questions || []);
     setIdx(Math.min(data.current_index || 0, Math.max(0, (data.questions || []).length - 1)));
     setAnswers(data.answers || {});
@@ -282,6 +287,16 @@ export default function ExamRoom(props: {
     return () => clearInterval(i);
   }, [phase, deadline, post, end]);
 
+  // Temps par question écoulé : passage automatique (une seule fois par question)
+  const nextRef = useRef<() => void>(() => {});
+  const submitRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (phase !== "active" || !qDeadline || now < qDeadline || autoAdvanced.current === idx) return;
+    autoAdvanced.current = idx;
+    if (idx >= questions.length - 1) submitRef.current(); else nextRef.current();
+  }, [phase, qDeadline, now, idx, questions.length]);
+  const qRemaining = qDeadline ? Math.max(0, Math.ceil((qDeadline - now) / 1000)) : null;
+
   const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
   const timeAlert = useTimeAlerts(remaining, phase === "active" && deadline > 0);
 
@@ -325,7 +340,11 @@ export default function ExamRoom(props: {
     await flushPending();
     const { ok, data } = await post("next", { from: idx });
     setAdvancing(false);
-    if (ok && typeof data.current_index === "number") setIdx(data.current_index);
+    if (ok && typeof data.current_index === "number") {
+      setIdx(data.current_index);
+      if (data.deadline_at) setDeadline(new Date(data.deadline_at).getTime());
+      setQDeadline(data.q_deadline_at ? new Date(data.q_deadline_at).getTime() : 0);
+    }
   };
 
   const submit = async () => {
@@ -334,6 +353,9 @@ export default function ExamRoom(props: {
     const { data } = await post("submit");
     end(data?.status || "submitted");
   };
+
+  nextRef.current = next;
+  submitRef.current = submit;
 
   const watermarkTiles = useMemo(() => Array.from({ length: 40 }, (_, i) => i), []);
 
@@ -370,6 +392,7 @@ export default function ExamRoom(props: {
       : faceOk ? "Visage détecté, tout est prêt."
       : cam.faces === 0 ? "Aucun visage détecté : placez-vous face à la caméra." : cam.faces && cam.faces > 1 ? "Plusieurs visages détectés : vous devez être seul." : "Analyse de l'image…";
     const startHint = !canFull ? "Ordinateur nécessaire (plein écran)"
+      : !notice && !resuming ? "Cochez d'abord la case de la notice d'information"
       : faceOk ? "Prêt : le plein écran s'activera au clic"
       : camera.state === "denied" ? "Possible sans caméra, mais signalé au surveillant"
       : "En attente de la détection de votre visage";
@@ -390,8 +413,14 @@ export default function ExamRoom(props: {
               <CheckRow label="Plein écran" state={canFull ? "step" : "fix"}
                 detail={canFull ? "Obligatoire : il s'active au clic sur « Commencer »." : "Ce navigateur ne permet pas le plein écran (téléphone ou tablette). Utilisez un ordinateur avec Chrome, Edge, Firefox ou Safari."} />
             </ul>
+            {!resuming && (
+              <label className="flex items-start gap-2 text-sm mt-4">
+                <input type="checkbox" className="mt-1" checked={notice} onChange={(e) => setNotice(e.target.checked)} />
+                <span>J&apos;ai pris connaissance de la <a className="underline" href="/confidentialite" target="_blank" rel="noopener">notice d&apos;information</a> sur le traitement de mes données pendant l&apos;épreuve.</span>
+              </label>
+            )}
             {banner && <p className="text-danger text-sm mt-4" role="alert">{banner}</p>}
-            <StartRow ready={canStart && faceOk} onStart={start} disabled={phase === "starting" || !canStart}
+            <StartRow ready={canStart && faceOk && (notice || resuming)} onStart={start} disabled={phase === "starting" || !canStart || !(notice || resuming)}
               label={phase === "starting" ? "Démarrage…" : resuming ? "Reprendre l'épreuve" : "Commencer l'épreuve"} hint={startHint} />
           </div>
           <div className="card">
@@ -454,7 +483,14 @@ export default function ExamRoom(props: {
       </div>
 
       <main className={`${q?.type === "external" ? "max-w-6xl" : "max-w-3xl"} mx-auto p-4 sm:p-6 relative z-30`}>
-        <div className="text-sm text-muted mb-3">Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</div>
+        <div className="text-sm text-muted mb-3 flex items-center justify-between gap-3">
+          <span>Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</span>
+          {qRemaining !== null && (
+            <span className={`font-mono ${qRemaining <= 10 ? "text-danger" : "text-fg"}`} role="timer" aria-label={`Temps restant pour cette question ${formatClock(qRemaining)}`}>
+              Cette question : {formatClock(qRemaining)}
+            </span>
+          )}
+        </div>
         {q && (
           <div className="card">
             <div className="text-sm text-muted">
