@@ -14,7 +14,7 @@
 create type user_role as enum ('admin', 'proctor', 'candidate');
 create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal',
                                    'ordering', 'matching', 'hotspot', 'short_answer', 'external',
-                                   'sql', 'decode', 'password', 'blocks');
+                                   'sql', 'decode', 'password', 'blocks', 'headers', 'subnet', 'netpuzzle');
 create type attempt_status as enum ('pending', 'in_progress', 'submitted', 'terminated', 'expired');
 create type identity_status as enum ('not_required', 'pending', 'submitted', 'verified', 'rejected');
 
@@ -721,6 +721,12 @@ begin
            count(*) filter (where x not in (select jsonb_array_elements_text(p_key)))
       into tp, fp from jsonb_array_elements_text(coalesce(p_resp->'selected', '[]')) x;
     return round(p_points * greatest(0, tp - fp) / n, 2);
+  elsif p_type = 'headers' then
+    select count(*) into n from jsonb_object_keys(coalesce(p_key, '{}'));
+    if n = 0 or p_resp is null then return 0; end if;
+    select count(*) into ok from jsonb_each_text(p_key) k
+      where lower(regexp_replace(coalesce(p_resp->'fields'->>k.key, ''), '\s', '', 'g')) = lower(regexp_replace(k.value, '\s', '', 'g'));
+    return round(p_points * ok / n, 2);
   elsif p_type in ('short_answer', 'decode') then
     if p_resp is null then return 0; end if;
     if exists (select 1 from jsonb_array_elements_text(coalesce(p_key->'answers', '[]')) ans
@@ -773,7 +779,7 @@ begin
   loop
     v_max := v_max + r.points;
     continue when r.type = 'long_text';
-    if r.type in ('sql', 'password', 'blocks') then
+    if r.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle') then
       -- Noté par le serveur à l'enregistrement de la réponse (jamais par le navigateur)
       s := least(r.points, greatest(0, coalesce(r.auto_score, 0)));
     elsif r.type = 'external' then
@@ -1157,7 +1163,7 @@ begin
             (select jsonb_agg(o order by array_position(
                array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
              from jsonb_array_elements(q2.options->'right') o))
-        when q2.type in ('hotspot', 'short_answer', 'sql', 'decode', 'password', 'blocks') then q2.options
+        when q2.type in ('hotspot', 'short_answer', 'sql', 'decode', 'password', 'blocks', 'headers', 'subnet', 'netpuzzle') then q2.options
         else null end)
     order by array_position(a.question_order, q2.id))
   into v_questions from questions q2 where q2.id = any(a.question_order);
@@ -1366,6 +1372,21 @@ begin
       end if;
       p_response := jsonb_build_object('text', p_response->>'text');
     end if;
+  elsif q.type in ('headers', 'subnet') then
+    if (coalesce(jsonb_typeof(p_response->'fields'), '') <> 'object' and coalesce(jsonb_typeof(p_response->'subnets'), '') <> 'object')
+       or length(p_response::text) > 3000 then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := case when p_response ? 'subnets' and q.type = 'subnet' then jsonb_build_object('subnets', p_response->'subnets')
+                       else jsonb_build_object('fields', p_response->'fields') end;
+  elsif q.type = 'netpuzzle' then
+    if coalesce(jsonb_typeof(p_response->'rot'), '') <> 'array' or jsonb_array_length(p_response->'rot') > 81
+       or exists (select 1 from jsonb_array_elements(p_response->'rot') x where jsonb_typeof(x) <> 'number') then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('rot', p_response->'rot',
+      'moves', least(100000, greatest(0, coalesce((p_response->>'moves')::int, 0))),
+      'ms', least(86400000, greatest(0, coalesce((p_response->>'ms')::bigint, 0))));
   elsif q.type = 'blocks' then
     if coalesce(jsonb_typeof(p_response->'program'), '') <> 'object' or length((p_response->'program')::text) > 20000
        or (p_response ? 'state' and length((p_response->'state')::text) > 60000) then
@@ -1392,7 +1413,7 @@ begin
   insert into answers(attempt_id, question_id, response, updated_at)
   values (a.id, p_question, p_response, now())
   on conflict (attempt_id, question_id) do update set response = excluded.response, auto_score = null, updated_at = now();
-  if q.type in ('sql', 'password', 'blocks') then
+  if q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle') then
     return jsonb_build_object('status', 'in_progress', 'saved', true, 'auto', true, 'response', p_response);
   end if;
   return jsonb_build_object('status', 'in_progress', 'saved', true);
@@ -2034,7 +2055,7 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_points numeric; v_n int;
 begin
   select q.points into v_points from questions q join attempts a on a.id = p_attempt
-    where q.id = p_question and q.type in ('sql', 'password', 'blocks') and a.status = 'in_progress';
+    where q.id = p_question and q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle') and a.status = 'in_progress';
   if v_points is null then return jsonb_build_object('ok', false); end if;
   update answers set auto_score = least(v_points, greatest(0, coalesce(p_score, 0)))
     where attempt_id = p_attempt and question_id = p_question and response = p_response;

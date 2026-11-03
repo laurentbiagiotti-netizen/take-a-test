@@ -12,9 +12,9 @@ import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
-const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks"];
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
@@ -471,6 +471,9 @@ export default function EditTest() {
             ["decode", "Décodage", "Base64, ROT13, XOR…"],
             ["password", "Mots de passe", "classer ou créer"],
             ["blocks", "Pare-feu en blocs", "règles à assembler"],
+            ["headers", "En-têtes de mail", "phishing : IP, SPF, Reply-To"],
+            ["subnet", "Sous-réseaux", "valeurs propres à chaque candidat"],
+            ["netpuzzle", "Puzzle réseau", "logique, sans prérequis"],
           ] as [QType, string, string][]).map(([t, l, d]) => (
             <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
               <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>

@@ -4,7 +4,7 @@ import type { RecapData, RecapQuestion } from "./recap";
 
 const TYPE_NAME: Record<string, string> = {
   mcq_single: "QCM une réponse", mcq_multi: "QCM plusieurs réponses", long_text: "Réponse rédigée", terminal: "Défi terminal",
-  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil", sql: "Requête SQL", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs",
+  ordering: "Remettre dans l'ordre", matching: "Associer", hotspot: "Repérer", short_answer: "Réponse courte", external: "Exercice dans un outil", sql: "Requête SQL", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs", headers: "En-têtes de mail", subnet: "Sous-réseaux", netpuzzle: "Puzzle réseau",
 };
 const END: Record<string, string> = {
   submitted: "Copie rendue par le candidat", expired: "Temps écoulé", terminated: "Interrompue par un surveillant",
@@ -84,6 +84,10 @@ export async function recapData(admin: SupabaseClient, attemptId: string): Promi
     } else if (q.type === "decode") {
       base.answer = r.text || "";
       base.expected = (key?.answers || []).join(" ; ");
+    } else if (q.type === "headers" || q.type === "subnet") {
+      base.answer = Object.entries(r.fields || r.subnets || {}).map(([k, v]) => `${k} : ${v}`).join("  ");
+    } else if (q.type === "netpuzzle") {
+      base.answer = `${r.moves || 0} rotation(s) en ${Math.round((r.ms || 0) / 1000)} s`;
     } else if (q.type === "blocks") {
       base.answer = r.program ? `${r.program.rules?.length || 0} règle(s), politique par défaut : ${r.program.default === "block" ? "bloquer" : "autoriser"}` : "";
     } else if (q.type === "password") {

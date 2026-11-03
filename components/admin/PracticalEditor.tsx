@@ -3,6 +3,8 @@ import { useMemo, useState } from "react";
 import { DECODE_OPS, encodeForRecipe, type RecipeStep } from "@/lib/questions/decode";
 import type { FwPacket } from "@/lib/questions/firewall";
 import type { QType } from "@/lib/questions/kinds";
+import { HEADER_QUESTIONS, suggestKey, type HeaderField } from "@/lib/questions/headers";
+import { FIELD_LABEL, type SubnetField } from "@/lib/questions/subnet";
 
 type Props = { type: QType; options: any; correct: any; onChange: (p: { options: any; correct: any }) => void };
 
@@ -95,6 +97,81 @@ export default function PracticalEditor({ type, options, correct, onChange }: Pr
   }
 
   if (type === "blocks") return <FirewallEditor o={o} k={k} set={set} />;
+
+  if (type === "headers") {
+    const ask: HeaderField[] = o.ask || [];
+    const keyFor = (raw: string, a: HeaderField[], prev: any = {}) => { const sug = suggestKey(raw); return Object.fromEntries(a.map((f) => [f, prev[f] ?? sug[f]])); };
+    return (
+      <div className="space-y-3 rounded-lg border border-line p-3">
+        <Field label="En-têtes bruts du mail" hint="copiés depuis « Afficher l'original » ; anonymisez les vraies adresses">
+          <textarea className="input font-mono text-xs min-h-[160px]" value={o.raw || ""} onChange={(e) => set({ ...o, raw: e.target.value }, keyFor(e.target.value, ask))} />
+        </Field>
+        <div className="flex flex-wrap gap-4 text-sm">
+          {[["table", "Tableau lisible (B1)"], ["raw", "En-têtes bruts seulement (B3)"]].map(([v, l]) => (
+            <label key={v} className="flex items-center gap-2"><input type="radio" checked={(o.view || "raw") === v} onChange={() => set({ ...o, view: v })} />{l}</label>
+          ))}
+        </div>
+        <div className="text-sm">Questions posées et réponse attendue <span className="text-xs text-faint">(proposée d&apos;après les en-têtes, modifiable)</span></div>
+        <div className="grid gap-2">
+          {(Object.keys(HEADER_QUESTIONS) as HeaderField[]).map((f) => {
+            const on = ask.includes(f), meta = HEADER_QUESTIONS[f];
+            return (
+              <div key={f} className="grid sm:grid-cols-[1fr_12rem] gap-2 items-center text-sm">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={on} onChange={(e) => {
+                  const a = e.target.checked ? [...ask, f] : ask.filter((x) => x !== f);
+                  set({ ...o, ask: a }, keyFor(o.raw || "", a, k));
+                }} />{meta.label}</label>
+                {on && (meta.choices
+                  ? <select className="input !py-1" value={k[f] || ""} onChange={(e) => set(o, { ...k, [f]: e.target.value })}>{meta.choices.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+                  : <input className="input !py-1 font-mono" value={k[f] || ""} onChange={(e) => set(o, { ...k, [f]: e.target.value })} />)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "subnet") {
+    const vlsm = o.mode === "vlsm";
+    const ask: SubnetField[] = o.ask || [];
+    return (
+      <div className="space-y-3 rounded-lg border border-line p-3 text-sm">
+        <p className="text-xs text-muted">Chaque candidat reçoit ses propres valeurs, tirées au hasard ; la correction est calculée par le serveur.</p>
+        <div className="flex flex-wrap gap-4">
+          {[["basic", "Une adresse à analyser (B1)"], ["vlsm", "Découpage VLSM (B3)"]].map(([m, l]) => (
+            <label key={m} className="flex items-center gap-2"><input type="radio" checked={(vlsm ? "vlsm" : "basic") === m}
+              onChange={() => set(m === "vlsm" ? { mode: "vlsm", services: 3, help: false } : { mode: "basic", prefixes: [24, 25, 26, 27, 28], ask: ["network", "broadcast", "hosts"], help: true }, null)} />{l}</label>
+          ))}
+        </div>
+        {vlsm ? (
+          <Field label="Nombre de services à loger dans un /24"><input className="input !w-24" type="number" min={2} max={5} value={o.services ?? 3} onChange={(e) => set({ ...o, services: Math.min(5, Math.max(2, parseInt(e.target.value) || 3)) }, null)} /></Field>
+        ) : <>
+          <Field label="Préfixes possibles" hint="séparés par des virgules, ex. 24, 26, 27">
+            <input className="input" value={(o.prefixes || []).join(", ")} onChange={(e) => set({ ...o, prefixes: e.target.value.split(/[,\s]+/).map((x) => parseInt(x.replace("/", ""), 10)).filter((x) => x >= 8 && x <= 30) }, null)} />
+          </Field>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            {(Object.keys(FIELD_LABEL) as SubnetField[]).map((f) => (
+              <label key={f} className="flex items-center gap-2"><input type="checkbox" checked={ask.includes(f)} onChange={(e) => set({ ...o, ask: e.target.checked ? [...ask, f] : ask.filter((x) => x !== f) }, null)} />{FIELD_LABEL[f]}</label>
+            ))}
+          </div>
+        </>}
+        <label className="flex items-center gap-2"><input type="checkbox" checked={!!o.help} onChange={(e) => set({ ...o, help: e.target.checked }, null)} />Afficher un rappel de cours (mesure la capacité à apprendre vite, idéal en B1)</label>
+      </div>
+    );
+  }
+
+  if (type === "netpuzzle") {
+    return (
+      <div className="space-y-3 rounded-lg border border-line p-3 text-sm">
+        <p className="text-xs text-muted">Jeu « Net » (collection de Simon Tatham) : chaque candidat a sa propre grille, de même taille. Réussi = tous les points ; sinon la moitié au prorata des postes reliés. Pensez à fixer un temps à la question (par exemple 240 s).</p>
+        <div className="flex gap-3">
+          <Field label="Largeur"><input className="input !w-20" type="number" min={3} max={9} value={o.w ?? 5} onChange={(e) => set({ ...o, w: Math.min(9, Math.max(3, parseInt(e.target.value) || 5)) }, null)} /></Field>
+          <Field label="Hauteur"><input className="input !w-20" type="number" min={3} max={9} value={o.h ?? 5} onChange={(e) => set({ ...o, h: Math.min(9, Math.max(3, parseInt(e.target.value) || 5)) }, null)} /></Field>
+        </div>
+      </div>
+    );
+  }
   return null;
 }
 

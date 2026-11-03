@@ -2,7 +2,7 @@
  * Types de questions : formats, validation (éditeur admin et API) et
  * barème (identique à la fonction SQL _grade, utilisé par la démo).
  */
-export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks";
+export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle";
 
 export const TYPE_LABEL: Record<QType, string> = {
   mcq_single: "QCM, une réponse",
@@ -17,6 +17,9 @@ export const TYPE_LABEL: Record<QType, string> = {
   decode: "Décodage (recette)",
   password: "Mots de passe",
   blocks: "Pare-feu en blocs",
+  headers: "En-têtes de mail",
+  subnet: "Sous-réseaux IP",
+  netpuzzle: "Puzzle réseau (logique)",
 };
 
 export type Item = { id: string; text: string };
@@ -39,6 +42,8 @@ import { validRecipe } from "./decode";
 import { validPackets } from "./firewall";
 import { validPasswordOptions } from "./password";
 import { validSqlOptions } from "./sql-task";
+import { validHeadersQuestion } from "./headers";
+import { validSubnetOptions } from "./subnet";
 
 /** Valide options + clé d'un type ; renvoie un message d'erreur ou null. */
 export function validateQuestion(type: QType, options: any, key: any): string | null {
@@ -82,6 +87,14 @@ export function validateQuestion(type: QType, options: any, key: any): string | 
       return null;
     case "password":
       return validPasswordOptions(options);
+    case "headers":
+      return validHeadersQuestion(options, key);
+    case "subnet":
+      return validSubnetOptions(options);
+    case "netpuzzle": {
+      const w = options?.w ?? 5, h = options?.h ?? 5;
+      return Number.isInteger(w) && Number.isInteger(h) && w >= 3 && h >= 3 && w <= 9 && h <= 9 ? null : "Grille de 3×3 à 9×9";
+    }
     case "blocks":
       if (!validPackets(options?.sample || [], true) && (options?.sample || []).length) return "Paquets d'exemple invalides";
       if (!validPackets(key?.packets, true)) return "Paquets de test cachés invalides (1 à 200, avec la décision attendue)";
@@ -116,6 +129,12 @@ export function grade(type: QType, points: number, resp: any, key: any): number 
       const sel = strArr(resp.selected);
       const tp = sel.filter((s) => key.includes(s)).length, fp = sel.length - tp;
       return key?.length ? r2(points * Math.max(0, tp - fp) / key.length) : 0;
+    }
+    case "headers": {
+      const ks = Object.keys(key || {});
+      const f = resp.fields || {};
+      const n = (x: any) => String(x ?? "").replace(/\s/g, "").toLowerCase();
+      return ks.length ? r2(points * ks.filter((k) => n(f[k]) === n(key[k])).length / ks.length) : 0;
     }
     case "short_answer": case "decode":
       if (typeof resp.text !== "string") return 0;

@@ -1,5 +1,6 @@
 import { examError, examRoute, json, readJson, rpcError } from "@/lib/exam/guard";
 import { autoScore } from "@/lib/questions/grade-server";
+import { seedOf } from "@/lib/questions/seed";
 import { kickWebhooks } from "@/lib/webhooks";
 
 export const POST = examRoute({ rotate: true }, async (ctx, req) => {
@@ -19,7 +20,7 @@ export const POST = examRoute({ rotate: true }, async (ctx, req) => {
       ctx.admin.from("answer_keys").select("correct").eq("question_id", body.question_id).maybeSingle(),
     ]);
     if (q) {
-      const score = await autoScore(q.type, q.options, k?.correct, data.response, Number(q.points));
+      const score = await autoScore(q.type, q.options, k?.correct, data.response, Number(q.points), seedOf(ctx.attemptId, body.question_id));
       if (score !== null) await ctx.admin.rpc("exam_set_auto_score", { p_attempt: ctx.attemptId, p_question: body.question_id, p_response: data.response, p_score: score });
     }
     const { response: _r, auto: _a, ...rest } = data;

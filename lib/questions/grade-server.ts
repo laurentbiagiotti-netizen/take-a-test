@@ -2,6 +2,8 @@ import { Worker } from "node:worker_threads";
 import { buildInjection, containsValue, sameResult, type SqlKey, type SqlOptions, type SqlResult, MAX_ROWS } from "./sql-task";
 import { gradeFirewall, validProgram, type FwPacket } from "./firewall";
 import { policyChecks, type PasswordOptions } from "./password";
+import { gradeSubnet } from "./subnet";
+import { gradeNet } from "./netpuzzle";
 
 /**
  * Notes calculées par le serveur pour les types qui ne se corrigent pas en SQL :
@@ -87,8 +89,10 @@ async function gradePassword(o: PasswordOptions, resp: any, points: number): Pro
 }
 
 /** Note d'une réponse pour les types notés par le serveur ; null pour les autres types. */
-export async function autoScore(type: string, options: any, key: any, resp: any, points: number): Promise<number | null> {
+export async function autoScore(type: string, options: any, key: any, resp: any, points: number, seed = ""): Promise<number | null> {
   try {
+    if (type === "subnet") return gradeSubnet(options, seed, resp, points);
+    if (type === "netpuzzle") return gradeNet(options || {}, seed, resp, points);
     if (type === "sql") return await gradeSql(options, key || {}, resp, points);
     if (type === "password") return await gradePassword(options, resp, points);
     if (type === "blocks") {
@@ -99,4 +103,4 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
   return null;
 }
 
-export const AUTO_TYPES = new Set(["sql", "password", "blocks"]);
+export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle"]);

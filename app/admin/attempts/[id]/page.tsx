@@ -57,7 +57,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
   const mcqAnswers = sorted.filter((x: any) => x.question?.type === "mcq_single" || x.question?.type === "mcq_multi");
   const termAnswers = sorted.filter((x: any) => x.question?.type === "terminal");
-  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks"].includes(x.question?.type));
+  const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle"].includes(x.question?.type));
   const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
   const { data: termHistory } = await supabase.from("terminal_history").select("question_id, cwd, command, created_at").eq("attempt_id", id).order("id");
   const { data: extSessions } = await supabase.from("external_sessions")
@@ -222,6 +222,9 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
               if (q.type === "sql") shown = r.query || "";
               if (q.type === "decode") shown = `${r.text || ""}${r.recipe?.length ? `   (recette : ${r.recipe.map((x: any) => x.op + (x.arg ? `(${x.arg})` : "")).join(" > ")})` : ""}`;
               if (q.type === "password") shown = o.mode === "rank" ? txt(o.items, r.order || []).map((t: string, k: number) => `${k + 1}. ${t}`).join("   ") : r.text ? "•".repeat(Math.min(24, String(r.text).length)) + ` (${String(r.text).length} caractères)` : "";
+              if (q.type === "headers" || (q.type === "subnet" && r.fields)) shown = Object.entries(r.fields || {}).map(([k, v]) => `${k} : ${v}`).join("   ");
+              if (q.type === "subnet" && r.subnets) shown = Object.entries(r.subnets).map(([k, v]) => `${k} : ${v}`).join("   ");
+              if (q.type === "netpuzzle") shown = `${r.moves || 0} rotation(s) en ${Math.round((r.ms || 0) / 1000)} s`;
               if (q.type === "blocks") shown = r.program ? `Par défaut : ${r.program.default === "block" ? "bloquer" : "autoriser"}, ${r.program.rules?.length || 0} règle(s)` : "";
               return (
                 <div key={ans.id} className="card">

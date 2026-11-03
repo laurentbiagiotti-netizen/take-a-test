@@ -51,6 +51,7 @@ export default function ExamRoom(props: {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [paused, setPaused] = useState(false);
+  const [attemptId, setAttemptId] = useState("");
   const pausedRef = useRef(false);
   pausedRef.current = paused;
   const [deadline, setDeadline] = useState<number>(0);
@@ -153,6 +154,7 @@ export default function ExamRoom(props: {
     clockOffset.current = new Date(data.server_now).getTime() - Date.now();
     setDeadline(new Date(data.deadline_at).getTime());
     setQDeadline(data.q_deadline_at ? new Date(data.q_deadline_at).getTime() : 0);
+    setAttemptId(data.attempt_id || "");
     setQuestions(data.questions || []);
     setIdx(Math.min(data.current_index || 0, Math.max(0, (data.questions || []).length - 1)));
     setAnswers(data.answers || {});
@@ -537,7 +539,7 @@ export default function ExamRoom(props: {
             <div className="mt-1"><QuestionPrompt ref={headingRef} prompt={q.prompt} /></div>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}
             <div className="mt-4">
-              <QuestionBody q={q} value={answers[q.id]} onText={(r) => setText(q, r)}
+              <QuestionBody q={{ ...q, seed: attemptId }} value={answers[q.id]} onText={(r) => setText(q, r)}
                 onChange={(r) => (q.type === "external" ? setAnswers((a) => ({ ...a, [q.id]: r })) : setChoice(q, r))}
                 runTerminal={async (command) => {
                   const { ok, data } = await post("terminal", { question_id: q.id, command });

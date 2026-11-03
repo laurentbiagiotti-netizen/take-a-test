@@ -4,6 +4,7 @@ import Terminal, { type TermResult } from "@/components/Terminal";
 import ExternalExercise, { type ExternalInfo, type LaunchResult } from "@/components/questions/ExternalExercise";
 import dynamic from "next/dynamic";
 import { DecodeQuestion, PasswordCreate, SqlQuestion } from "@/components/questions/Practical";
+import { HeadersQuestion, NetPuzzle, SubnetQuestion } from "@/components/questions/Networky";
 const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBlocks"), { ssr: false, loading: () => <p className="text-sm text-muted">Chargement de l&apos;éditeur de blocs…</p> });
 
 /**
@@ -11,7 +12,7 @@ const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBloc
  * Ne contient jamais de bonne réponse : la correction est faite par le serveur.
  */
 export type PublicQ = {
-  id: string; type: string; prompt: string; points: number; image_url?: string | null;
+  id: string; seed?: string; type: string; prompt: string; points: number; image_url?: string | null;
   options: any;
   terminal?: { cwd: string; prompt: string; motd?: string | null; has_flag?: boolean; objectives?: { id: string; title: string; done: boolean }[] } | null;
   external?: ExternalInfo | null;
@@ -48,6 +49,9 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
     case "sql": return <SqlQuestion key={q.id} q={q} value={value} onText={onText || onChange} />;
     case "decode": return <DecodeQuestion key={q.id} q={q} value={value} onText={onText || onChange} />;
     case "blocks": return <FirewallBlocks key={q.id} q={q} value={value} onText={onText || onChange} />;
+    case "headers": return <HeadersQuestion q={q} value={value} onText={onText || onChange} onChange={onChange} />;
+    case "subnet": return <SubnetQuestion q={q} value={value} onText={onText || onChange} />;
+    case "netpuzzle": return <NetPuzzle key={q.id} q={q} value={value} onText={onText || onChange} />;
     case "password":
       if (q.options?.mode === "create") return <PasswordCreate q={q} value={value} onText={onText || onChange} />;
       return <PasswordRank q={q} value={value} onChange={onChange} />;

@@ -1,4 +1,5 @@
 import { encodeForRecipe, type RecipeStep } from "./decode";
+import { suggestKey } from "./headers";
 
 /**
  * Exemples prêts à l'emploi insérés quand l'admin ajoute une question pratique.
@@ -27,7 +28,45 @@ const DECODE_FLAG = "CYBER{r0t13_3t_b4s3_64}";
 const pk = (id: string, label: string, src_ip: string, dst_port: number, protocol: string, country: string, hour: number, expected: "allow" | "block") =>
   ({ id, label, src_ip, dst_port, protocol, country, hour, expected });
 
+const MAIL = `Received: from mx.cybersup-ecole.example (mx.cybersup-ecole.example [192.0.2.25])
+        by mail.cybersup-ecole.example with ESMTPS id 7Hq2; Tue, 3 Nov 2026 08:14:09 +0100
+Received: from relay.mailflux.example (relay.mailflux.example [198.51.100.77])
+        by mx.cybersup-ecole.example with ESMTP id 41fd; Tue, 3 Nov 2026 08:14:06 +0100
+Received: from pc-0451 (unknown [203.0.113.45])
+        by relay.mailflux.example with SMTP id x9k2; Tue, 3 Nov 2026 08:13:21 +0100
+Authentication-Results: mx.cybersup-ecole.example;
+       spf=fail (sender IP is 203.0.113.45) smtp.mailfrom=banque-horizon-secure.example;
+       dkim=none (message not signed);
+       dmarc=fail action=quarantine header.from=banque-horizon.example
+From: "Service Client Banque Horizon" <securite@banque-horizon.example>
+Reply-To: <support-client@verif-compte-urgent.example>
+Return-Path: <bounce@banque-horizon-secure.example>
+To: <etudiant@cybersup-ecole.example>
+Subject: [URGENT] Votre compte sera suspendu sous 24 h
+Date: Tue, 3 Nov 2026 08:13:19 +0100
+Message-ID: <20261103071319.4471@pc-0451>`;
+const MAIL_ASK = ["origin_ip", "spf", "reply_to", "verdict"] as const;
+const MAIL_KEY = Object.fromEntries(MAIL_ASK.map((k) => [k, suggestKey(MAIL)[k]]));
+
 export const PRACTICAL_TEMPLATES = {
+  headers: {
+    prompt: "Un étudiant a reçu ce mail et vous demande s'il doit cliquer. Analysez ses en-têtes.",
+    options: { raw: MAIL, view: "table", ask: MAIL_ASK },
+    correct: MAIL_KEY,
+    points: 2,
+  },
+  subnet: {
+    prompt: "Un technicien doit configurer une nouvelle machine. À partir de son adresse, retrouvez les informations du réseau.",
+    options: { mode: "basic", prefixes: [24, 25, 26, 27, 28], ask: ["network", "broadcast", "hosts"], help: true },
+    correct: null,
+    points: 2,
+  },
+  netpuzzle: {
+    prompt: "Le serveur central (le carré) doit être relié à tous les postes de la salle. Remettez les câbles dans le bon sens.",
+    options: { w: 5, h: 5 },
+    correct: null,
+    points: 2,
+  },
   sql: {
     prompt: "La table connexions trace les ouvertures de session. Trouvez les comptes qui se sont connectés avec succès entre 2 h et 4 h du matin (2 h 00 à 3 h 59). Affichez seulement la colonne login, une fois par compte.",
     options: { mode: "query", setup: SETUP, show_tables: true },
