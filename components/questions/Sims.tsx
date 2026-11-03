@@ -12,7 +12,7 @@ type P = { q: any; value: any; onChange: (r: any) => void; onText: (r: any) => v
 function Phone({ children, bar }: { children: ReactNode; bar?: ReactNode }) {
   return (
     <div className="mx-auto w-[400px] max-w-full rounded-[2.8rem] bg-[#111] p-[11px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/10">
-      <div className="relative rounded-[2.2rem] overflow-hidden bg-white text-[#111] h-[760px] flex flex-col">
+      <div className="relative rounded-[2.2rem] overflow-hidden bg-white text-[#111] h-[min(720px,calc(100vh-11rem))] min-h-[520px] flex flex-col">
         <div className="flex items-center justify-between px-7 pt-3 pb-1 text-[13px] font-semibold" aria-hidden>
           <span>09:41</span><span className="absolute left-1/2 -translate-x-1/2 top-2.5 w-28 h-7 rounded-full bg-black" /><span>📶 🔋</span>
         </div>

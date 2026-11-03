@@ -36,7 +36,7 @@ describe("scripts Bash", () => {
 
   it("normalisation et packs", () => {
     expect(norm("   5 1.2.3.4\r\n\n")).toBe("5 1.2.3.4");
-    expect(PACKS.b3.questions.filter((q) => q.type === "bash")).toHaveLength(2);
-    expect(PACKS.m1.questions.filter((q) => q.type === "bash")).toHaveLength(1);
+    expect([...PACKS.b3.questions, ...PACKS.b3x.questions].filter((q) => q.type === "bash")).toHaveLength(2);
+    expect([...PACKS.m1.questions, ...PACKS.m1x.questions].filter((q) => q.type === "bash")).toHaveLength(1);
   });
 });

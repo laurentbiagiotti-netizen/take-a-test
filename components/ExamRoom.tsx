@@ -26,6 +26,9 @@ type Phase = "prep" | "starting" | "active" | "ended" | "blocked";
 const HEARTBEAT_MS = 10_000;
 const VIOLATION_DEBOUNCE_MS = 1500;
 
+// Exercices qui imitent une vraie application (fenêtre, téléphone, console) : ils ont besoin de place.
+const WIDE_TYPES = ["external", "sim", "feed", "headers", "sql", "tickets", "bash", "adsim", "evtx", "decode", "blocks", "terminal"];
+
 export default function ExamRoom(props: {
   testId: string; title: string; description?: string | null; durationMinutes: number;
   maxViolations: number; requireWebcam?: boolean; resuming: boolean; watermark: string; linearHint?: boolean;
@@ -518,7 +521,7 @@ export default function ExamRoom(props: {
         <div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} />
       </div>
 
-      <main className={`${q?.type === "external" ? "max-w-6xl" : "max-w-3xl"} mx-auto p-4 sm:p-6 relative z-30`}>
+      <main className={`${q && WIDE_TYPES.includes(q.type) ? "max-w-6xl" : "max-w-3xl"} mx-auto p-4 sm:p-6 relative z-30`}>
         <div className="text-sm text-muted mb-3 flex items-center justify-between gap-3">
           <span className="flex items-center gap-3">
             <span>Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</span>

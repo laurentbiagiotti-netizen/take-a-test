@@ -79,7 +79,16 @@ const pcLent: Scenario = {
 
 const siteEnPanne: Scenario = {
   user: "tech", hostname: "srv-web", home: "/home/tech",
-  motd: "Connexion SSH à srv-web (Debian 12). Un ticket vous attend : cat TICKET-2047.txt\nVous pouvez utiliser sudo pour certaines commandes : sudo -l pour la liste. Tapez help pour les commandes disponibles.",
+  motd: [
+    "Connexion SSH à srv-web (Debian 12). Un ticket vous attend : cat TICKET-2047.txt",
+    "Aide-mémoire :",
+    "  ls /var/log/apache2/                 voir les journaux d'Apache, puis cat pour les lire",
+    "  mkdir dossier · cp fichier dossier/  sauvegarder une copie",
+    "  sudo sed -i 's/ancien/nouveau/' f    remplacer un mot dans un fichier (en root)",
+    "  sudo chmod 640 fichier              changer les droits",
+    "  ss -tlnp · ps aux · sudo kill PID   voir ce qui écoute ou tourne, arrêter un programme",
+    "sudo -l liste ce que vous pouvez faire en root ; help liste toutes les commandes.",
+  ].join("\n"),
   files: {
     "/home/tech/TICKET-2047.txt": "TICKET #2047 · Priorité haute · Demandeur : service communication\n\nLe site www.ecole.example ne s'affiche plus depuis la mise à jour de ce matin.\n\nÀ faire :\n1. Trouver la cause dans le journal d'erreurs d'Apache (/var/log/apache2/).\n2. AVANT de modifier quoi que ce soit, sauvegarder le fichier de configuration du site dans ~/sauvegardes/.\n3. Corriger la configuration.\n4. Au passage, l'audit de la semaine dernière signalait que le fichier de configuration PHP du site\n   (qui contient le mot de passe de la base) est lisible par tout le monde : droits à passer en 640.\n5. L'audit signalait aussi un programme qui écoute sur un port inhabituel (ss -tlnp) : à arrêter.\n",
     "/var/log/apache2/error.log": "[Tue Nov 03 06:58:02 2026] [notice] caught SIGTERM, shutting down\n[Tue Nov 03 07:02:11 2026] [error] AH00526: Syntax error on line 4 of /etc/apache2/sites-enabled/ecole.conf:\n[Tue Nov 03 07:02:11 2026] [error] Invalid command 'DocumentRot', perhaps misspelled or defined by a module not included in the server configuration\n[Tue Nov 03 07:02:11 2026] [error] Action 'start' failed.\n",
@@ -141,7 +150,7 @@ const nouvelleArrivee: Scenario = {
 
 const sauvegarde: Scenario = {
   user: "tech", hostname: "srv-backup", home: "/home/tech",
-  motd: "Connexion SSH à srv-backup. Un ticket vous attend : cat TICKET-2077.txt\nTapez help pour les commandes disponibles (sudo -l pour ce que vous pouvez faire en root).",
+  motd: "Connexion SSH à srv-backup. Un ticket vous attend : cat TICKET-2077.txt\nAide-mémoire : systemctl status service · journalctl -u service · df -h · sudo du -sh /var/log/* · sudo systemctl restart|enable service\nsudo -l liste ce que vous pouvez faire en root ; help liste toutes les commandes.",
   disks: [{ mount: "/", device: "/dev/sda1", size_mb: 30720, base_mb: 6200 }, { mount: "/var", device: "/dev/sdb1", size_mb: 20480, base_mb: 2800 }],
   files: {
     "/home/tech/TICKET-2077.txt": "TICKET #2077 · Priorité haute · Demandeur : direction\n\nLa sauvegarde automatique du serveur de fichiers échoue depuis trois nuits.\nLe service s'appelle « sauvegarde-nuit ».\n\nÀ faire :\n1. Trouver pourquoi le service est en échec (son état et son journal).\n2. Corriger la cause, SANS supprimer les sauvegardes déjà faites ni les journaux du mois en cours.\n3. Relancer le service et vérifier qu'il tourne.\n4. L'audit a aussi relevé qu'il ne redémarre pas tout seul après un redémarrage du serveur : corrigez-le.\n",
@@ -183,7 +192,16 @@ const LEGIT_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIK7deployEcoleKey00000000
 
 const compromis: Scenario = {
   user: "analyste", hostname: "srv-prod", home: "/home/analyste",
-  motd: "Connexion SSH à srv-prod. Alerte en cours : cat ~/ALERTE-SOC.txt\nsudo est disponible pour certaines commandes (sudo -l).",
+  motd: [
+    "Connexion SSH à srv-prod. Alerte en cours : cat ~/ALERTE-SOC.txt",
+    "Aide-mémoire :",
+    "  grep -rl motif dossier               trouver les fichiers qui contiennent un motif",
+    "  sudo mv fichier dossier/             déplacer (en root)",
+    "  sha256sum fichier > empreintes.txt   enregistrer une empreinte",
+    "  grep motif journal | cut -d ' ' -f 1  extraire la 1re colonne (l'IP) des lignes trouvées",
+    "  ps aux · sudo kill PID · sudo rm -r dossier · sudo sed -i '/motif/d' fichier",
+    "sudo -l liste ce que vous pouvez faire en root ; help liste toutes les commandes.",
+  ].join("\n"),
   dirs: [{ path: "/var/www/html/uploads", owner: "www-data" }, { path: "/home/deploy/.ssh", owner: "deploy", mode: "700" }],
   files: {
     "/home/analyste/ALERTE-SOC.txt": "ALERTE SOC · srv-prod · criticité haute\n\nL'EDR signale un processus inconnu à 99 % de CPU et des connexions sortantes vers un pool de minage.\nHypothèse : un fichier PHP malveillant a été déposé via le formulaire d'envoi d'avatars.\n\nVotre mission (gardez les preuves, ne détruisez pas le webshell) :\n1. Trouver le webshell dans /var/www/html et le déplacer dans ~/preuves/.\n2. Enregistrer son empreinte SHA-256 dans ~/preuves/empreintes.txt.\n3. Retrouver dans les journaux web l'IP qui a utilisé le webshell, l'écrire dans ~/preuves/ip_attaquant.txt.\n4. Arrêter le mineur et supprimer son dossier.\n5. L'attaquant a ajouté sa clé SSH au compte deploy : retirez-la, en gardant la clé légitime.\n",

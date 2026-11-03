@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
-import { ALL_TEMPLATES, PACKS } from "@/lib/questions/templates";
+import { ALL_TEMPLATES, PACKS, type PackKey } from "@/lib/questions/templates";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
@@ -137,7 +137,7 @@ export default function EditTest() {
     }]);
   };
 
-  const addPack = (k: "b1" | "b3" | "m1") => {
+  const addPack = (k: PackKey) => {
     const pack = PACKS[k];
     if (!confirm(`Ajouter les ${pack.questions.length} exercices du pack « ${pack.label} » à la fin de l'épreuve ?\n\nIls prennent environ ${pack.minutes} minutes : pensez à allonger la durée, puis à enregistrer.`)) return;
     setQuestions((qs) => [...qs, ...pack.questions.map((p, j) => ({
@@ -513,7 +513,7 @@ export default function EditTest() {
 
       <div className="mt-3 rounded-lg border border-dashed border-line-strong p-3 flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted mr-1">Packs d&apos;exercices pratiques (d&apos;après les grilles de Dylan) :</span>
-        {(["b1", "b3", "m1"] as const).map((k) => (
+        {(["b1", "b3", "m1", "b1x", "b3x", "m1x"] as const).map((k) => (
           <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>+ {PACKS[k].label} · {PACKS[k].questions.length} exercices</button>
         ))}
       </div>

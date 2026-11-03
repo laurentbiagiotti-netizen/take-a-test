@@ -138,7 +138,9 @@ const B3_LOGS = [
   ] as const).map(([c, p, h, s], i) => `INSERT INTO connexions VALUES (${i + 1}, '${c}', '${p}', '${h}', ${s});`),
 ].join("\n");
 
-export const PACKS: Record<"b1" | "b3" | "m1", { label: string; minutes: number; questions: PackQuestion[] }> = {
+export type PackKey = "b1" | "b3" | "m1" | "b1x" | "b3x" | "m1x";
+export const PACKS: Record<PackKey, { label: string; minutes: number; questions: PackQuestion[] }> = {
+  b1x: { label: "Réserve B1", minutes: 0, questions: [] }, b3x: { label: "Réserve B3", minutes: 0, questions: [] }, m1x: { label: "Réserve Mastère", minutes: 0, questions: [] },
   m1: { label: "Mastère : SOC et analyse", minutes: 35, questions: [] },
   b1: {
     label: "B1 : logique et curiosité (aucun prérequis)",
@@ -443,7 +445,7 @@ export const CULTURE_B1: PackQuestion[] = [
   q("c12", "Qu'est-ce qu'un « hacker éthique » ?", ["Un pirate qui vole des données", "Un spécialiste qui cherche les failles avec l'accord de l'entreprise, pour les faire corriger", "Un logiciel antivirus", "Un réseau social"], [1], "Le hacker éthique (ou pentesteur) teste la sécurité avec autorisation, pour protéger."),
 ];
 
-PACKS.b1.questions.push({ type: "feed", domain: "Réflexes cyber", points: 4, time_limit_s: 480, prompt: FEED_TEMPLATE.prompt, options: clone(FEED_TEMPLATE.options), correct: clone(FEED_TEMPLATE.correct) }, ...CULTURE_B1);
+PACKS.b1.questions.push({ type: "feed", domain: "Réflexes cyber", points: 4, time_limit_s: 600, prompt: FEED_TEMPLATE.prompt, options: clone(FEED_TEMPLATE.options), correct: clone(FEED_TEMPLATE.correct) }, ...CULTURE_B1);
 PACKS.b1.minutes = 56;
 
 /* ---------------- Mastère : enquête dans l'Observateur d'événements Windows ---------------- */
@@ -574,7 +576,7 @@ for (const [k, t] of [["b3", BASH_TEMPLATES.ssh], ["b3", BASH_TEMPLATES.rangemen
 
 // Missions de terminal Linux : 1 de plus en B1, 3 en B3, 1 en Mastère (le décodage a été retiré des packs).
 for (const m of MISSIONS) {
-  PACKS[m.level].questions.push({ type: "terminal", domain: m.domain, points: m.scenario.objectives?.length || 1, time_limit_s: m.minutes * 60,
+  PACKS[m.level as PackKey].questions.push({ type: "terminal", domain: m.domain, points: m.scenario.objectives?.length || 1, time_limit_s: m.minutes * 60,
     prompt: m.prompt, options: null, correct: null, terminal: { scenario: JSON.stringify(m.scenario, null, 2), flag: "" } });
   PACKS[m.level].minutes += m.minutes;
 }
@@ -587,3 +589,28 @@ for (const t of Object.values(SIM_TEMPLATES)) {
   PACKS[t.level].minutes += t.minutes;
 }
 (ALL_TEMPLATES as any).sim = { prompt: SIM_TEMPLATES.privacy.prompt, options: SIM_TEMPLATES.privacy.options, correct: SIM_TEMPLATES.privacy.correct, points: 4 };
+
+/* ---------------------------------------------------------------------------------------------
+ * Audit du 04/11 : chaque pack principal tient en 45 à 50 minutes environ (il s'ajoute aux 50 min
+ * de QCM de Dylan) et garde les exercices les plus accessibles pour le niveau. Le reste va dans
+ * un pack « réserve », à ajouter à la demande ou pour faire des variantes d'une session à l'autre.
+ * --------------------------------------------------------------------------------------------- */
+const has = (q: PackQuestion, t: string, s?: string) => q.type === t && (!s || q.prompt.includes(s));
+const KEEP: Record<"b1" | "b3" | "m1", (q: PackQuestion, i: number, all: PackQuestion[]) => boolean> = {
+  b1: (q, i, all) => has(q, "netpuzzle") || has(q, "hotspot") || has(q, "password") || has(q, "robot") || has(q, "terminal", "Chasse au trésor")
+    || has(q, "feed") || has(q, "sim", "Léa") || has(q, "sim", "Marc")
+    || (q.domain === "Culture informatique" && all.filter((x) => x.domain === "Culture informatique").indexOf(q) < 6),
+  b3: (q) => has(q, "subnet", "Un poste vient") || has(q, "ordering", "n'a plus Internet") || has(q, "headers") || has(q, "adsim") || has(q, "tickets")
+    || has(q, "terminal", "site de l'école") || has(q, "sim", "#2063") || has(q, "sim", "RSSI a capturé"),
+  m1: (q) => q.type !== "bash",
+};
+for (const k of ["b1", "b3", "m1"] as const) {
+  const all = PACKS[k].questions;
+  const keep = all.filter((q, i) => KEEP[k](q, i, all));
+  PACKS[`${k}x` as PackKey].questions = all.filter((q) => !keep.includes(q));
+  PACKS[k].questions = keep;
+}
+for (const p of Object.values(PACKS)) p.minutes = Math.round(p.questions.reduce((n, q) => n + q.time_limit_s, 0) / 60);
+PACKS.b1x.label = "Réserve B1 (logique, terminal, mails, pare-feu)";
+PACKS.b3x.label = "Réserve B3 (scripts, terminal, pare-feu, SQL)";
+PACKS.m1x.label = "Réserve Mastère (script Bash)";

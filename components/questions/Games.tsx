@@ -195,7 +195,7 @@ export function Tickets({ q, value, onChange }: { q: any; value: any; onChange: 
           {!t ? (
             <div className="p-4">
               <div className="bg-white rounded border border-[#e3e6ea] overflow-auto">
-                <table className="w-full">
+                <table className="w-full [&_td]:text-[#212529]">
                   <thead className="bg-[#f8f9fa] text-[12px] text-[#495057]"><tr>{["ID", "Titre", "Statut", "Ouverture", "Demandeur", "Priorité", "Groupe de techniciens"].map((h) => <th key={h} className="text-left px-3 py-2 font-semibold border-b border-[#e3e6ea] whitespace-nowrap">{h}</th>)}</tr></thead>
                   <tbody>{o.tickets.map((x, i) => {
                     const r = a[x.id] || {}, ok = r.impact && r.urgence && r.groupe;
@@ -295,7 +295,7 @@ export function Feed({ q, value, onChange }: { q: any; value: any; onChange: (r:
   return (
     <div className="grid lg:grid-cols-[430px_1fr] gap-6 items-start">
       <div className="mx-auto w-[430px] max-w-full rounded-[2.8rem] bg-[#111] p-[11px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/10">
-        <div className="relative rounded-[2.2rem] overflow-hidden bg-white text-[#0f1419] h-[780px] flex flex-col">
+        <div className="relative rounded-[2.2rem] overflow-hidden bg-white text-[#0f1419] h-[min(720px,calc(100vh-11rem))] min-h-[520px] flex flex-col">
           <div className="flex items-center justify-between px-7 pt-3 pb-1 text-[13px] font-semibold" aria-hidden>
             <span>09:41</span><span className="absolute left-1/2 -translate-x-1/2 top-2.5 w-28 h-7 rounded-full bg-black" /><span>📶 🔋</span>
           </div>

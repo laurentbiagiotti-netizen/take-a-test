@@ -15,8 +15,8 @@ const all = (r: ReturnType<typeof play>) => r.done.filter((o) => !o.done).map((o
 describe("missions de terminal", () => {
   it("scénarios valides et présents dans les packs", () => {
     for (const m of MISSIONS) expect(validateScenario(m.scenario), m.key).toBeNull();
-    expect(PACKS.b1.questions.filter((q) => q.type === "terminal")).toHaveLength(2);
-    expect(PACKS.b3.questions.filter((q) => q.type === "terminal")).toHaveLength(4);
+    expect([...PACKS.b1.questions, ...PACKS.b1x.questions].filter((q) => q.type === "terminal")).toHaveLength(2);
+    expect([...PACKS.b3.questions, ...PACKS.b3x.questions].filter((q) => q.type === "terminal")).toHaveLength(4);
     expect(PACKS.m1.questions.filter((q) => q.type === "terminal")).toHaveLength(1);
     expect([...PACKS.b1.questions, ...PACKS.b3.questions, ...PACKS.m1.questions].some((q) => q.type === "decode")).toBe(false);
   });
