@@ -571,7 +571,7 @@ for (const [k, t] of [["b3", BASH_TEMPLATES.ssh], ["b3", BASH_TEMPLATES.rangemen
   PACKS[k].minutes += Math.round(t.time_limit_s / 60);
 }
 
-// Missions de terminal Linux : 2 de plus en B1, 2 en B3, 1 en Mastère (le décodage a été retiré des packs).
+// Missions de terminal Linux : 1 de plus en B1, 3 en B3, 1 en Mastère (le décodage a été retiré des packs).
 for (const m of MISSIONS) {
   PACKS[m.level].questions.push({ type: "terminal", domain: m.domain, points: m.scenario.objectives?.length || 1, time_limit_s: m.minutes * 60,
     prompt: m.prompt, options: null, correct: null, terminal: { scenario: JSON.stringify(m.scenario, null, 2), flag: "" } });

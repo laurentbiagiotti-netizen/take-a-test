@@ -2,7 +2,7 @@
  * Missions de terminal Linux (machine simulée côté serveur, voir lib/terminal/shell.ts).
  * Chaque mission raconte une petite histoire et se note sur l'état final de la machine :
  * fichiers rangés, processus arrêtés, droits corrigés, preuves mises de côté.
- * B1 : tout est expliqué à l'écran. B3 : administration, fin de BTS SIO. Mastère : réponse à incident.
+ * B1 : tout est expliqué à l'écran. B3 : administration, fin de BTS SIO (tickets, sans aide). Mastère : réponse à incident.
  */
 import type { Scenario } from "@/lib/terminal/shell";
 
@@ -51,20 +51,9 @@ const rangement: Scenario = {
 
 const pcLent: Scenario = {
   user: "eleve", hostname: "pc-salle-12", home: "/home/eleve",
-  motd: [
-    "Bienvenue sur le PC de la salle 12 (terminal Linux simulé). On tape une commande, puis Entrée.",
-    "Les commandes utiles :",
-    "  ps aux          liste les programmes en cours, avec le % du processeur qu'ils utilisent (colonne %CPU)",
-    "  kill 1234       arrête le programme dont le numéro (PID) est 1234",
-    "  ls -a           liste les fichiers, y compris les cachés (leur nom commence par un point)",
-    "  cd dossier      entre dans un dossier ; cd .. remonte",
-    "  cat fichier     affiche un fichier",
-    "  rm fichier      supprime un fichier",
-    "  echo mot > rapport.txt   écrit « mot » dans le fichier rapport.txt",
-    "Commencez par : cat LISEZMOI.txt",
-  ].join("\n"),
+  motd: "Connexion SSH au poste pc-salle-12. Un ticket vous attend : cat LISEZMOI.txt\nTapez help pour les commandes disponibles.",
   files: {
-    "/home/eleve/LISEZMOI.txt": "Mission : ce PC rame énormément depuis hier, le ventilateur souffle à fond.\n1. Trouvez le programme qui utilise presque tout le processeur, et arrêtez-le.\n   Attention : ne fermez PAS le navigateur ni la musique de l'élève.\n2. Ce programme se relance tout seul : un fichier caché le démarre. Cherchez dans les dossiers cachés et supprimez ce fichier.\n3. Écrivez le nom du programme coupable dans rapport.txt.\n",
+    "/home/eleve/LISEZMOI.txt": "TICKET #2051 · Demandeur : salle 12\n\nLe poste rame énormément depuis hier, le ventilateur souffle à fond.\nL'élève travaille sur son exposé : ne fermez pas ses applications (navigateur, musique).\n\nÀ faire :\n1. Identifier et arrêter ce qui consomme le processeur.\n2. Empêcher qu'il revienne au prochain démarrage.\n3. Noter le nom du programme en cause dans ~/rapport.txt pour le RSSI.\n",
     "/home/eleve/Documents/expose_histoire.txt": "Exposé sur la Révolution française, à finir pour lundi.\n",
     "/home/eleve/.config/navigateur/favoris.txt": "https://www.wikipedia.org\nhttps://www.cybersup.ai\n",
     "/home/eleve/.demarrage/lancer_minage.sh": "#!/bin/bash\n# relance le mineur à chaque démarrage\n/home/eleve/.cache/minage_crypto --pool pool.argent-facile.example:3333 &\n",
@@ -199,8 +188,8 @@ const compromis: Scenario = {
 export const MISSIONS: Mission[] = [
   { key: "rangement", level: "b1", domain: "Fonctionnement du numérique", minutes: 7, scenario: rangement,
     prompt: "Mission terminal : rangez le PC de l'accueil et débusquez le faux fichier. Toutes les commandes sont expliquées à l'écran." },
-  { key: "pc-lent", level: "b1", domain: "Réflexes cyber", minutes: 6, scenario: pcLent,
-    prompt: "Mission terminal : le PC de la salle 12 rame. Trouvez le coupable, arrêtez-le et empêchez-le de revenir. Toutes les commandes sont expliquées à l'écran." },
+  { key: "pc-lent", level: "b3", domain: "Systèmes", minutes: 6, scenario: pcLent,
+    prompt: "Mission terminal : un poste de la salle 12 rame. Traitez le ticket sans gêner l'élève qui travaille dessus." },
   { key: "site-panne", level: "b3", domain: "Systèmes", minutes: 10, scenario: siteEnPanne,
     prompt: "Mission terminal : le site de l'école est en panne. Traitez le ticket sur le serveur web, proprement (sauvegarde avant modification)." },
   { key: "partage", level: "b3", domain: "Systèmes", minutes: 9, scenario: nouvelleArrivee,
