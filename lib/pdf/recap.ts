@@ -57,7 +57,7 @@ const clean = (s: unknown) => String(s ?? "").replace(/[—]/g, ",").replace(/[�
 export function renderRecap(d: RecapData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({
-      size: "A4", bufferPages: true, margins: { top: 58, bottom: 56, left: 40, right: 40 },
+      size: "A4", bufferPages: true, margins: { top: 46, bottom: 50, left: 40, right: 40 },
       info: { Title: `Fiche de correction - ${d.candidate} - ${d.test}`, Author: "Cybersup", Subject: "Test d'admission" },
     });
     const chunks: Buffer[] = [];
@@ -71,146 +71,230 @@ export function renderRecap(d: RecapData): Promise<Buffer> {
 
 function draw(doc: PDFKit.PDFDocument, d: RecapData) {
   fonts(doc);
-  const M = 40, W = doc.page.width - 2 * M, bottom = () => doc.page.height - 60;
-  const ensure = (h: number) => { if (doc.y + h > bottom()) doc.addPage(); };
-  const h2 = (t: string) => {
-    ensure(40);
-    doc.moveDown(0.6).font("Display").fontSize(12).fillColor(C.navy).text(clean(t).toUpperCase(), M, doc.y);
-    doc.moveTo(M, doc.y + 3).lineTo(M + 40, doc.y + 3).lineWidth(2).strokeColor(C.orange).stroke();
-    doc.moveDown(0.8);
+  const PW = doc.page.width, PH = doc.page.height;
+  const M = 40, W = PW - 2 * M, TOP = 46, BOTTOM = PH - 58;
+  const ensure = (h: number) => { if (doc.y + h > BOTTOM) { doc.addPage(); doc.y = TOP; } };
+  const hOf = (t: string, font: string, size: number, width: number) => doc.font(font).fontSize(size).heightOfString(t, { width });
+  const put = (t: string, x: number, y: number, o: { font?: string; size?: number; color?: string; width?: number; align?: "left" | "center" | "right"; spacing?: number } = {}) => {
+    doc.font(o.font || "Body").fontSize(o.size || 9).fillColor(o.color || C.navy)
+      .text(clean(t), x, y, { width: o.width, align: o.align, characterSpacing: o.spacing, lineGap: 1.5 });
   };
-
-  // En-tête
-  doc.rect(0, 0, doc.page.width, 118).fill(C.navy);
-  doc.font("Display").fontSize(16).fillColor(C.white).text("CYBERSUP", M, 26);
-  doc.font("Semi").fontSize(9).fillColor(C.orangeL).text("FICHE DE CORRECTION", M, 48, { characterSpacing: 1.5 });
-  doc.font("Bold").fontSize(18).fillColor(C.white).text(clean(d.candidate), M, 64, { width: W - 150 });
-  doc.font("Body").fontSize(9).fillColor(C.cream)
-    .text(clean(`${d.email}${d.ref ? ` · réf. ${d.ref}` : ""} · ${d.test}${d.formation ? ` · ${d.formation}` : ""}`), M, 88, { width: W - 150 });
-
-  // Pavé note et résultat
+  const h2 = (t: string, sub?: string) => {
+    ensure(46);
+    const y = Math.round(doc.y + 10);
+    put(t.toUpperCase(), M, y, { font: "Display", size: 11, spacing: 0.6 });
+    doc.rect(M, y + 17, 28, 2.5).fill(C.orange);
+    if (sub) put(sub, M + 200, y + 2, { size: 8, color: C.muted, width: W - 200, align: "right" });
+    doc.y = y + 30;
+  };
   const vs = VERDICT_STYLE[d.verdict || "review"];
-  doc.rect(M + W - 135, 22, 135, 74).fill(vs[0]);
-  doc.font("Display").fontSize(26).fillColor(vs[1]).text(d.score20 === null ? "-" : num(d.score20), M + W - 135, 32, { width: 135, align: "center" });
-  doc.font("Semi").fontSize(8).fillColor(vs[1]).text("/ 20", M + W - 135, 62, { width: 135, align: "center" });
-  doc.font("Bold").fontSize(10).fillColor(vs[1]).text(clean(d.verdictLabel || "Non terminé").toUpperCase(), M + W - 135, 76, { width: 135, align: "center" });
 
-  doc.y = 136;
-  h2("Synthèse");
-  const rows: [string, string][] = [
+  // ---------- Page 1 : en-tête ----------
+  doc.rect(0, 0, PW, 132).fill(C.navy);
+  doc.rect(0, 132, PW, 4).fill(C.orange);
+  put("CYBERSUP", M, 28, { font: "Display", size: 13, color: C.white, spacing: 1 });
+  put("FICHE DE CORRECTION · TEST D'ADMISSION", M, 46, { font: "Semi", size: 7.5, color: C.orangeL, spacing: 1.4 });
+  const boxW = 150, infoW = W - boxW - 24;
+  put(d.candidate, M, 66, { font: "Bold", size: 20, color: C.white, width: infoW });
+  const sub = [d.email, d.ref ? `réf. ${d.ref}` : ""].filter(Boolean).join("  ·  ");
+  put(sub, M, 94, { size: 8.5, color: C.cream, width: infoW });
+  put([d.test, d.formation && !d.test.includes(d.formation) ? d.formation : ""].filter(Boolean).join("  ·  "), M, 108, { font: "Semi", size: 8.5, color: C.white, width: infoW });
+
+  // Pavé note
+  const bx = M + W - boxW, by = 24;
+  doc.roundedRect(bx, by, boxW, 92, 6).fill(vs[0]);
+  put(d.score20 === null ? "-" : num(d.score20), bx, by + 12, { font: "Display", size: 30, color: vs[1], width: boxW - 30, align: "right" });
+  put("/20", bx + boxW - 28, by + 30, { font: "Semi", size: 9, color: vs[1] });
+  doc.rect(bx + 14, by + 56, boxW - 28, 0.8).fill(vs[1]);
+  put((d.verdictLabel || "Non terminé").toUpperCase(), bx, by + 66, { font: "Bold", size: 9.5, color: vs[1], width: boxW, align: "center", spacing: 1 });
+
+  // ---------- Indicateurs ----------
+  const kpis: [string, string, string?][] = [
     ["Points", `${num(d.points)} / ${num(d.max)}`],
-    ["Début", d.started], ["Fin", d.ended], ["Durée", d.duration],
-    ["Fin de l'épreuve", d.endReason],
-    ...(d.extraMinutes ? [["Tiers-temps", `+${d.extraMinutes} min`] as [string, string]] : []),
-    ["Seuils", d.thresholds],
-    ...(d.receipt ? [["Accusé de réception", d.receipt] as [string, string]] : []),
-    ...(d.ip ? [["Adresse IP", d.ip] as [string, string]] : []),
+    ["Durée", d.duration, d.extraMinutes ? `dont tiers-temps +${d.extraMinutes} min` : undefined],
+    ["Infractions", String(d.violations), d.suspicion ? "suspicion signalée" : undefined],
+    ["Questions", String(d.questions.length), `${d.questions.filter((q) => q.status === "full").length} justes`],
   ];
-  for (const [k, v] of rows) {
-    ensure(16);
-    const y = doc.y;
-    doc.font("Semi").fontSize(9).fillColor(C.muted).text(clean(k), M, y, { width: 120 });
-    doc.font("Body").fontSize(9).fillColor(C.navy).text(clean(v || "-"), M + 125, y, { width: W - 125 });
-    doc.moveDown(0.25);
-  }
-  if (d.override) {
-    ensure(40);
-    doc.moveDown(0.3).rect(M, doc.y, W, 34).fill(C.orangeT);
-    doc.font("Semi").fontSize(9).fillColor(C.navy).text(clean(`Décision forcée par l'équipe : ${d.override.label}${d.override.by ? ` (${d.override.by})` : ""}${d.override.auto ? `, calcul automatique : ${d.override.auto}` : ""}.`), M + 8, doc.y + 6, { width: W - 16 });
-    doc.font("Body").fontSize(9).text(clean(`Motif : ${d.override.reason}`), M + 8, doc.y + 1, { width: W - 16 });
-    doc.moveDown(0.8);
-  }
-  if (d.needsManual) doc.font("Semi").fontSize(9).fillColor(C.fail).text("Une réponse rédigée reste à corriger : le résultat est « À statuer » en attendant.", M, doc.y, { width: W });
-  if (d.belowFloors.length) doc.font("Semi").fontSize(9).fillColor(C.fail).text(clean(`Plancher non atteint en : ${d.belowFloors.join(", ")}.`), M, doc.y, { width: W });
+  const kW = (W - 3 * 10) / 4, ky = 152;
+  kpis.forEach(([k, v, n], i) => {
+    const x = M + i * (kW + 10);
+    doc.roundedRect(x, ky, kW, 54, 5).fill(C.soft);
+    doc.rect(x, ky + 10, 2.5, 34).fill(i === 2 && d.violations ? C.fail : C.orange);
+    put(k.toUpperCase(), x + 12, ky + 9, { font: "Semi", size: 7, color: C.muted, spacing: 1 });
+    put(v, x + 12, ky + 21, { font: "Bold", size: 13, color: i === 2 && d.violations ? C.fail : C.navy, width: kW - 18 });
+    if (n) put(n, x + 12, ky + 39, { size: 7, color: C.muted, width: kW - 18 });
+  });
+  doc.y = ky + 62;
 
-  // Domaines
+  // Alertes de résultat
+  const notes: [string, string][] = [];
+  if (d.override) notes.push([C.orangeT, `Décision forcée par l'équipe : ${d.override.label}${d.override.by ? ` (${d.override.by})` : ""}${d.override.auto ? `. Calcul automatique : ${d.override.auto}` : ""}. Motif : ${d.override.reason}`]);
+  if (d.needsManual) notes.push([C.orangeT, "Une réponse rédigée reste à corriger : le résultat est « À statuer » en attendant."]);
+  if (d.belowFloors.length) notes.push([C.failT, `Plancher non atteint en : ${d.belowFloors.join(", ")}.`]);
+  for (const [bg, t] of notes) {
+    const h = hOf(clean(t), "Semi", 8.5, W - 24) + 12;
+    ensure(h + 6);
+    const y = doc.y + 4;
+    doc.roundedRect(M, y, W, h, 4).fill(bg);
+    doc.rect(M, y, 3, h).fill(bg === C.failT ? C.fail : C.orange);
+    put(t, M + 14, y + 6, { font: "Semi", size: 8.5, color: bg === C.failT ? C.fail : C.navy, width: W - 24 });
+    doc.y = y + h;
+  }
+
+  // ---------- Déroulé (deux colonnes) ----------
+  h2("Déroulé de l'épreuve");
+  const facts: [string, string][] = [
+    ["Début", d.started], ["Fin", d.ended], ["Fin de l'épreuve", d.endReason],
+    ["Accusé de réception", d.receipt || "-"], ["Adresse IP", d.ip || "-"], ["Référence copie", d.attemptId.slice(0, 8)],
+  ];
+  const colW = (W - 20) / 2;
+  for (let i = 0; i < facts.length; i += 2) {
+    const y = doc.y;
+    [facts[i], facts[i + 1]].forEach((f, j) => {
+      if (!f) return;
+      const x = M + j * (colW + 20);
+      put(f[0], x, y, { size: 8, color: C.muted, width: 100 });
+      put(f[1], x + 104, y, { font: "Semi", size: 8.5, width: colW - 104 });
+    });
+    doc.rect(M, y + 15, W, 0.5).fill(C.line);
+    doc.y = y + 21;
+  }
+  put(`Règle de décision : ${d.thresholds}.`, M, doc.y + 2, { size: 7.5, color: C.muted, width: W });
+  doc.y += 6;
+
+  // ---------- Domaines ----------
   if (d.domains.length) {
-    h2("Détail par domaine");
+    h2("Résultats par domaine", "barre : taux de réussite · trait orange : plancher");
+    const nameW = 170, scoreW = 58, pctW = 44, barX = M + nameW + scoreW + 8, barW = W - nameW - scoreW - pctW - 16;
     for (const dm of d.domains) {
-      ensure(18);
+      const nh = hOf(clean(dm.name), "Semi", 8.5, nameW - 6);
+      const h = Math.max(20, nh + 9);
+      ensure(h);
       const y = doc.y;
-      doc.font("Body").fontSize(9).fillColor(C.navy).text(clean(dm.name), M, y, { width: 190 });
-      doc.text(`${num(dm.score)} / ${num(dm.max)}`, M + 195, y, { width: 60 });
-      doc.rect(M + 260, y + 2, 110, 7).fill(C.line);
-      doc.rect(M + 260, y + 2, Math.max(0, Math.min(1, dm.ratio)) * 110, 7).fill(dm.below ? C.fail : C.pass);
-      doc.font("Semi").fontSize(9).fillColor(dm.below ? C.fail : C.navy)
-        .text(`${Math.round(dm.ratio * 100)} %${dm.floor !== null ? ` (plancher ${Math.round(dm.floor * 100)} %)` : ""}`, M + 378, y, { width: W - 378 });
-      doc.y = Math.max(doc.y, y + 12);
-      doc.moveDown(0.35);
+      put(dm.name, M, y + 4, { font: "Semi", size: 8.5, color: dm.below ? C.fail : C.navy, width: nameW - 6 });
+      put(`${num(dm.score)} / ${num(dm.max)}`, M + nameW, y + 4, { size: 8.5, color: C.muted, width: scoreW });
+      const r = Math.max(0, Math.min(1, dm.ratio));
+      doc.roundedRect(barX, y + 6, barW, 8, 4).fill(C.line);
+      if (r > 0) doc.roundedRect(barX, y + 6, Math.max(8, r * barW), 8, 4).fill(dm.below ? C.fail : C.pass);
+      if (dm.floor !== null) doc.rect(barX + dm.floor * barW - 1, y + 2, 2, 16).fill(C.orange);
+      put(`${Math.round(r * 100)} %`, M + W - pctW, y + 4, { font: "Bold", size: 9, color: dm.below ? C.fail : C.navy, width: pctW, align: "right" });
+      doc.y = y + h;
     }
   }
 
-  // Surveillance
-  h2("Surveillance");
-  doc.font("Body").fontSize(9).fillColor(C.navy)
-    .text(clean(`Infractions comptées : ${d.violations}.${d.suspicion ? ` Suspicion signalée par l'équipe : ${d.suspicion}.` : ""} Les alertes ne décident de rien : elles sont examinées par un surveillant.`), M, doc.y, { width: W });
-  doc.moveDown(0.4);
-  if (!d.surveillance.length) doc.font("Body").fontSize(9).fillColor(C.muted).text("Aucune alerte.", M);
-  for (const s of d.surveillance) {
-    ensure(14);
-    const y = doc.y;
-    doc.font("Body").fontSize(9).fillColor(s.serious ? C.fail : C.navy).text(clean(s.label), M, y, { width: 300 });
-    doc.font("Semi").text(String(s.count), M + 305, y, { width: 40 });
-    doc.y = Math.max(doc.y, y + 13);
+  // ---------- Surveillance ----------
+  h2("Surveillance", "les alertes ne décident de rien : un surveillant les examine");
+  if (d.suspicion) put(`Suspicion signalée par l'équipe : ${d.suspicion}`, M, doc.y, { font: "Semi", size: 8.5, color: C.fail, width: W });
+  if (d.suspicion) doc.y += 4;
+  if (!d.surveillance.length) put("Aucune alerte pendant l'épreuve.", M, doc.y, { size: 8.5, color: C.muted });
+  else {
+    let x = M, y = doc.y;
+    for (const s of d.surveillance) {
+      const t = `${clean(s.label)}  ${s.count}`;
+      const tw = doc.font("Semi").fontSize(8).widthOfString(t) + 20;
+      if (x + tw > M + W) { x = M; y += 24; }
+      doc.roundedRect(x, y, tw, 18, 9).fill(s.serious ? C.failT : C.soft);
+      put(clean(s.label), x + 10, y + 5, { font: "Body", size: 8, color: s.serious ? C.fail : C.navy });
+      put(String(s.count), x + tw - 10 - doc.font("Bold").fontSize(8).widthOfString(String(s.count)), y + 5, { font: "Bold", size: 8, color: s.serious ? C.fail : C.navy });
+      x += tw + 8;
+    }
+    doc.y = y + 26;
   }
 
-  // Copie corrigée
-  doc.addPage();
-  h2(`Copie corrigée (${d.questions.length} questions)`);
+  // ---------- Copie corrigée ----------
+  doc.addPage(); doc.y = TOP;
+  const nFull = d.questions.filter((q) => q.status === "full").length;
+  h2("Copie corrigée", `${d.questions.length} questions · ${nFull} justes · ${num(d.points)} / ${num(d.max)} points`);
+  const CW = W - 16;
   for (const q of d.questions) {
-    ensure(70);
     const st = STATUS_STYLE[q.status];
-    const y = doc.y;
-    doc.rect(M, y, 26, 18).fill(C.navy);
-    doc.font("Bold").fontSize(9).fillColor(C.white).text(String(q.n), M, y + 5, { width: 26, align: "center" });
-    doc.rect(M + 30, y, 78, 18).fill(st[0]);
-    doc.font("Bold").fontSize(7.5).fillColor(st[1]).text(st[2], M + 30, y + 6, { width: 78, align: "center" });
-    doc.font("Semi").fontSize(9).fillColor(C.navy).text(`${q.points === null ? "?" : num(q.points)} / ${num(q.max)} pt`, M + 114, y + 5, { width: 70 });
-    doc.font("Body").fontSize(8).fillColor(C.muted).text(clean(q.meta), M + 190, y + 5, { width: W - 190 });
-    doc.y = y + 24;
-    doc.font("Semi").fontSize(9.5).fillColor(C.navy).text(clean(q.prompt), M, doc.y, { width: W });
-    doc.moveDown(0.3);
+    // Hauteur de la carte, calculée avant de la dessiner
+    const lines: { t: string; font: string; size: number; color: string; box?: "ok" | "bad" | "empty" | "okEmpty" }[] = [];
     for (const o of q.options || []) {
-      ensure(14);
-      const mark = o.chosen && o.correct ? "[x] " : o.chosen ? "[x] " : "[ ] ";
-      const color = o.correct ? C.pass : o.chosen ? C.fail : C.navy;
-      doc.font(o.correct ? "Semi" : "Body").fontSize(9).fillColor(color)
-        .text(clean(`${mark}${o.text}${o.correct ? "  (bonne réponse)" : ""}${o.chosen && !o.correct ? "  (choisie, fausse)" : ""}`), M + 10, doc.y, { width: W - 10 });
+      const tag = o.correct && o.chosen ? "   ·  bonne réponse, choisie" : o.correct ? "   ·  bonne réponse" : o.chosen ? "   ·  choisie, fausse" : "";
+      lines.push({ t: o.text + tag, font: o.correct || o.chosen ? "Semi" : "Body", size: 8.5,
+        color: o.correct ? C.pass : o.chosen ? C.fail : C.navy, box: o.chosen ? (o.correct ? "ok" : "bad") : o.correct ? "okEmpty" : "empty" });
     }
-    if (q.answer !== undefined) {
-      doc.font("Body").fontSize(9).fillColor(C.navy).text(clean(`Réponse : ${q.answer || "(aucune)"}`), M + 10, doc.y, { width: W - 10 });
+    if (q.answer !== undefined) lines.push({ t: `Réponse : ${q.answer || "(aucune)"}`, font: "Body", size: 8.5, color: C.navy });
+    if (q.expected) lines.push({ t: `Attendu : ${q.expected}`, font: "Semi", size: 8.5, color: C.pass });
+    for (const x of q.extra || []) lines.push({ t: x, font: "Body", size: 8, color: C.muted });
+    const lh = lines.map((l) => hOf(clean(l.t), l.font, l.size, CW - 30) + 3);
+    const ph = hOf(clean(q.prompt), "Semi", 9.5, CW - 8);
+    const eh = q.explanation ? hOf(clean(`Explication : ${q.explanation}`), "Body", 8, CW - 28) + 12 : 0;
+    const total = 30 + ph + 6 + lh.reduce((a, b) => a + b, 0) + (eh ? eh + 6 : 0) + 10;
+    ensure(Math.min(total, BOTTOM - TOP - 40) + 8);
+    const y0 = doc.y;
+    // Corps de carte (ligne d'état à gauche)
+    doc.rect(M, y0, 3, total).fill(st[0]);
+    doc.rect(M + 3, y0, W - 3, total).fill(C.white);
+    doc.rect(M + 3, y0, W - 3, 24).fill(C.soft);
+    put(`Q${q.n}`, M + 12, y0 + 7, { font: "Display", size: 9.5 });
+    const pillW = doc.font("Bold").fontSize(7).widthOfString(st[2]) + 16;
+    doc.roundedRect(M + 42, y0 + 6, pillW, 13, 6.5).fill(st[0]);
+    put(st[2], M + 42, y0 + 9.5, { font: "Bold", size: 7, color: st[1], width: pillW, align: "center" });
+    put(q.meta, M + 50 + pillW, y0 + 8, { size: 7.5, color: C.muted, width: W - 150 - pillW });
+    put(`${q.points === null ? "?" : num(q.points)} / ${num(q.max)} pt`, M + W - 90, y0 + 7, { font: "Bold", size: 9, width: 82, align: "right" });
+    let y = y0 + 30;
+    put(q.prompt, M + 12, y, { font: "Semi", size: 9.5, width: CW - 8 });
+    y += ph + 6;
+    lines.forEach((l, i) => {
+      if (l.box) {
+        const bc = l.box === "bad" ? C.fail : l.box === "empty" ? C.grey : C.pass;
+        doc.roundedRect(M + 14, y + 1.5, 8, 8, 1.5).lineWidth(0.8).strokeColor(bc).stroke();
+        if (l.box === "ok" || l.box === "bad") doc.roundedRect(M + 16, y + 3.5, 4, 4, 0.8).fill(bc);
+      }
+      put(l.t, M + (l.box ? 28 : 14), y, { font: l.font, size: l.size, color: l.color, width: CW - 30 });
+      y += lh[i];
+    });
+    if (eh) {
+      y += 4;
+      doc.roundedRect(M + 12, y, W - 24, eh, 3).fill(C.cream);
+      put(`Explication : ${q.explanation}`, M + 20, y + 6, { size: 8, color: C.indigo, width: CW - 28 });
+      y += eh;
     }
-    if (q.expected) doc.font("Body").fontSize(9).fillColor(C.pass).text(clean(`Attendu : ${q.expected}`), M + 10, doc.y, { width: W - 10 });
-    for (const x of q.extra || []) doc.font("Body").fontSize(8.5).fillColor(C.muted).text(clean(x), M + 10, doc.y, { width: W - 10 });
-    if (q.explanation) doc.font("Body").fontSize(8.5).fillColor(C.indigo).text(clean(`Explication : ${q.explanation}`), M + 10, doc.y, { width: W - 10 });
-    doc.moveDown(0.3);
-    doc.moveTo(M, doc.y).lineTo(M + W, doc.y).lineWidth(0.5).strokeColor(C.line).stroke();
-    doc.moveDown(0.5);
+    doc.rect(M, y0 + total, W, 0.6).fill(C.line);
+    doc.y = Math.max(y + 10, y0 + total) + 8;
   }
 
-  // Journal
-  doc.addPage();
-  h2("Annexe : journal horodaté de l'épreuve");
-  for (const e of d.timeline) {
-    const label = clean(e.label), det = clean(e.detail);
-    doc.font("Body").fontSize(8);
-    const h = Math.max(11, doc.heightOfString(label, { width: 190 }), det ? doc.heightOfString(det, { width: W - 256 }) : 0);
-    ensure(h + 2);
+  // ---------- Journal ----------
+  doc.addPage(); doc.y = TOP;
+  h2("Annexe : journal horodaté", `${d.timeline.length} événements · en rouge : infractions`);
+  const cols = [M + 8, M + 70, M + 260], detW = W - 268;
+  const header = () => {
     const y = doc.y;
-    doc.font("Body").fontSize(8).fillColor(C.muted).text(e.time, M, y, { width: 60 });
-    doc.font(e.serious ? "Semi" : "Body").fontSize(8).fillColor(e.serious ? C.fail : C.navy).text(label, M + 62, y, { width: 190 });
-    if (det) doc.font("Body").fontSize(7.5).fillColor(C.muted).text(det, M + 256, y, { width: W - 256 });
-    doc.y = y + h + 2;
-  }
+    doc.rect(M, y, W, 18).fill(C.navy);
+    ["HEURE", "ÉVÉNEMENT", "DÉTAIL"].forEach((t, i) => put(t, cols[i], y + 5.5, { font: "Semi", size: 7, color: C.white, spacing: 1 }));
+    doc.y = y + 18;
+  };
+  header();
+  d.timeline.forEach((e, i) => {
+    const label = clean(e.label), det = clean(e.detail);
+    const h = Math.max(15, hOf(label, e.serious ? "Semi" : "Body", 8, 180) + 6, det ? hOf(det, "Body", 7.5, detW) + 6 : 0);
+    if (doc.y + h > BOTTOM) { doc.addPage(); doc.y = TOP; header(); }
+    const y = doc.y;
+    if (e.serious) doc.rect(M, y, W, h).fill(C.failT);
+    else if (i % 2) doc.rect(M, y, W, h).fill(C.soft);
+    put(e.time, cols[0], y + 3.5, { size: 8, color: C.muted, width: 58 });
+    put(label, cols[1], y + 3.5, { font: e.serious ? "Semi" : "Body", size: 8, color: e.serious ? C.fail : C.navy, width: 180 });
+    if (det) put(det, cols[2], y + 4, { size: 7.5, color: C.muted, width: detW });
+    doc.y = y + h;
+  });
 
-  // Pied de page
+  // ---------- Pied de page ----------
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
     doc.page.margins.bottom = 0; // écrire dans la marge sans créer de page
-    doc.font("Body").fontSize(7.5).fillColor(C.grey)
-      .text(clean(`Cybersup · ${d.candidate} · copie ${d.attemptId.slice(0, 8)}`), M, doc.page.height - 38, { width: W / 2, lineBreak: false });
-    doc.text(`Page ${i + 1} / ${range.count}`, M + W / 2, doc.page.height - 38, { width: W / 2, align: "right", lineBreak: false });
+    doc.rect(M, PH - 44, W, 0.6).fill(C.line);
+    doc.font("Semi").fontSize(7).fillColor(C.navy).text("CYBERSUP", M, PH - 36, { lineBreak: false, characterSpacing: 1 });
+    doc.font("Body").fontSize(7).fillColor(C.grey)
+      .text(clean(`   Fiche de correction · ${d.candidate} · copie ${d.attemptId.slice(0, 8)} · document confidentiel`), M + 44, PH - 36, { width: W / 1.4, lineBreak: false });
+    doc.text(`${i + 1} / ${range.count}`, M + W - 60, PH - 36, { width: 60, align: "right", lineBreak: false });
+    if (i > 0) { // rappel en haut des pages suivantes
+      doc.font("Semi").fontSize(7).fillColor(C.muted).text(clean(`${d.candidate} · ${d.test}`), M, 22, { width: W - 120, lineBreak: false });
+      doc.font("Bold").fontSize(7).fillColor(vs[0] === C.orangeL ? C.navy : vs[0])
+        .text(clean(`${d.score20 === null ? "-" : num(d.score20)} / 20 · ${d.verdictLabel}`), M + W - 160, 22, { width: 160, align: "right", lineBreak: false });
+    }
   }
 }
 
