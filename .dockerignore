@@ -1,0 +1,10 @@
+.git
+.next/cache
+tests
+docs
+site
+supabase
+scripts
+deploy
+*.log
+.env*
