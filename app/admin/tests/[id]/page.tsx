@@ -13,9 +13,9 @@ import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx" | "bash";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
-const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx"];
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
@@ -501,6 +501,7 @@ export default function EditTest() {
             ["tickets", "Tickets de support", "impact, urgence, attribution"],
             ["feed", "Vrai ou fake ?", "fil d'actualité à trier"],
             ["evtx", "Journaux Windows", "enquête SOC (Mastère)"],
+            ["bash", "Script Bash", "noté sur les fichiers produits"],
           ] as [QType, string, string][]).map(([t, l, d]) => (
             <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
               <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>

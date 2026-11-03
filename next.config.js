@@ -15,8 +15,15 @@ const securityHeaders = [
 module.exports = {
   reactStrictMode: true,
   // PDFKit lit ses polices standard sur le disque : pas d'empaquetage.
-  serverExternalPackages: ["pdfkit", "sql.js", "@zxcvbn-ts/core", "@zxcvbn-ts/language-common", "@zxcvbn-ts/language-fr"],
+  serverExternalPackages: ["pdfkit", "sql.js", "@zxcvbn-ts/core", "@zxcvbn-ts/language-common", "@zxcvbn-ts/language-fr", "just-bash"],
   poweredByHeader: false,
+  // just-bash (navigateur) importe node:zlib pour gzip : remplacé par un module vide côté client.
+  webpack(config, { isServer, webpack }) {
+    if (!isServer) {
+      config.plugins.push(new webpack.NormalModuleReplacementPlugin(/^node:zlib$/, require("path").resolve(__dirname, "lib/stubs/zlib.js")));
+    }
+    return config;
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

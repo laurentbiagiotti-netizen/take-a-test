@@ -13,7 +13,7 @@ export const TYPE_HINT: Record<string, string> = {
   hotspot: "Repérer dans le document", short_answer: "Réponse courte", external: "Exercice pratique",
   sql: "Requête SQL", decode: "Décodage", password: "Mots de passe", blocks: "Pare-feu en blocs",
   headers: "Analyse de mail", subnet: "Sous-réseaux", netpuzzle: "Puzzle logique",
-  sokoban: "Jeu de logique", robot: "Robot à programmer", adsim: "Active Directory", tickets: "Tickets de support", feed: "Vrai ou fake ?", evtx: "Journaux Windows",
+  sokoban: "Jeu de logique", robot: "Robot à programmer", adsim: "Active Directory", tickets: "Tickets de support", feed: "Vrai ou fake ?", evtx: "Journaux Windows", bash: "Script Bash",
 };
 
 export const EVENT_LABEL: Record<string, string> = {
@@ -35,7 +35,7 @@ export function isAnswered(a: any): boolean {
   if (!a) return false;
   return !!((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim())
     || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length) || a.completed === true
-    || (typeof a.query === "string" && a.query.trim()) || (a.program && a.program.rules && a.program.rules.length)
+    || (typeof a.query === "string" && a.query.trim()) || (typeof a.script === "string" && a.script.trim()) || (a.program && a.program.rules && a.program.rules.length)
     || (a.fields && Object.values(a.fields).some((v: any) => String(v).trim())) || (a.subnets && Object.values(a.subnets).some((v: any) => String(v).trim()))
     || (Array.isArray(a.rot) && a.rot.some((x: number) => x))
     || (Array.isArray(a.moves) && a.moves.some((m: string) => m)) || (Array.isArray(a.programs) && a.programs.some((p: any) => p?.main?.length))

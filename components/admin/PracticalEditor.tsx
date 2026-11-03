@@ -5,6 +5,7 @@ import type { FwPacket } from "@/lib/questions/firewall";
 import type { QType } from "@/lib/questions/kinds";
 import { HEADER_QUESTIONS, suggestKey, type HeaderField } from "@/lib/questions/headers";
 import { FIELD_LABEL, type SubnetField } from "@/lib/questions/subnet";
+import BashEditor from "@/components/admin/BashEditor";
 
 type Props = { type: QType; options: any; correct: any; onChange: (p: { options: any; correct: any }) => void };
 
@@ -113,6 +114,7 @@ function PracticalForm({ type, options, correct, onChange }: Props) {
   }
 
   if (type === "blocks") return <FirewallEditor o={o} k={k} set={set} />;
+  if (type === "bash") return <BashEditor o={o} k={k} set={set} />;
   if (["sokoban", "robot", "adsim", "tickets", "feed", "evtx"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
 
   if (type === "headers") {
@@ -265,7 +267,7 @@ function JsonEditor({ type, o, k, set }: { type: string; o: any; k: any; set: (o
   const apply = (a: string, b: string) => {
     try { set(JSON.parse(a), JSON.parse(b)); setErr(null); } catch (e: any) { setErr("JSON invalide : " + e.message); }
   };
-  const needsKey = type === "adsim" || type === "tickets" || type === "feed" || type === "evtx";
+  const needsKey = type === "adsim" || type === "tickets" || type === "feed" || type === "evtx" || type === "bash";
   return (
     <div className="space-y-2 rounded-lg border border-line p-3">
       <p className="text-xs text-muted">{JSON_HELP[type]} L&apos;exemple inséré est prêt à l&apos;emploi : adaptez-le ou gardez-le.</p>

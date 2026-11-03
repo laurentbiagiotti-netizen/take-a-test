@@ -439,3 +439,99 @@ PACKS.m1.questions.push(
   { type: "subnet", domain: "Réseaux", points: 3, time_limit_s: 300, prompt: "Segmentez le réseau du nouveau site entre les services, sans gaspiller d'adresses.",
     options: { mode: "vlsm", services: 4, help: false }, correct: null },
 );
+
+// ---------- Scripts Bash (just-bash) : B3 administration, Mastère analyse de journaux ----------
+function authLog(rows: [string, string, number][]) {
+  const out: string[] = []; let pid = 2100, sec = 0;
+  const stamp = () => { sec += 37; const h = 2 + Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = sec % 60; return `Oct  6 ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`; };
+  const queue: string[] = [];
+  for (const [user, ip, n] of rows) for (let i = 0; i < n; i++) queue.push(n > 0 && user.startsWith("+") ? `Accepted password for ${user.slice(1)} from ${ip} port ${40000 + i} ssh2` : `Failed password for ${user} from ${ip} port ${50000 + pid % 900 + i} ssh2`);
+  for (let i = 0; i < queue.length; i++) { const j = (i * 7) % queue.length; [queue[i], queue[j]] = [queue[j], queue[i]]; }
+  for (const l of queue) out.push(`${stamp()} srv-web sshd[${pid++}]: ${l}`);
+  return out.join("\n") + "\n";
+}
+function accessLog(rows: [string, string, number][]) {
+  const out: string[] = []; let k = 0;
+  for (const [ip, path, status] of rows) out.push(`${ip} - - [06/Oct/2026:10:${String(10 + (k++ % 50)).padStart(2, "0")}:0${k % 10} +0200] "GET ${path} HTTP/1.1" ${status} ${status === 200 ? 5120 + k : 196} "-" "Mozilla/5.0"`);
+  return out.join("\n") + "\n";
+}
+
+export const BASH_TEMPLATES = {
+  ssh: {
+    prompt: "Script Bash : rapport des échecs de connexion SSH",
+    domain: "Scripting et programmation", points: 3, time_limit_s: 480,
+    options: {
+      help: false, starter: "#!/bin/bash\n\n",
+      mission: "Le serveur web reçoit des tentatives de connexion SSH (journal logs/auth.log). Écrivez un script qui :\n1. crée le fichier rapport.txt avec, pour chaque adresse IP qui a échoué, le nombre d'échecs puis l'IP, de la plus active à la moins active (exemple de ligne : 5 185.220.101.4) ;\n2. affiche à l'écran uniquement le nombre total d'échecs (un nombre seul).\nVotre script sera aussi lancé sur d'autres journaux : il doit fonctionner quel que soit le contenu.",
+      files: { "logs/auth.log": authLog([["root", "185.220.101.4", 5], ["admin", "45.155.205.12", 3], ["+j.martin", "10.0.0.25", 2], ["test", "10.0.0.99", 1]]) },
+      checks: [{ label: "Le fichier rapport.txt est créé" }, { label: "rapport.txt : bon nombre d'échecs par IP, du plus grand au plus petit" }, { label: "Le total des échecs est affiché" }],
+    },
+    correct: {
+      solution: "grep \"Failed password\" logs/auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -rn > rapport.txt\ngrep -c \"Failed password\" logs/auth.log",
+      checks: [
+        { label: "Le fichier rapport.txt est créé", kind: "exists", path: "rapport.txt" },
+        { label: "rapport.txt : bon nombre d'échecs par IP, du plus grand au plus petit", kind: "file", path: "rapport.txt", compare: "lines" },
+        { label: "Le total des échecs est affiché", kind: "stdout", compare: "lines" },
+      ],
+      variants: [{ "logs/auth.log": authLog([["oracle", "203.0.113.7", 7], ["+s.leroy", "10.0.0.31", 3], ["ubuntu", "198.51.100.23", 4], ["pi", "192.0.2.44", 2], ["root", "10.0.0.8", 1]]) }],
+    },
+  },
+  rangement: {
+    prompt: "Script Bash : sauvegarde des configurations et nettoyage du cache",
+    domain: "Systèmes", points: 3, time_limit_s: 420,
+    options: {
+      help: false, starter: "#!/bin/bash\n\n",
+      mission: "Avant une mise à jour de l'application (dossier app/), écrivez un script qui :\n1. crée le dossier sauvegarde/ et y copie tous les fichiers .conf de app/config (pas les .bak) ;\n2. supprime tous les fichiers .tmp de app/cache, sans toucher aux autres fichiers ;\n3. affiche à l'écran uniquement le nombre de fichiers copiés (un nombre seul).\nVotre script sera aussi lancé sur d'autres dossiers : n'écrivez pas les noms de fichiers à la main.",
+      files: {
+        "app/config/web.conf": "listen 8080\nroot /srv/www\n", "app/config/db.conf": "host=10.0.0.12\nport=5432\n", "app/config/web.conf.bak": "listen 80\n",
+        "app/cache/session-1.tmp": "x", "app/cache/session-2.tmp": "x", "app/cache/LISEZMOI.txt": "Ne pas supprimer ce fichier.\n", "app/logs/app.log": "démarrage OK\n",
+      },
+      checks: [{ label: "sauvegarde/ contient exactement les fichiers .conf" }, { label: "app/cache ne contient plus que les fichiers à garder" }, { label: "Le nombre de fichiers copiés est affiché" }],
+    },
+    correct: {
+      solution: "mkdir -p sauvegarde\ncp app/config/*.conf sauvegarde/\nrm -f app/cache/*.tmp\nls sauvegarde | wc -l",
+      checks: [
+        { label: "sauvegarde/ contient exactement les fichiers .conf", kind: "tree", path: "sauvegarde" },
+        { label: "app/cache ne contient plus que les fichiers à garder", kind: "tree", path: "app/cache" },
+        { label: "Le nombre de fichiers copiés est affiché", kind: "stdout", compare: "lines" },
+      ],
+      variants: [{
+        "app/config/web.conf": "listen 8080\n", "app/config/db.conf": "host=db\n", "app/config/web.conf.bak": "listen 80\n",
+        "app/config/mail.conf": "smtp=10.0.0.20\n", "app/config/vpn.conf": "port=1194\n", "app/config/ancien.conf.bak": "x\n",
+        "app/cache/cache-a.tmp": "x", "app/cache/cache-b.tmp": "x", "app/cache/cache-c.tmp": "x", "app/cache/important.dat": "garder\n",
+      }],
+    },
+  },
+  scanners: {
+    prompt: "Script Bash : bloquer les scanners de vulnérabilités web",
+    domain: "Cybersécurité", points: 3, time_limit_s: 480,
+    options: {
+      help: false, starter: "#!/bin/bash\n\n",
+      mission: "Le journal du serveur web (logs/access.log, format Apache : l'IP en 1re colonne, le code HTTP en 9e) montre des robots qui cherchent des pages d'administration. Écrivez un script qui :\n1. écrit dans blocklist.txt, une par ligne et triées, les IP qui ont provoqué au moins 3 erreurs 404 ;\n2. affiche à l'écran uniquement le nombre d'IP bloquées (un nombre seul).\nVotre script sera aussi lancé sur d'autres journaux.",
+      files: { "logs/access.log": accessLog([
+        ["198.51.100.14", "/", 200], ["203.0.113.5", "/wp-login.php", 404], ["203.0.113.5", "/phpmyadmin/", 404], ["198.51.100.14", "/contact", 200],
+        ["203.0.113.5", "/.env", 404], ["192.0.2.80", "/favicon.ico", 404], ["203.0.113.5", "/admin", 404], ["45.155.205.3", "/.git/config", 404],
+        ["45.155.205.3", "/backup.zip", 404], ["192.0.2.80", "/", 200], ["45.155.205.3", "/config.php", 404], ["198.51.100.14", "/robots.txt", 404],
+        ["198.51.100.14", "/plan", 404],
+      ]) },
+      checks: [{ label: "blocklist.txt contient les bonnes IP, triées" }, { label: "Le nombre d'IP bloquées est affiché" }],
+    },
+    correct: {
+      solution: "awk '$9 == 404 {print $1}' logs/access.log | sort | uniq -c | awk '$1 >= 3 {print $2}' | sort > blocklist.txt\nwc -l < blocklist.txt",
+      checks: [
+        { label: "blocklist.txt contient les bonnes IP, triées", kind: "file", path: "blocklist.txt", compare: "lines" },
+        { label: "Le nombre d'IP bloquées est affiché", kind: "stdout", compare: "lines" },
+      ],
+      variants: [{ "logs/access.log": accessLog([
+        ["10.1.1.1", "/", 200], ["185.7.7.7", "/xmlrpc.php", 404], ["185.7.7.7", "/wp-admin", 404], ["185.7.7.7", "/.aws/credentials", 404],
+        ["185.7.7.7", "/shell.php", 404], ["10.1.1.1", "/oups", 404], ["10.1.1.1", "/encore", 404], ["91.92.93.94", "/a", 404],
+        ["91.92.93.94", "/b", 404], ["91.92.93.94", "/c", 404], ["10.2.2.2", "/x", 404],
+      ]) }],
+    },
+  },
+};
+(ALL_TEMPLATES as any).bash = { prompt: BASH_TEMPLATES.ssh.prompt, options: BASH_TEMPLATES.ssh.options, correct: BASH_TEMPLATES.ssh.correct, points: 3 };
+for (const [k, t] of [["b3", BASH_TEMPLATES.ssh], ["b3", BASH_TEMPLATES.rangement], ["m1", BASH_TEMPLATES.scanners]] as const) {
+  PACKS[k].questions.push({ type: "bash", domain: t.domain, points: t.points, time_limit_s: t.time_limit_s, prompt: t.prompt, options: clone(t.options), correct: clone(t.correct) });
+  PACKS[k].minutes += Math.round(t.time_limit_s / 60);
+}
