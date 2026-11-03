@@ -93,13 +93,14 @@ for name in ["b1", "b3", "mastere"]:
             assert L not in a, (name, i, L)
             o["ABCD".index(L)] = t
         base.append((p, o, a, d, e))
-    base += getattr(m, "ENIGMES", [])
+    # Les énigmes CYBEROKU (ENIGMES) ne font plus partie des épreuves : QCM de Dylan seuls.
 
     var_path = SRC / f"{name}_variantes.py"
     variants = {}
     if var_path.exists():
         for (pos, p, o, a, e) in load(f"{name}_variantes").V:
-            variants[pos] = (p, list(o), a, e)
+            if pos <= len(base):
+                variants[pos] = (p, list(o), a, e)
         assert sorted(variants) == list(range(1, len(base) + 1)), f"{name} : variantes incomplètes"
 
     items = []

@@ -132,11 +132,11 @@ Vérifications de missions disponibles : `exists` (avec `kind` file ou dir), `ab
 
 ## Épreuves d'admission 2026
 
-Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 »), relus et enrichis :
+Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretien d'admission Cyber 2026 »), relus, sans énigmes ajoutées :
 
 | Épreuve | Contenu tiré pour chaque candidat | Durée | Seuil proposé |
 |---|---|---|---|
-| Bachelor 1 Cybersécurité | 55 questions dont 5 énigmes CYBEROKU, plus les 4 exercices dans les outils | 71 min | 33/65 |
+| Bachelor 1 Cybersécurité | 50 questions, plus les 4 exercices dans les outils | 66 min | 30/60 |
 | Bachelor 3 Cybersécurité | 50 questions, une mission terminal (4 points), plus les 4 exercices dans les outils | 74 min | 32/64 |
 | Mastère Cybersécurité (M1) | 50 questions, une mission terminal (4 points), plus les 4 exercices dans les outils | 74 min | 32/64 |
 

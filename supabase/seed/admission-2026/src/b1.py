@@ -1,5 +1,5 @@
 TITLE = "Admission Bachelor 1 Cybersécurité 2026"
-DESC = "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 55 questions dont 5 énigmes CYBEROKU, 55 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Seuil d'admissibilité proposé : 28/55 (50 %)."
+DESC = "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 50 questions, 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Seuil d'admissibilité proposé : 25/50."
 Q = [
 ("Quel nombre complète la suite : 2, 6, 12, 20, 30, … ?", ["42","40","44","36"], "A", "Logique & raisonnement", "Les écarts augmentent de 2 à chaque fois : +4, +6, +8, +10, puis +12. 30 + 12 = 42."),
 ("Quel nombre complète la suite : 3, 9, 27, 81, … ?", ["243","324","162","108"], "A", "Logique & raisonnement", "Chaque nombre est multiplié par 3 : 81 × 3 = 243."),

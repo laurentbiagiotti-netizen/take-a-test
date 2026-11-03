@@ -1,12 +1,13 @@
 "use client";
 import { useRef, useState } from "react";
 import { notify } from "@/components/Toaster";
-import { FORMATIONS, parseBank, toBankRow, type ImportRow } from "@/lib/excel/bank";
+import { COLUMNS, FORMATIONS, parseBank, toBankRow, type ImportRow } from "@/lib/excel/bank";
+import { parseCsv, toCsv } from "@/lib/excel/csv";
 
 type Q = { type: string; prompt: string; options: any; correct: any; points: number; domain?: string | null; time_limit_s?: number | null; explanation?: string | null };
 
-function download(name: string, data: ArrayBuffer) {
-  const url = URL.createObjectURL(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+function download(name: string, data: ArrayBuffer | string, type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+  const url = URL.createObjectURL(new Blob([data], { type }));
   const a = document.createElement("a"); a.href = url; a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -38,12 +39,21 @@ export default function ExcelTools({ questions, formation, locked, onFormation, 
     if (skipped) notify(`${skipped} question(s) d'un autre type (terminal, exercice, association…) ne sont pas dans le fichier.`, "info");
   };
 
+  const exportCsv = () => {
+    const rows = questions.map((q) => toBankRow(q, formation)).filter(Boolean) as (string | number)[][];
+    if (!rows.length) return notify("Aucune question exportable (QCM, vrai/faux, réponse courte).");
+    download("questions.csv", toCsv([[...COLUMNS], ...rows]), "text/csv;charset=utf-8");
+    const skipped = questions.length - rows.length;
+    if (skipped) notify(`${skipped} question(s) d'un autre type (terminal, exercice, association…) ne sont pas dans le fichier.`, "info");
+  };
+
   const read = async (f: File) => {
     if (f.size > 10 * 1024 * 1024) return notify("Fichier trop lourd (10 Mo maximum).");
     setBusy(true);
     try {
-      const { readSheet } = await import("@/lib/excel/xlsx");
-      const sheet = await readSheet(await f.arrayBuffer());
+      const sheet = /\.(csv|txt)$/i.test(f.name)
+        ? parseCsv(await f.text())
+        : await (await import("@/lib/excel/xlsx")).readSheet(await f.arrayBuffer());
       const rows = parseBank(sheet, {
         existing: questions.map((q) => q.prompt), formation: formation || undefined,
         themes: questions.map((q) => q.domain || "").filter(Boolean),
@@ -71,11 +81,12 @@ export default function ExcelTools({ questions, formation, locked, onFormation, 
       </label>
       <button className="btn-secondary" onClick={template}>Modèle Excel</button>
       <button className="btn-secondary" onClick={exportBank} disabled={!questions.length}>Exporter en Excel</button>
+      <button className="btn-secondary" onClick={exportCsv} disabled={!questions.length}>Exporter en CSV</button>
       <button className="btn-secondary" disabled={locked || busy} onClick={() => input.current?.click()}
         title={locked ? "Des candidats ont déjà composé : questions verrouillées" : undefined}>
-        {busy ? "Lecture…" : "Importer un fichier Excel"}
+        {busy ? "Lecture…" : "Importer (Excel ou CSV)"}
       </button>
-      <input ref={input} type="file" accept=".xlsx" className="hidden" onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
+      <input ref={input} type="file" accept=".xlsx,.csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
 
       {preview && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" role="dialog" aria-modal aria-label="Aperçu de l'import" onClick={() => setPreview(null)}>

@@ -1,9 +1,9 @@
 {
  "title": "Admission Bachelor 1 Cybersécurité 2026",
- "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 55 questions dont 5 énigmes CYBEROKU, 71 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Plus une enquête Crime GeoGuess (7 minutes, 4 points) et trois exercices de détection du phishing dans Cybersup OS (9 minutes, 6 points). Seuil d'admissibilité proposé : 33/65.",
+ "description": "QCM d'admission B1 Cyber (proposition de Dylan, v2, relue). 50 questions, 66 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Aucun prérequis technique : logique, raisonnement pas à pas et bons réflexes numériques. Plus une enquête Crime GeoGuess (7 minutes, 4 points) et trois exercices de détection du phishing dans Cybersup OS (9 minutes, 6 points). Seuil d'admissibilité proposé : 30/60.",
  "formation": "Bachelor 1 Cybersécurité",
- "duration_minutes": 71,
- "pass_mark": 33,
+ "duration_minutes": 66,
+ "pass_mark": 30,
  "domain_floors": {
   "Algorithmique": 0.3,
   "Anglais": 0.3,
@@ -3122,316 +3122,6 @@
   },
   {
    "position": 51,
-   "variant_group": "b1-q51",
-   "variant": "A",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les chiffres 1, 2, 3 et 4.\n1 . 3 4\n. 4 . 2\n2 ? 4 .\n4 3 . 1\nQuel chiffre remplace le « ? » ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "1"
-    },
-    {
-     "id": "b",
-     "text": "2"
-    },
-    {
-     "id": "c",
-     "text": "3"
-    },
-    {
-     "id": "d",
-     "text": "4"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "Sur sa ligne, il manque 1 et 3. Dans sa colonne, il y a déjà 4 et 3. Il ne reste que 1."
-  },
-  {
-   "position": 51,
-   "variant_group": "b1-q51",
-   "variant": "B",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les chiffres 1, 2, 3 et 4.\n2 . 4 3\n4 . ? 1\n. 4 3 .\n3 2 . 4\nQuel chiffre remplace le « ? » ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "1"
-    },
-    {
-     "id": "b",
-     "text": "2"
-    },
-    {
-     "id": "c",
-     "text": "3"
-    },
-    {
-     "id": "d",
-     "text": "4"
-    }
-   ],
-   "correct": [
-    "b"
-   ],
-   "points": 1,
-   "explanation": "Sur sa ligne, il manque 2 et 3. Dans sa colonne, il y a déjà 4 et 3. Il ne reste que 2."
-  },
-  {
-   "position": 52,
-   "variant_group": "b1-q52",
-   "variant": "A",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les symboles #, @ et $.\n# @ $\n@ $ #\n$ ? @\nQuel symbole remplace le « ? » ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "#"
-    },
-    {
-     "id": "b",
-     "text": "@"
-    },
-    {
-     "id": "c",
-     "text": "$"
-    },
-    {
-     "id": "d",
-     "text": "On ne peut pas savoir"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "La ligne contient déjà $ et @, la colonne contient déjà @ et $ : il ne reste que #."
-  },
-  {
-   "position": 52,
-   "variant_group": "b1-q52",
-   "variant": "B",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Dans cette grille, chaque ligne et chaque colonne contient une seule fois les symboles *, = et +.\n* = +\n? * =\n= + *\nQuel symbole remplace le « ? » ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "="
-    },
-    {
-     "id": "b",
-     "text": "*"
-    },
-    {
-     "id": "c",
-     "text": "+"
-    },
-    {
-     "id": "d",
-     "text": "On ne peut pas savoir"
-    }
-   ],
-   "correct": [
-    "c"
-   ],
-   "points": 1,
-   "explanation": "La ligne contient déjà * et =, la colonne contient déjà * et = : il ne reste que +."
-  },
-  {
-   "position": 53,
-   "variant_group": "b1-q53",
-   "variant": "A",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Un message est codé : chaque lettre est remplacée par son rang dans l'alphabet (A = 1, B = 2…). Que signifie 6 12 1 7 ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "FLAG"
-    },
-    {
-     "id": "b",
-     "text": "GLAG"
-    },
-    {
-     "id": "c",
-     "text": "FKAG"
-    },
-    {
-     "id": "d",
-     "text": "ELAG"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "6 = F, 12 = L, 1 = A, 7 = G."
-  },
-  {
-   "position": 53,
-   "variant_group": "b1-q53",
-   "variant": "B",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Un message est codé : chaque lettre est remplacée par son rang dans l'alphabet (A = 1, B = 2…). Que signifie 3 15 4 5 ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "BODE"
-    },
-    {
-     "id": "b",
-     "text": "CPDE"
-    },
-    {
-     "id": "c",
-     "text": "CODF"
-    },
-    {
-     "id": "d",
-     "text": "CODE"
-    }
-   ],
-   "correct": [
-    "d"
-   ],
-   "points": 1,
-   "explanation": "3 = C, 15 = O, 4 = D, 5 = E."
-  },
-  {
-   "position": 54,
-   "variant_group": "b1-q54",
-   "variant": "A",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Un mot de passe est caché dans ce journal : prenez la première lettre de chaque ligne.\nPare-feu activé\nAccès refusé\nSession ouverte\nSauvegarde terminée\nQuel est le mot caché ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "PASS"
-    },
-    {
-     "id": "b",
-     "text": "PAOS"
-    },
-    {
-     "id": "c",
-     "text": "SAPS"
-    },
-    {
-     "id": "d",
-     "text": "PARS"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "Les premières lettres des lignes donnent P, A, S, S."
-  },
-  {
-   "position": 54,
-   "variant_group": "b1-q54",
-   "variant": "B",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Un mot de passe est caché dans ce journal : prenez la première lettre de chaque ligne.\nConnexion réussie\nLecture du disque\nErreur corrigée\nFermeture du port\nQuel est le mot caché ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "CLEF"
-    },
-    {
-     "id": "b",
-     "text": "CLES"
-    },
-    {
-     "id": "c",
-     "text": "FLEC"
-    },
-    {
-     "id": "d",
-     "text": "CREF"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "Les premières lettres des lignes donnent C, L, E, F."
-  },
-  {
-   "position": 55,
-   "variant_group": "b1-q55",
-   "variant": "A",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Ana, Bilal et Chloé ont chacun trouvé un flag différent : web, réseau ou crypto. Ana n'a pas trouvé le flag web. Chloé a trouvé le flag crypto. Qui a trouvé le flag réseau ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "Ana"
-    },
-    {
-     "id": "b",
-     "text": "Bilal"
-    },
-    {
-     "id": "c",
-     "text": "Chloé"
-    },
-    {
-     "id": "d",
-     "text": "On ne peut pas savoir"
-    }
-   ],
-   "correct": [
-    "a"
-   ],
-   "points": 1,
-   "explanation": "Chloé a crypto. Ana n'a pas web, donc elle a réseau, et Bilal a web."
-  },
-  {
-   "position": 55,
-   "variant_group": "b1-q55",
-   "variant": "B",
-   "type": "mcq_single",
-   "domain": "Énigmes CYBEROKU",
-   "prompt": "Énigme CYBEROKU. Hugo, Inès et Malik ont chacun résolu un défi différent : web, forensic ou stégano. Malik n'a pas résolu le défi forensic. Hugo a résolu le défi web. Qui a résolu le défi forensic ?",
-   "options": [
-    {
-     "id": "a",
-     "text": "Hugo"
-    },
-    {
-     "id": "b",
-     "text": "Malik"
-    },
-    {
-     "id": "c",
-     "text": "Inès"
-    },
-    {
-     "id": "d",
-     "text": "On ne peut pas savoir"
-    }
-   ],
-   "correct": [
-    "c"
-   ],
-   "points": 1,
-   "explanation": "Hugo a web. Malik n'a pas forensic, donc il a stégano, et Inès a forensic."
-  },
-  {
-   "position": 56,
    "variant_group": null,
    "variant": null,
    "type": "external",
@@ -3453,7 +3143,7 @@
    }
   },
   {
-   "position": 57,
+   "position": 52,
    "variant_group": null,
    "variant": null,
    "type": "external",
@@ -3758,7 +3448,7 @@
    }
   },
   {
-   "position": 58,
+   "position": 53,
    "variant_group": null,
    "variant": null,
    "type": "external",
@@ -3847,7 +3537,7 @@
    }
   },
   {
-   "position": 59,
+   "position": 54,
    "variant_group": null,
    "variant": null,
    "type": "external",
