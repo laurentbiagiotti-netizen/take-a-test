@@ -152,8 +152,8 @@ export default function ExamRoom(props: {
     setPhase("active");
     // Caméra refusée : le candidat passe quand même, le surveillant est alerté
     if (!camera.live()) {
+      // Le bandeau permanent « Caméra désactivée » suffit (pas de second bandeau)
       post("event", { kind: "camera_refused" });
-      setBanner("Caméra non autorisée : l'épreuve continue, mais c'est signalé au surveillant.");
     }
   };
 

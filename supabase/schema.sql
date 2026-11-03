@@ -564,12 +564,20 @@ end; $$;
 -- ne peuvent plus être supprimées ni changer de type, d'options ou de
 -- barème (sinon les copies seraient corrompues). Dupliquer le test.
 ------------------------------------------------------------
+-- Copie d'aperçu d'un admin (« Tester l'épreuve ») : ni verrou des questions, ni statistiques.
+create or replace function public._preview_attempt(p_test uuid, p_candidate uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from invites i join profiles p on p.email = i.email
+                  where i.test_id = p_test and i.preview and p.id = p_candidate);
+$$;
+
 create or replace function public._questions_locked() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare v_test uuid := coalesce(old.test_id, new.test_id);
 begin
   if exists(select 1 from tests where id = v_test)
-     and exists(select 1 from attempts where test_id = v_test and status <> 'pending') then
+     and exists(select 1 from attempts a where a.test_id = v_test and a.status <> 'pending'
+                and not _preview_attempt(a.test_id, a.candidate_id)) then
     if tg_op = 'DELETE'
        or new.type is distinct from old.type
        or new.options is distinct from old.options
@@ -1839,6 +1847,7 @@ begin
     select a.id, a.question_order, case when a.max_score > 0 then a.score / a.max_score else 0 end as total,
            ntile(4) over (order by case when a.max_score > 0 then a.score / a.max_score else 0 end) as quart
     from attempts a where a.test_id = p_test and a.status in ('submitted', 'expired', 'terminated')
+      and not _preview_attempt(a.test_id, a.candidate_id)
   ), it as (
     select q.id, q.position, q.domain, q.variant_group, q.type, left(q.prompt, 160) as prompt, q.points, f.quart,
            case when q.points > 0 then coalesce(an.score, 0) / q.points else 0 end as r,
@@ -1864,7 +1873,8 @@ begin
                      else null end)
     order by position, variant_group nulls first, id), '[]'::jsonb)
   into v from agg;
-  return jsonb_build_object('copies', (select count(*) from attempts where test_id = p_test and status in ('submitted', 'expired', 'terminated')), 'questions', v);
+  return jsonb_build_object('copies', (select count(*) from attempts where test_id = p_test and status in ('submitted', 'expired', 'terminated')
+                                         and not _preview_attempt(test_id, candidate_id)), 'questions', v);
 end; $$;
 
 -- Vue en direct pour le surveillant : épreuves en cours et dernières alertes.

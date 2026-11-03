@@ -29,7 +29,8 @@ export default function InvitesPage() {
   const [note, setNote] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("invites").select("*").eq("test_id", id).order("created_at", { ascending: false });
+    // Les accès d'aperçu des admins (« Tester l'épreuve ») ne sont pas des candidats
+    const { data } = await supabase.from("invites").select("*").eq("test_id", id).eq("preview", false).order("created_at", { ascending: false });
     setInvites((data as any) || []);
   };
 

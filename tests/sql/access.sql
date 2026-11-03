@@ -32,3 +32,11 @@ update invites set preview = false where code = 'ZZZZ-YYYY-XXXX';
 set role service_role;
 select exam_prepare('00000000-0000-0000-0000-00000000000c','22222222-2222-2222-2222-222222222222') as non_publie_refuse;
 reset role;
+-- Copie d'aperçu rendue : les questions restent modifiables
+insert into questions(id,test_id,position,type,prompt,points,options) values ('33333333-0000-0000-0000-000000000001','22222222-2222-2222-2222-222222222222',0,'mcq_single','Q',1,'[{"id":"a","text":"a"}]');
+update invites set preview = true where code = 'ZZZZ-YYYY-XXXX';
+update attempts set status = 'submitted' where test_id = '22222222-2222-2222-2222-222222222222';
+update questions set points = 2 where id = '33333333-0000-0000-0000-000000000001';
+select points as apercu_ne_verrouille_pas from questions where id = '33333333-0000-0000-0000-000000000001';
+update invites set preview = false where code = 'ZZZZ-YYYY-XXXX';
+update questions set points = 3 where id = '33333333-0000-0000-0000-000000000001';

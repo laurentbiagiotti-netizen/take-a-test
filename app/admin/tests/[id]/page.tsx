@@ -45,8 +45,11 @@ export default function EditTest() {
       setTest(t);
       const { data: sec } = await supabase.from("test_secrets").select("*").eq("test_id", id).maybeSingle();
       if (sec) setSecrets(sec);
-      const { count } = await supabase.from("attempts").select("id", { count: "exact", head: true }).eq("test_id", id).neq("status", "pending");
-      setLocked((count ?? 0) > 0);
+      // Les copies d'aperçu (« Tester l'épreuve ») ne verrouillent pas les questions
+      const { data: started } = await supabase.from("attempts").select("candidate:profiles(email)").eq("test_id", id).neq("status", "pending");
+      const { data: previews } = await supabase.from("invites").select("email").eq("test_id", id).eq("preview", true);
+      const previewEmails = new Set((previews || []).map((p: any) => p.email));
+      setLocked((started || []).some((a: any) => !previewEmails.has(a.candidate?.email)));
       const { data: qs } = await supabase.from("questions").select("*").eq("test_id", id).order("position");
       const ids = (qs || []).map((q: any) => q.id);
       const { data: keys } = ids.length
@@ -185,7 +188,7 @@ export default function EditTest() {
   if (!test) return <main className="p-10">Chargement…</main>;
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-10">
+    <main className="max-w-4xl mx-auto px-6 py-10">
       <a href="/admin" className="text-sm text-muted">← Retour</a>
       <div className="flex items-center justify-between mt-2">
         <h1 className="h1">Modifier l&apos;examen</h1>
@@ -203,7 +206,16 @@ export default function EditTest() {
         </div>
       </div>
 
-      <div className="card mt-4 space-y-3">
+      <nav aria-label="Sections de l'épreuve" className="sticky top-0 z-30 -mx-6 px-6 py-2 mt-4 bg-bg/90 backdrop-blur border-b border-line flex flex-wrap items-center gap-1 text-sm">
+        {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono et notation"], ["acces", "Accès et SEB"], ["questions", `Questions (${questions.length})`]].map(([k, l]) => (
+          <a key={k} href={`#${k}`} className="px-3 py-1.5 rounded-md text-muted hover:text-fg hover:bg-surface-2">{l}</a>
+        ))}
+        <span className={`ml-auto text-xs px-2 py-1 rounded ${test.is_published ? "text-ok" : "text-muted"}`}>{test.is_published ? "Publié" : "Brouillon"}</span>
+        <button className="btn !py-1.5" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
+      </nav>
+      <p className="text-xs text-faint mt-2">Les réglages s&apos;enregistrent tout seuls ; les questions avec le bouton « Enregistrer les questions ».</p>
+
+      <div id="general" className="card mt-4 space-y-3 scroll-mt-16">
         <label className="block text-sm">Titre
           <input className="input mt-1" value={test.title} onChange={(e) => updateTest({ title: e.target.value })} />
         </label>
@@ -228,7 +240,7 @@ export default function EditTest() {
           </label>
         </div>
 
-        <div className="border-t pt-3 space-y-2 text-sm">
+        <div id="surveillance" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
           <div className="font-medium">Surveillance</div>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!test.invite_only} onChange={(e) => updateTest({ invite_only: e.target.checked })} />
@@ -264,7 +276,7 @@ export default function EditTest() {
           </div>
         </div>
 
-        <div className="border-t pt-3 space-y-2 text-sm">
+        <div id="tirage" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
           <div className="font-medium">Tirage et ordre (chaque candidat a un sujet différent)</div>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={!!test.shuffle_questions} onChange={(e) => updateTest({ shuffle_questions: e.target.checked })} />
@@ -280,7 +292,7 @@ export default function EditTest() {
           <p className="text-xs text-muted">Variantes : les questions qui partagent un même « groupe de variantes » sont interchangeables ; chaque candidat n&apos;en reçoit qu&apos;une, tirée au hasard.</p>
         </div>
 
-        <div className="border-t pt-3 space-y-2 text-sm">
+        <div id="admission" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
           <div className="font-medium">Admission</div>
           <div className="grid sm:grid-cols-3 gap-3">
             <label className="block">« Test réussi » à partir de (sur 20)
@@ -323,7 +335,7 @@ export default function EditTest() {
           </label>
         </div>
 
-        <div className="border-t pt-3 space-y-2 text-sm">
+        <div id="chrono" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
           <div className="font-medium">Chronométrage et notation</div>
           <div className="grid sm:grid-cols-3 gap-3">
             <label className="block">Chronométrage
@@ -351,7 +363,7 @@ export default function EditTest() {
           </p>
         </div>
 
-        <div className="border-t pt-3">
+        <div id="acces" className="border-t pt-3 scroll-mt-16">
           <div className="text-sm font-medium">Code d&apos;accès global</div>
           <p className="text-xs text-muted mt-1">Uniquement pour un test non restreint aux invités. Les invités utilisent leur code personnel.</p>
           <div className="flex gap-2 mt-2">
@@ -413,7 +425,7 @@ export default function EditTest() {
         )}
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-2">
+      <div id="questions" className="mt-8 flex flex-wrap items-center justify-between gap-2 scroll-mt-16">
         <h2 className="h2">Questions</h2>
         <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
           onFormation={(f) => updateTest({ formation: f || null })}
