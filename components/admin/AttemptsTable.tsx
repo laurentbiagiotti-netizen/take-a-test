@@ -50,7 +50,7 @@ const columns: Column<AttemptRow>[] = [
   { key: "submitted", label: "Rendu", sort: (a) => a.submitted_at, cell: (a) => (a.submitted_at ? fmt(a.submitted_at) : "-") },
   {
     key: "actions", label: "", actions: true,
-    cell: (a) => <><a className="underline mr-3" href={`/admin/attempts/${a.id}`}>Voir</a>{a.submitted_at && <a className="underline" href={`/admin/attempts/${a.id}/fiche`}>Fiche jury</a>}</>,
+    cell: (a) => <><a className="underline mr-3" href={`/admin/attempts/${a.id}`}>Voir</a>{a.submitted_at && <a className="underline mr-3" href={`/admin/attempts/${a.id}/fiche`}>Fiche jury</a>}{a.submitted_at && <a className="underline" href={`/api/staff/attempts/${a.id}/recap`} target="_blank" rel="noopener">PDF</a>}</>,
   },
 ];
 

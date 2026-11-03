@@ -177,7 +177,9 @@ create table attempts (
   -- Décision forcée par l'équipe (toujours motivée et journalisée)
   verdict_override text check (verdict_override is null or verdict_override in ('pass', 'review', 'fail')),
   verdict_reason text check (verdict_reason is null or length(verdict_reason) <= 1000),
-  verdict_by uuid references profiles(id) on delete set null,
+  -- Sans clé étrangère vers profiles : une seconde relation attempts -> profiles
+  -- rendrait ambiguës les jointures « candidate:profiles(...) » de l'API.
+  verdict_by uuid,
   verdict_at timestamptz,
   unique (test_id, candidate_id)
 );

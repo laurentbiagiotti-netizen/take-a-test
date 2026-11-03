@@ -50,6 +50,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
           <a className="btn" href={`/admin/tests/${id}/live`}>Suivi en direct</a>
           <a className="btn-secondary" href={`/admin/tests/${id}/stats`}>Statistiques des questions</a>
           <a className="btn-secondary" href={`/api/staff/tests/${id}/results`}>Résultats (Excel)</a>
+          <a className="btn-secondary" href={`/api/staff/tests/${id}/recaps`}>Toutes les fiches PDF (.zip)</a>
           <a className="btn-secondary" href={`/admin/tests/${id}/attempts`}>Actualiser</a>
         </div>
       </div>

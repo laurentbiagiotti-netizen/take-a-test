@@ -14,6 +14,8 @@ const securityHeaders = [
 
 module.exports = {
   reactStrictMode: true,
+  // PDFKit lit ses polices standard sur le disque : pas d'empaquetage.
+  serverExternalPackages: ["pdfkit"],
   poweredByHeader: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
