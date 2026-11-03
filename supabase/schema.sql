@@ -221,6 +221,8 @@ create table invites (
   full_name text check (full_name is null or length(full_name) <= 200),
   -- Identifiant du candidat dans l'outil d'origine (HubSpot, Grimp…)
   external_ref text check (external_ref is null or length(external_ref) <= 200),
+  -- Aperçu par un admin : l'épreuve s'ouvre même non publiée, pour ce seul compte
+  preview boolean not null default false,
   created_at timestamptz not null default now(),
   unique (test_id, email)
 );
@@ -854,6 +856,14 @@ end; $$;
 ------------------------------------------------------------
 
 -- Prépare l'accès : contrôles d'invitation, de fenêtre, crée la tentative.
+-- Épreuve ouverte à ce compte : publiée, ou aperçu d'un admin (invitation preview).
+create or replace function public._test_open(t tests, p_user uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select t.is_published or exists (
+    select 1 from invites i join profiles p on p.email = i.email
+     where i.test_id = t.id and i.preview and p.id = p_user);
+$$;
+
 create or replace function public.exam_prepare(p_user uuid, p_test uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -865,7 +875,7 @@ declare
   v_code_required boolean;
 begin
   select * into t from tests where id = p_test;
-  if t.id is null or not t.is_published then raise exception 'test_not_found' using errcode = 'P0002'; end if;
+  if t.id is null or not _test_open(t, p_user) then raise exception 'test_not_found' using errcode = 'P0002'; end if;
   select email into v_email from profiles where id = p_user;
   select * into inv from invites where test_id = p_test and email = lower(v_email);
   if t.invite_only and inv.id is null then raise exception 'not_invited' using errcode = 'P0001'; end if;
@@ -909,8 +919,8 @@ declare
   v_code text := upper(trim(coalesce(p_code, '')));
   v_fails int;
 begin
-  select * into t from tests where id = p_test and is_published;
-  if t.id is null then raise exception 'test_not_found' using errcode = 'P0002'; end if;
+  select * into t from tests where id = p_test;
+  if t.id is null or not _test_open(t, p_user) then raise exception 'test_not_found' using errcode = 'P0002'; end if;
   select * into a from attempts where test_id = p_test and candidate_id = p_user for update;
   if a.id is null then raise exception 'attempt_not_found' using errcode = 'P0002'; end if;
   if a.unlocked then return jsonb_build_object('ok', true); end if;
@@ -986,7 +996,7 @@ begin
   select * into a from attempts where id = p_attempt and candidate_id = p_user for update;
   if a.id is null then raise exception 'attempt_not_found' using errcode = 'P0002'; end if;
   select * into t from tests where id = a.test_id;
-  if not t.is_published then raise exception 'test_not_found' using errcode = 'P0002'; end if;
+  if not _test_open(t, p_user) then raise exception 'test_not_found' using errcode = 'P0002'; end if;
   if not a.unlocked then raise exception 'locked' using errcode = 'P0001'; end if;
   if a.identity_status in ('pending', 'rejected')
      or (t.id_verify_before_start and a.identity_status = 'submitted' and a.status = 'pending') then
@@ -1914,7 +1924,7 @@ begin
   if length(v_code) between 8 and 32 then
     select * into inv from invites where upper(replace(code, '-', '')) = v_code;
   end if;
-  if inv.id is not null then select * into t from tests where id = inv.test_id and is_published; end if;
+  if inv.id is not null then select * into t from tests where id = inv.test_id and (is_published or inv.preview); end if;
   if inv.id is null or t.id is null then
     insert into access_failures(ip) values (p_ip);
     return jsonb_build_object('ok', false);

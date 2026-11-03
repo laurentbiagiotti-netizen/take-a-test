@@ -6,6 +6,7 @@ import ExamRoom from "@/components/ExamRoom";
 import UnlockForm from "@/components/UnlockForm";
 import IdentityCheck from "@/components/IdentityCheck";
 import { appUrl } from "@/lib/security/env";
+import { testOpenFor } from "@/lib/exam/open";
 import { mergeKeys, sebRequired, verifySeb } from "@/lib/security/seb";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
 
   const admin = adminClient();
   const { data: test } = await admin.from("tests").select("id, require_seb, is_published, seb_accept_config_key").eq("id", id).maybeSingle();
-  if (!test?.is_published) return <Panel title="Examen introuvable" />;
+  if (!test || !(await testOpenFor(admin, test, user.email))) return <Panel title="Examen introuvable" />;
 
   // Safe Exam Browser : vérifié sur la requête de la page elle-même, puis
   // à nouveau sur chaque appel d'API de l'examen.

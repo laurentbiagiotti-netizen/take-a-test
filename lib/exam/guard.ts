@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { testOpenFor } from "@/lib/exam/open";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { clientIp, publicUrl, sameOrigin, userAgent } from "@/lib/security/request";
@@ -82,7 +83,7 @@ export async function examGuard(
 
   const admin = adminClient();
   const { data: test } = await admin.from("tests").select("id, require_seb, is_published, seb_accept_config_key").eq("id", testId).maybeSingle();
-  if (!test || !test.is_published) return { res: examError("test_not_found") };
+  if (!test || !(await testOpenFor(admin, test, user.email))) return { res: examError("test_not_found") };
 
   if (sebRequired(test.require_seb)) {
     const { data: sec } = await admin.from("test_secrets")

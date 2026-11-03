@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeleteTestButton from "@/components/DeleteTestButton";
+import PreviewButton from "@/components/admin/PreviewButton";
 
 export default async function AdminHome() {
   const supabase = await createClient();
@@ -34,6 +35,7 @@ export default async function AdminHome() {
             </div>
             <div className="flex gap-2">
               {isAdmin && <Link href={`/admin/tests/${t.id}`} className="btn-secondary">Modifier</Link>}
+              {isAdmin && <PreviewButton testId={t.id} />}
               {isAdmin && <Link href={`/admin/tests/${t.id}/invites`} className="btn-secondary">Candidats</Link>}
               <Link href={`/admin/tests/${t.id}/live`} className="btn-secondary">En direct</Link>
               <Link href={`/admin/tests/${t.id}/attempts`} className="btn-secondary">Tentatives</Link>

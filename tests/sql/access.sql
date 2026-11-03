@@ -22,3 +22,13 @@ select staff_bootstrap('00000000-0000-0000-0000-00000000000a') as premier_admin;
 select staff_bootstrap('00000000-0000-0000-0000-00000000000c') as second_admin_refuse;
 reset role;
 select email, role from profiles order by email;
+-- Aperçu admin : épreuve non publiée ouverte au seul compte d'aperçu
+update invites set preview = true where code = 'ZZZZ-YYYY-XXXX';
+set role service_role;
+select access_by_code('ZZZZ-YYYY-XXXX', '3.3.3.3')->>'ok' as apercu_ok;
+select exam_prepare('00000000-0000-0000-0000-00000000000c','22222222-2222-2222-2222-222222222222')->>'state' as apercu_prepare;
+reset role;
+update invites set preview = false where code = 'ZZZZ-YYYY-XXXX';
+set role service_role;
+select exam_prepare('00000000-0000-0000-0000-00000000000c','22222222-2222-2222-2222-222222222222') as non_publie_refuse;
+reset role;

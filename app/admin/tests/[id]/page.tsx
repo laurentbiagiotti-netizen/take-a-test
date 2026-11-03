@@ -1,5 +1,6 @@
 "use client";
 import { notify } from "@/components/Toaster";
+import PreviewButton from "@/components/admin/PreviewButton";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -188,6 +189,8 @@ export default function EditTest() {
       <a href="/admin" className="text-sm text-muted">← Retour</a>
       <div className="flex items-center justify-between mt-2">
         <h1 className="h1">Modifier l&apos;examen</h1>
+        <div className="flex items-center gap-4">
+        <PreviewButton testId={id} className="btn" />
         <button
           className="text-sm text-danger underline"
           onClick={async () => {
@@ -197,6 +200,7 @@ export default function EditTest() {
             window.location.href = "/admin";
           }}
         >Supprimer l&apos;examen</button>
+        </div>
       </div>
 
       <div className="card mt-4 space-y-3">
