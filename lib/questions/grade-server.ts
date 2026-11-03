@@ -9,6 +9,7 @@ import { gradeRobot } from "./robot";
 import { gradeAd } from "./adsim";
 import { gradeTickets } from "./tickets";
 import { gradeFeed } from "./feed";
+import { gradeEvtx } from "./evtx";
 
 /**
  * Notes calculées par le serveur pour les types qui ne se corrigent pas en SQL :
@@ -103,6 +104,7 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
     if (type === "adsim") return gradeAd(key, resp, points);
     if (type === "tickets") return gradeTickets(options, key, resp, points);
     if (type === "feed") return gradeFeed(options, key, resp, points);
+    if (type === "evtx") return gradeEvtx(options, key, resp, points);
     if (type === "sql") return await gradeSql(options, key || {}, resp, points);
     if (type === "password") return await gradePassword(options, resp, points);
     if (type === "blocks") {
@@ -113,4 +115,4 @@ export async function autoScore(type: string, options: any, key: any, resp: any,
   return null;
 }
 
-export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed"]);
+export const AUTO_TYPES = new Set(["sql", "password", "blocks", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx"]);

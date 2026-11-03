@@ -1,4 +1,5 @@
 import { encodeForRecipe, type RecipeStep } from "./decode";
+import { intrusionLogs } from "./evtx-scenario";
 import { suggestKey } from "./headers";
 
 /**
@@ -134,7 +135,8 @@ const B3_LOGS = [
   ] as const).map(([c, p, h, s], i) => `INSERT INTO connexions VALUES (${i + 1}, '${c}', '${p}', '${h}', ${s});`),
 ].join("\n");
 
-export const PACKS: Record<"b1" | "b3", { label: string; minutes: number; questions: PackQuestion[] }> = {
+export const PACKS: Record<"b1" | "b3" | "m1", { label: string; minutes: number; questions: PackQuestion[] }> = {
+  m1: { label: "Mastère : SOC et analyse", minutes: 35, questions: [] },
   b1: {
     label: "B1 : logique et curiosité (aucun prérequis)",
     minutes: 20,
@@ -404,3 +406,36 @@ export const CULTURE_B1: PackQuestion[] = [
 
 PACKS.b1.questions.push({ type: "feed", domain: "Réflexes cyber", points: 3, time_limit_s: 300, prompt: FEED_TEMPLATE.prompt, options: clone(FEED_TEMPLATE.options), correct: clone(FEED_TEMPLATE.correct) }, ...CULTURE_B1);
 PACKS.b1.minutes = 53;
+
+/* ---------------- Mastère : enquête dans l'Observateur d'événements Windows ---------------- */
+export const EVTX_TEMPLATE = {
+  prompt: "Ticket du SOC : « le compte de Jeanne Dupont (j.dupont) se verrouille tous les matins vers 8 h ». Vous avez les journaux du contrôleur de domaine. Trouvez la cause, puis vérifiez s'il ne s'est rien passé d'autre pendant la nuit du 26 au 27 octobre.",
+  options: { help: false, logs: intrusionLogs(), questions: [
+    { id: "lock_time", label: "Heure du verrouillage du compte le 27 octobre (événement 4740)", placeholder: "hh:mm:ss" },
+    { id: "lock_pc", label: "Nom du poste d'où viennent les échecs de connexion de j.dupont", placeholder: "PC-…" },
+    { id: "rdp_user", label: "Compte utilisé pour la connexion à distance (RDP) réussie depuis Internet", placeholder: "nom du compte" },
+    { id: "rdp_ip", label: "Adresse IP de l'attaquant", placeholder: "x.x.x.x" },
+    { id: "new_user", label: "Compte créé par l'attaquant pour garder un accès", placeholder: "nom du compte" },
+    { id: "service", label: "Nom du service installé par l'attaquant (journal Système)", placeholder: "nom du service" },
+  ] },
+  correct: { lock_time: ["07:58:12", "7:58:12"], lock_pc: "PC-COMPTA-07", rdp_user: ["admin.local", "ECOLE\\admin.local"], rdp_ip: "203.0.113.47", new_user: "svc_backup2", service: "UpdaterSvc" },
+  points: 6,
+};
+(ALL_TEMPLATES as any).evtx = EVTX_TEMPLATE;
+
+// Pack Mastère : enquête SOC sur journaux Windows, puis exercices plus offensifs autorisés à ce niveau.
+PACKS.m1.questions.push(
+  { type: "evtx", domain: "Cybersécurité", points: 6, time_limit_s: 600, prompt: EVTX_TEMPLATE.prompt, options: clone(EVTX_TEMPLATE.options), correct: clone(EVTX_TEMPLATE.correct) },
+  { type: "headers", domain: "Cybersécurité", points: 2, time_limit_s: 240, prompt: "Ce mail a été signalé par un utilisateur. Analysez ses en-têtes bruts.",
+    options: { ...clone(PRACTICAL_TEMPLATES.headers.options), view: "raw", help: false, ask: ["origin_ip", "spf", "dkim", "dmarc", "reply_to", "verdict"] },
+    correct: { ...clone(PRACTICAL_TEMPLATES.headers.correct), dkim: "none", dmarc: "fail" } },
+  { type: "sql", domain: "Cybersécurité", points: 2, time_limit_s: 240, prompt: "Ce formulaire de connexion construit sa requête en collant directement ce que tape l'utilisateur. Connectez-vous en tant qu'admin sans connaître son mot de passe.",
+    options: { mode: "injection", help: false, setup: "CREATE TABLE comptes (login TEXT, mdp TEXT, role TEXT);\nINSERT INTO comptes VALUES ('admin', 'Xk9!pq2#Lm', 'administrateur'), ('j.dupont', 'Soleil2026', 'utilisateur');",
+      template: "SELECT login, role FROM comptes WHERE login = '{input}' AND mdp = 'mot_de_passe_inconnu'", field_label: "Identifiant" },
+    correct: { must_contain: "administrateur" } },
+  { type: "decode", domain: "Cybersécurité", points: 2, time_limit_s: 300, prompt: "Un script malveillant contient cette chaîne. La clé XOR « cyber » apparaît plus loin dans le code. Retrouvez le flag.",
+    options: { help: false, input: encodeForRecipe("CYBER{x0r_n_3st_p4s_du_chiffr3m3nt}", [{ op: "from_base64" }, { op: "xor", arg: "cyber" }, { op: "reverse" }]) },
+    correct: { answers: ["CYBER{x0r_n_3st_p4s_du_chiffr3m3nt}"], case_sensitive: true, recipe: [{ op: "from_base64" }, { op: "xor", arg: "cyber" }, { op: "reverse" }] } },
+  { type: "subnet", domain: "Réseaux", points: 3, time_limit_s: 300, prompt: "Segmentez le réseau du nouveau site entre les services, sans gaspiller d'adresses.",
+    options: { mode: "vlsm", services: 4, help: false }, correct: null },
+);

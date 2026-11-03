@@ -1,10 +1,11 @@
--- Jeux de logique (caisses à pousser, robot), console Active Directory, tickets de support, vrai ou fake (fil d'actualité).
+-- Jeux de logique (caisses à pousser, robot), console Active Directory, tickets de support, vrai ou fake, journaux Windows (Mastère).
 
 alter type question_type add value if not exists 'sokoban';
 alter type question_type add value if not exists 'robot';
 alter type question_type add value if not exists 'adsim';
 alter type question_type add value if not exists 'tickets';
 alter type question_type add value if not exists 'feed';
+alter type question_type add value if not exists 'evtx';
 
 create or replace function public.exam_begin(p_user uuid, p_attempt uuid, p_new_token_hash text,
                                              p_prev_token_hash text, p_ip text, p_ua text, p_nonce_hash text,
@@ -152,7 +153,7 @@ begin
             (select jsonb_agg(o order by array_position(
                array(select jsonb_array_elements_text(a.option_orders->(q2.id::text))), o->>'id'))
              from jsonb_array_elements(q2.options->'right') o))
-        when q2.type in ('hotspot', 'short_answer', 'sql', 'decode', 'password', 'blocks', 'headers', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed') then q2.options
+        when q2.type in ('hotspot', 'short_answer', 'sql', 'decode', 'password', 'blocks', 'headers', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed', 'evtx') then q2.options
         else null end)
     order by array_position(a.question_order, q2.id))
   into v_questions from questions q2 where q2.id = any(a.question_order);
@@ -282,6 +283,11 @@ begin
       raise exception 'bad_response' using errcode = 'P0001';
     end if;
     p_response := jsonb_build_object('state', p_response->'state', 'done', coalesce(p_response->'done', '[]'::jsonb));
+  elsif q.type = 'evtx' then
+    if coalesce(jsonb_typeof(p_response->'answers'), '') <> 'object' or length(p_response::text) > 3000 then
+      raise exception 'bad_response' using errcode = 'P0001';
+    end if;
+    p_response := jsonb_build_object('answers', p_response->'answers');
   elsif q.type = 'feed' then
     if coalesce(jsonb_typeof(p_response->'verdicts'), '') <> 'object' or length(p_response::text) > 3000
        or exists (select 1 from jsonb_each(p_response->'verdicts') e where (e.value #>> '{}') not in ('fiable', 'douteux', 'faux')) then
@@ -327,7 +333,7 @@ begin
   insert into answers(attempt_id, question_id, response, updated_at)
   values (a.id, p_question, p_response, now())
   on conflict (attempt_id, question_id) do update set response = excluded.response, auto_score = null, updated_at = now();
-  if q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed') then
+  if q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed', 'evtx') then
     return jsonb_build_object('status', 'in_progress', 'saved', true, 'auto', true, 'response', p_response);
   end if;
   return jsonb_build_object('status', 'in_progress', 'saved', true);
@@ -364,7 +370,7 @@ begin
   loop
     v_max := v_max + r.points;
     continue when r.type = 'long_text';
-    if r.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed') then
+    if r.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed', 'evtx') then
       -- Noté par le serveur à l'enregistrement de la réponse (jamais par le navigateur)
       s := least(r.points, greatest(0, coalesce(r.auto_score, 0)));
     elsif r.type = 'external' then
@@ -413,7 +419,7 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_points numeric; v_n int;
 begin
   select q.points into v_points from questions q join attempts a on a.id = p_attempt
-    where q.id = p_question and q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed') and a.status = 'in_progress';
+    where q.id = p_question and q.type in ('sql', 'password', 'blocks', 'subnet', 'netpuzzle', 'sokoban', 'robot', 'adsim', 'tickets', 'feed', 'evtx') and a.status = 'in_progress';
   if v_points is null then return jsonb_build_object('ok', false); end if;
   update answers set auto_score = least(v_points, greatest(0, coalesce(p_score, 0)))
     where attempt_id = p_attempt and question_id = p_question and response = p_response;

@@ -109,3 +109,20 @@ describe("vrai ou fake", () => {
     expect(CULTURE_B1).toHaveLength(12);
   });
 });
+
+import { gradeEvtx } from "@/lib/questions/evtx";
+import { EVTX_TEMPLATE } from "@/lib/questions/templates";
+describe("journaux Windows (Mastère)", () => {
+  it("les réponses attendues se trouvent bien dans les journaux", () => {
+    const t = clone(EVTX_TEMPLATE);
+    expect(validateQuestion("evtx" as any, t.options, t.correct)).toBeNull();
+    const logs = t.options.logs as any[];
+    expect(logs.some((e) => e.eventId === 4740 && e.time === "2026-10-27 07:58:12" && e.message.includes("PC-COMPTA-07"))).toBe(true);
+    expect(logs.some((e) => e.eventId === 4624 && e.message.includes("Type d'ouverture de session : 10") && e.message.includes("admin.local") && e.message.includes("203.0.113.47"))).toBe(true);
+    expect(logs.some((e) => e.eventId === 7045 && e.log === "Système" && e.message.includes("UpdaterSvc"))).toBe(true);
+    const ans = { lock_time: "7:58:12", lock_pc: "pc-compta-07", rdp_user: "admin.local", rdp_ip: "203.0.113.47", new_user: "svc_backup2", service: "updatersvc" };
+    expect(gradeEvtx(t.options, t.correct, { answers: ans }, 6)).toBe(6);
+    expect(gradeEvtx(t.options, t.correct, { answers: { ...ans, rdp_ip: "10.20.4.37" } }, 6)).toBe(5);
+    expect(PACKS.m1.questions.every((q) => validateQuestion(q.type as any, q.options, q.correct) === null)).toBe(true);
+  });
+});

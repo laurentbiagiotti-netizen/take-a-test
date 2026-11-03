@@ -8,6 +8,7 @@ import { HeadersQuestion, NetPuzzle, SubnetQuestion } from "@/components/questio
 import MiniCours from "@/components/questions/MiniCours";
 import { Feed, RobotGame, Sokoban, Tickets } from "@/components/questions/Games";
 const AdConsole = dynamic(() => import("@/components/questions/AdConsole"), { ssr: false });
+const EventViewer = dynamic(() => import("@/components/questions/EventViewer"), { ssr: false });
 const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBlocks"), { ssr: false, loading: () => <p className="text-sm text-muted">Chargement de l&apos;éditeur de blocs…</p> });
 
 /**
@@ -63,6 +64,7 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
     case "adsim": return <AdConsole key={q.id} q={q} value={value} onChange={onText || onChange} />;
     case "tickets": return <Tickets q={q} value={value} onChange={onChange} />;
     case "feed": return <Feed q={q} value={value} onChange={onChange} />;
+    case "evtx": return <EventViewer key={q.id} q={q} value={value} onText={onText || onChange} />;
     case "password":
       if (q.options?.mode === "create") return <PasswordCreate q={q} value={value} onText={onText || onChange} />;
       return <PasswordRank q={q} value={value} onChange={onChange} />;

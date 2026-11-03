@@ -2,7 +2,7 @@
  * Types de questions : formats, validation (éditeur admin et API) et
  * barème (identique à la fonction SQL _grade, utilisé par la démo).
  */
-export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed";
+export type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx";
 
 export const TYPE_LABEL: Record<QType, string> = {
   mcq_single: "QCM, une réponse",
@@ -25,6 +25,7 @@ export const TYPE_LABEL: Record<QType, string> = {
   adsim: "Console Active Directory",
   tickets: "Tickets de support",
   feed: "Vrai ou fake ? (fil d'actualité)",
+  evtx: "Observateur d'événements Windows",
 };
 
 export type Item = { id: string; text: string };
@@ -54,6 +55,7 @@ import { validRobot } from "./robot";
 import { validAd } from "./adsim";
 import { validTickets } from "./tickets";
 import { validFeed } from "./feed";
+import { validEvtx } from "./evtx";
 
 /** Valide options + clé d'un type ; renvoie un message d'erreur ou null. */
 export function validateQuestion(type: QType, options: any, key: any): string | null {
@@ -106,6 +108,7 @@ export function validateQuestion(type: QType, options: any, key: any): string | 
     case "adsim": return validAd(options, key);
     case "tickets": return validTickets(options, key);
     case "feed": return validFeed(options, key);
+    case "evtx": return validEvtx(options, key);
     case "netpuzzle": {
       const w = options?.w ?? 5, h = options?.h ?? 5;
       return Number.isInteger(w) && Number.isInteger(h) && w >= 3 && h >= 3 && w <= 9 && h <= 9 ? null : "Grille de 3×3 à 9×9";

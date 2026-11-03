@@ -113,7 +113,7 @@ function PracticalForm({ type, options, correct, onChange }: Props) {
   }
 
   if (type === "blocks") return <FirewallEditor o={o} k={k} set={set} />;
-  if (["sokoban", "robot", "adsim", "tickets", "feed"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
+  if (["sokoban", "robot", "adsim", "tickets", "feed", "evtx"].includes(type)) return <JsonEditor type={type} o={o} k={k} set={set} />;
 
   if (type === "headers") {
     const ask: HeaderField[] = o.ask || [];
@@ -252,6 +252,7 @@ const JSON_HELP: Record<string, string> = {
   sokoban: "levels : liste de niveaux { map, par }. Plan : # mur, . cible, $ caisse, * caisse sur cible, @ joueur. par = nombre de coups visé (au-delà, 70 % des points du niveau).",
   robot: "levels : liste de niveaux { map, start: [x, y], dir (0 haut, 1 droite, 2 bas, 3 gauche), main, p1 }. Plan : # vide, . sol, L lampe ; main et p1 = nombre de cases.",
   adsim: "initial : annuaire de départ (ous, users, groups, gpos) ; tasks : demandes affichées. Correction : checks (exists, user_in_ou, in_group, not_in_group, disabled, enabled, must_change, gpo_linked, gpo_not_linked).",
+  evtx: "logs : événements { rid, log (Sécurité, Système, Application), level, time (AAAA-MM-JJ hh:mm:ss), source, eventId, task, computer, message, data } ; questions : { id, label, placeholder }. Correction : pour chaque question, la réponse (ou une liste de réponses acceptées). Pour de vrais journaux : evtx_dump -o jsonl fichier.evtx (outil omerbenamram/evtx), puis collez la sortie ci-dessous.",
   feed: "posts : { id, author, handle, badge (officiel, media, nouveau), age, date, text, link { title, url }, stats }. Correction : pour chaque id, fiable, douteux ou faux.",
   tickets: "tickets : { id, title, from, text } ; groups : groupes d'attribution. Correction : pour chaque id, { impact, urgence, groupe } (haute, moyenne ou basse).",
 };
@@ -264,13 +265,27 @@ function JsonEditor({ type, o, k, set }: { type: string; o: any; k: any; set: (o
   const apply = (a: string, b: string) => {
     try { set(JSON.parse(a), JSON.parse(b)); setErr(null); } catch (e: any) { setErr("JSON invalide : " + e.message); }
   };
-  const needsKey = type === "adsim" || type === "tickets" || type === "feed";
+  const needsKey = type === "adsim" || type === "tickets" || type === "feed" || type === "evtx";
   return (
     <div className="space-y-2 rounded-lg border border-line p-3">
       <p className="text-xs text-muted">{JSON_HELP[type]} L&apos;exemple inséré est prêt à l&apos;emploi : adaptez-le ou gardez-le.</p>
       <Field label="Contenu de l'exercice (JSON)"><textarea className="input font-mono text-xs min-h-[180px]" value={opt} onChange={(e) => { setOpt(e.target.value); apply(e.target.value, key); }} /></Field>
       {needsKey && <Field label="Correction (JSON)"><textarea className="input font-mono text-xs min-h-[140px]" value={key} onChange={(e) => { setKey(e.target.value); apply(opt, e.target.value); }} /></Field>}
+      {type === "evtx" && <EvtxImport onAdd={(evs) => { const cur = JSON.parse(opt); const n = { ...cur, logs: [...(cur.logs || []), ...evs] }; const t = JSON.stringify(n, null, 2); setOpt(t); apply(t, key); }} />}
       {err && <p className="text-xs text-danger">{err}</p>}
+    </div>
+  );
+}
+
+function EvtxImport({ onAdd }: { onAdd: (evs: any[]) => void }) {
+  const [txt, setTxt] = useState(""); const [log, setLog] = useState("Sécurité"); const [msg, setMsg] = useState("");
+  return (
+    <div className="rounded-md border border-dashed border-line-strong p-2 space-y-2">
+      <div className="text-xs text-muted">Importer de vrais journaux : sur votre poste, <code>evtx_dump -o jsonl Security.evtx</code>, puis collez la sortie ici. Anonymisez les noms et les IP avant.</div>
+      <div className="flex gap-2 items-center text-xs"><span>Journal :</span>{["Sécurité", "Système", "Application"].map((l) => <label key={l} className="flex items-center gap-1"><input type="radio" checked={log === l} onChange={() => setLog(l)} />{l}</label>)}</div>
+      <textarea className="input font-mono text-xs min-h-[70px]" value={txt} onChange={(e) => setTxt(e.target.value)} placeholder='{"Event":{"System":{...}}}' />
+      <button className="btn-secondary !py-1 text-xs" onClick={async () => { const { fromEvtxDump } = await import("@/lib/questions/evtx"); const evs = fromEvtxDump(txt, log, Date.now() % 100000); onAdd(evs); setMsg(`${evs.length} événement(s) ajouté(s)`); setTxt(""); }}>Ajouter ces événements</button>
+      {msg && <span className="text-xs text-ok ml-2">{msg}</span>}
     </div>
   );
 }

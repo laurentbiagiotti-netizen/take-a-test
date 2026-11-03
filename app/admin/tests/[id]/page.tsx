@@ -12,9 +12,9 @@ import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
-const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed"];
+const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers", "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
   id?: string; test_id: string; position: number; type: QType;
@@ -136,7 +136,7 @@ export default function EditTest() {
     }]);
   };
 
-  const addPack = (k: "b1" | "b3") => {
+  const addPack = (k: "b1" | "b3" | "m1") => {
     const pack = PACKS[k];
     if (!confirm(`Ajouter les ${pack.questions.length} exercices du pack « ${pack.label} » à la fin de l'épreuve ?\n\nIls prennent environ ${pack.minutes} minutes : pensez à allonger la durée, puis à enregistrer.`)) return;
     setQuestions((qs) => [...qs, ...pack.questions.map((p, j) => ({
@@ -490,6 +490,7 @@ export default function EditTest() {
             ["adsim", "Console Active Directory", "OU, comptes, groupes, GPO"],
             ["tickets", "Tickets de support", "impact, urgence, attribution"],
             ["feed", "Vrai ou fake ?", "fil d'actualité à trier"],
+            ["evtx", "Journaux Windows", "enquête SOC (Mastère)"],
           ] as [QType, string, string][]).map(([t, l, d]) => (
             <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
               <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>
@@ -501,7 +502,7 @@ export default function EditTest() {
 
       <div className="mt-3 rounded-lg border border-dashed border-line-strong p-3 flex flex-wrap items-center gap-2 text-sm">
         <span className="text-muted mr-1">Packs prêts à l&apos;emploi (grilles de Dylan) :</span>
-        {(["b1", "b3"] as const).map((k) => (
+        {(["b1", "b3", "m1"] as const).map((k) => (
           <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>+ {PACKS[k].label} · {PACKS[k].questions.length} exercices</button>
         ))}
       </div>
