@@ -136,13 +136,14 @@ Les trois QCM proposés par Dylan (dossier Drive « Proposition test et entretie
 
 | Épreuve | Contenu tiré pour chaque candidat | Durée | Seuil proposé |
 |---|---|---|---|
-| Bachelor 1 Cybersécurité | 55 questions dont 5 énigmes CYBEROKU | 55 min | 28/55 |
-| Bachelor 3 Cybersécurité | 50 questions et une mission terminal (4 points) | 58 min | 27/54 |
-| Mastère Cybersécurité (M1) | 50 questions et une mission terminal (4 points) | 58 min | 27/54 |
+| Bachelor 1 Cybersécurité | 55 questions dont 5 énigmes CYBEROKU, plus les 4 exercices dans les outils | 71 min | 33/65 |
+| Bachelor 3 Cybersécurité | 50 questions, une mission terminal (4 points), plus les 4 exercices dans les outils | 74 min | 32/64 |
+| Mastère Cybersécurité (M1) | 50 questions, une mission terminal (4 points), plus les 4 exercices dans les outils | 74 min | 32/64 |
 
 - **Deux variantes par question** : chaque candidat reçoit l'une ou l'autre au hasard, deux candidats n'ont donc pratiquement jamais le même sujet.
 - **Plancher par domaine** (30 % par défaut) en plus du seuil global : un candidat sous le plancher est signalé au jury.
 - 1 point par question, tout ou rien sur les questions à plusieurs réponses, réponses mélangées.
+- Exercices dans les outils, en fin d'épreuve (10 points, 16 minutes) : une enquête Crime GeoGuess (2 scènes tirées au hasard pour chaque candidat, défi cyber compris, 7 min, 4 points ; niveau facile en B1, normal en B3, expert en Mastère) et trois exercices Cybersup OS de 6 éléments chacun (mails, SMS, adresses web ; 3 min et 2 points chacun). Le contenu Cybersup OS est dans `src/outils/`, régénérable avec `npm run export:exam` dans le projet Cybersup OS. Sans `EXTERNAL_CRIME_SECRET` et `EXTERNAL_WIN95_SECRET`, ces questions affichent « exercice indisponible » et rapportent 0.
 - Détail de la relecture : `supabase/seed/admission-2026/RELECTURE.md`.
 - Charger les épreuves : après `schema.sql` et la création d'un compte admin, exécuter `supabase/seed/admission-2026.sql` (épreuves non publiées, sur invitation).
 - Modifier une question : éditer `supabase/seed/admission-2026/src/`, puis `python3 supabase/seed/admission-2026/src/gen.py`.

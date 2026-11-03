@@ -1,0 +1,291 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "m1",
+    "kind": "mail",
+    "data": {
+     "sender": "noreply@appleid-account-secure.com",
+     "subject": "Votre identifiant Apple a été utilisé pour se connecter à iCloud",
+     "date": "15/05/2026",
+     "template": "tech",
+     "brand": {
+      "name": "Apple",
+      "fullName": "Apple · Sécurité du compte",
+      "tagline": "Designed by Apple in California",
+      "footer": "Apple Distribution International · Hollyhill Industrial Estate, Cork, Ireland",
+      "bg": "#1d1d1f",
+      "text": "#ffffff",
+      "accent": "#0071e3",
+      "logo": ""
+     },
+     "extras": {
+      "alertLevel": "info",
+      "alertTitle": "Nouvelle connexion à iCloud",
+      "alertMessage": "Si ce n'est pas vous, sécurisez votre identifiant Apple.",
+      "infoTable": [
+       {
+        "label": "Appareil",
+        "value": "MacBook Pro (14 pouces)"
+       },
+       {
+        "label": "Lieu approximatif",
+        "value": "Moscou, Russie",
+        "highlight": true
+       },
+       {
+        "label": "IP",
+        "value": "95.214.xx.xx"
+       },
+       {
+        "label": "Date",
+        "value": "15/05/2026 à 04:11"
+       }
+      ],
+      "ctaPrimary": "CE N'ÉTAIT PAS MOI",
+      "ctaSecondary": "C'était moi",
+      "ctaColor": "#0071e3"
+     },
+     "body1": "Bonjour,\n\nVotre identifiant Apple a été utilisé pour se connecter à iCloud depuis un nouvel appareil.\n\nSi ce n'est pas vous, votre mot de passe est peut-être compromis. Sécurisez votre compte dès maintenant :\n",
+     "link": "https://appleid-account-secure.com/verify",
+     "attachment": null,
+     "body2": "\nCordialement,\nL'assistance Apple"
+    }
+   },
+   {
+    "id": "m2",
+    "kind": "mail",
+    "data": {
+     "sender": "facturation@edf-paiement-securise.com",
+     "subject": "[URGENT] Facture impayée — coupure de courant programmée",
+     "date": "14/05/2026",
+     "template": "utility",
+     "brand": {
+      "name": "EDF",
+      "fullName": "EDF · Service Facturation",
+      "tagline": "L'énergie est notre avenir, économisons-la",
+      "footer": "EDF SA · 22-30 av. de Wagram, 75008 Paris · RCS Paris 552 081 317",
+      "bg": "#005bbb",
+      "text": "#ffffff",
+      "accent": "#ff8200",
+      "logo": "edf"
+     },
+     "extras": {
+      "alertLevel": "danger",
+      "alertTitle": "⚡ COUPURE PROGRAMMÉE LE 17/05",
+      "alertMessage": "Votre facture est impayée depuis plus de 30 jours.",
+      "bigAmount": "143,82 €",
+      "amountLabel": "MONTANT DÛ",
+      "infoTable": [
+       {
+        "label": "N° contrat",
+        "value": "EDF-2026-7740912",
+        "highlight": true
+       },
+       {
+        "label": "Période",
+        "value": "Avril 2026"
+       },
+       {
+        "label": "Échéance dépassée",
+        "value": "32 jours"
+       },
+       {
+        "label": "Date de coupure",
+        "value": "17/05/2026 — 14h00"
+       }
+      ],
+      "ctaPrimary": "RÉGLER MA FACTURE MAINTENANT",
+      "ctaColor": "#ff8200"
+     },
+     "body1": "Madame, Monsieur,\n\nNotre service comptable n'a pas reçu le règlement de votre facture d'électricité du mois d'Avril 2026.\n\nSans règlement immédiat, la coupure de votre alimentation électrique est programmée pour le 17 mai à 14h00. Des frais de ré-activation de 89 € s'ajouteront au montant dû.\n\nRéglez en ligne en quelques clics :\n",
+     "link": "https://edf-paiement-securise.com/reglement-urgence?ref=7740912",
+     "attachment": null,
+     "body2": "\nPour toute question, contactez le service client (numéro non surtaxé).\n\nService Facturation — EDF"
+    }
+   },
+   {
+    "id": "m3",
+    "kind": "mail",
+    "data": {
+     "sender": "commande-confirmation@amazon.fr",
+     "subject": "Votre commande Amazon #402-7741289 a été expédiée",
+     "date": "13/05/2026",
+     "template": "ecommerce",
+     "brand": {
+      "name": "amazon.fr",
+      "fullName": "amazon — Confirmation de commande",
+      "tagline": "Votre commande est en route",
+      "footer": "Amazon EU S.à r.l. · 38 av. John F. Kennedy, L-1855 Luxembourg",
+      "bg": "#232f3e",
+      "text": "#ffffff",
+      "accent": "#ff9900",
+      "logo": "a→"
+     },
+     "extras": {
+      "alertLevel": "success",
+      "alertTitle": "Commande expédiée",
+      "alertMessage": "Livraison estimée : jeudi 15 mai entre 10h et 14h.",
+      "infoTable": [
+       {
+        "label": "N° de commande",
+        "value": "#402-7741289-3340511",
+        "highlight": true
+       },
+       {
+        "label": "Article",
+        "value": "Casque audio Sony WH-1000XM5"
+       },
+       {
+        "label": "Montant",
+        "value": "329,00 €"
+       },
+       {
+        "label": "Livraison",
+        "value": "Jeudi 15/05 — Domicile"
+       }
+      ],
+      "ctaPrimary": "SUIVRE MA COMMANDE",
+      "ctaColor": "#ff9900"
+     },
+     "body1": "Bonjour,\n\nMerci pour votre commande. Elle a été expédiée et arrivera bientôt chez vous.\n\nVous pouvez suivre son acheminement à tout moment depuis votre compte Amazon.\n",
+     "link": "https://www.amazon.fr/gp/your-account/order-details?orderID=402-7741289-3340511",
+     "attachment": null,
+     "body2": "\nÀ bientôt sur Amazon,\nL'équipe Amazon.fr"
+    }
+   },
+   {
+    "id": "m4",
+    "kind": "mail",
+    "data": {
+     "sender": "no-reply@sncf-connect.com",
+     "subject": "Confirmation de votre billet · Paris → Lyon · 18/05",
+     "date": "10/05/2026",
+     "template": "booking",
+     "brand": {
+      "name": "SNCF Connect",
+      "fullName": "SNCF Connect · Confirmation voyage",
+      "tagline": "Tous vos déplacements en un clic",
+      "footer": "SNCF Voyageurs · 9 rue Jean-Philippe Rameau, 93200 Saint-Denis",
+      "bg": "#0a2240",
+      "text": "#ffffff",
+      "accent": "#e1000f",
+      "logo": "SNCF"
+     },
+     "extras": {
+      "alertLevel": "success",
+      "alertTitle": "Billet confirmé",
+      "alertMessage": "Votre billet a bien été enregistré.",
+      "infoTable": [
+       {
+        "label": "Trajet",
+        "value": "Paris Gare de Lyon → Lyon Part-Dieu",
+        "highlight": true
+       },
+       {
+        "label": "Date",
+        "value": "18/05/2026 — 08:36 → 10:34"
+       },
+       {
+        "label": "Train",
+        "value": "TGV INOUI 6605"
+       },
+       {
+        "label": "Voiture / Place",
+        "value": "17 / 84 (fenêtre)"
+       },
+       {
+        "label": "N° dossier",
+        "value": "PNR-X7K2QH"
+       }
+      ],
+      "ctaPrimary": "TÉLÉCHARGER MON BILLET",
+      "ctaColor": "#e1000f"
+     },
+     "body1": "Bonjour,\n\nVotre billet de train a bien été enregistré. Vous pouvez le télécharger depuis votre compte SNCF Connect ou directement dans l'application mobile.\n",
+     "link": "https://www.sncf-connect.com/app/billets",
+     "attachment": null,
+     "body2": "\nBon voyage,\nL'équipe SNCF Connect"
+    }
+   },
+   {
+    "id": "m5",
+    "kind": "mail",
+    "data": {
+     "sender": "info@account.netflix.com",
+     "subject": "Voici ce qui arrive sur Netflix en juin",
+     "date": "14/05/2026",
+     "template": "streaming",
+     "brand": {
+      "name": "Netflix",
+      "fullName": "NETFLIX",
+      "tagline": "Films, séries en illimité",
+      "footer": "Netflix International B.V. · Karperstraat 8-10, 1075 KZ Amsterdam",
+      "bg": "#000000",
+      "text": "#e50914",
+      "accent": "#e50914",
+      "logo": "N"
+     },
+     "extras": {
+      "imageBox": {
+       "title": "Stranger Things — Saison 5",
+       "subtitle": "Disponible le 27 juin",
+       "emoji": "👾"
+      },
+      "ctaPrimary": "EXPLORER LES NOUVEAUTÉS",
+      "ctaColor": "#e50914"
+     },
+     "body1": "Salut,\n\nLe mois prochain s'annonce chargé sur Netflix ! Voici quelques sorties qu'on a sélectionnées pour toi :\n\n• Stranger Things — Saison 5 (27 juin)\n• Wednesday — Saison 2 (12 juin)\n• Le nouveau film de Scorsese (20 juin)\n\nBon visionnage !\n",
+     "link": "https://www.netflix.com/browse/coming-soon",
+     "attachment": null,
+     "body2": "\nL'équipe Netflix"
+    }
+   },
+   {
+    "id": "m6",
+    "kind": "mail",
+    "data": {
+     "sender": "gagnant@amzn-prize-fr.com",
+     "subject": "🎉 Félicitations ! Bon Amazon 500 € — à réclamer sous 24h",
+     "date": "22/05/2026",
+     "template": "ecommerce",
+     "brand": {
+      "name": "Amazon Cadeaux",
+      "fullName": "amazon — Programme Fidélité",
+      "tagline": "Vous êtes notre gagnant du jour",
+      "footer": "Amazon Services Europe — 38 av. John F. Kennedy, L-1855 Luxembourg",
+      "bg": "#232f3e",
+      "text": "#ffffff",
+      "accent": "#ff9900",
+      "logo": "a→"
+     },
+     "extras": {
+      "bigAmount": "500 €",
+      "amountLabel": "BON D'ACHAT AMAZON",
+      "countdown": "⏰ Expire dans 24h00",
+      "imageBox": {
+       "title": "Bon d'achat 500 €",
+       "subtitle": "à valoir sur amazon.fr",
+       "emoji": "🎁"
+      },
+      "ctaPrimary": "RÉCLAMER MON BON D'ACHAT",
+      "ctaColor": "#ff9900"
+     },
+     "body1": "Cher utilisateur,\n\nVous avez été sélectionné aléatoirement par notre algorithme parmi 10 000 clients Amazon pour recevoir votre récompense fidélité.\n\nPour le recevoir, veuilez confirmer vos coordonnées bancaires (RIB) en cliquant sur le bouton ci-dessous :\n",
+     "link": "http://amzn-prize-fr.com/reclamer?id=778341",
+     "attachment": null,
+     "body2": "\nL'équipe Amazon Cadeaux"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "m1": "fraud",
+  "m2": "fraud",
+  "m3": "legit",
+  "m4": "legit",
+  "m5": "legit",
+  "m6": "fraud"
+ }
+}

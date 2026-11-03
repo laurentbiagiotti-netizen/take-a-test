@@ -1,0 +1,75 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "s1",
+    "kind": "sms",
+    "data": {
+     "sender": "Domino's",
+     "text": "Domino's : merci pour votre commande de 42,87€. À très vite !",
+     "link": null,
+     "time": "Mer."
+    }
+   },
+   {
+    "id": "s2",
+    "kind": "sms",
+    "data": {
+     "sender": "SFR-NET",
+     "text": "[SFR] Reconfiguration de votre ligne nécessaire avant 9/11 : t.co/gg1jnm",
+     "link": "t.co/gg1jnm",
+     "time": "16h42"
+    }
+   },
+   {
+    "id": "s3",
+    "kind": "sms",
+    "data": {
+     "sender": "Cabinet Dr Petit",
+     "text": "Cabinet Dr Petit : rappel de votre RDV demain à 11h15. Pour annuler, appelez le 01 47 34 54 28.",
+     "link": null,
+     "time": "18h22"
+    }
+   },
+   {
+    "id": "s4",
+    "kind": "sms",
+    "data": {
+     "sender": "ANTS-FR",
+     "text": "CONVOCATION : vous êtes convoqué au tribunal de Bordeaux. Détails : lnk.ly/byl43u",
+     "link": "lnk.ly/byl43u",
+     "time": "10h36"
+    }
+   },
+   {
+    "id": "s5",
+    "kind": "sms",
+    "data": {
+     "sender": "Apple-Info",
+     "text": "iCloud : votre identifiant Apple a été compromis. Sécurisez votre compte immédiatement : is.gd/z1k6jd",
+     "link": "is.gd/z1k6jd",
+     "time": "18h34"
+    }
+   },
+   {
+    "id": "s6",
+    "kind": "sms",
+    "data": {
+     "sender": "Maman ❤️",
+     "text": "Pense à appeler ta grand-mère, elle te demande",
+     "link": null,
+     "time": "20h51"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "s1": "legit",
+  "s2": "fraud",
+  "s3": "legit",
+  "s4": "fraud",
+  "s5": "fraud",
+  "s6": "legit"
+ }
+}

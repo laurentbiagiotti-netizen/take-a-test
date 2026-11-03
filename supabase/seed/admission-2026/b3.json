@@ -1,8 +1,8 @@
 {
  "title": "Admission Bachelor 3 Cybersécurité 2026",
- "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 58 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Plus une mission terminal de 8 minutes (4 points). Seuil d'admissibilité proposé : 27/54.",
- "duration_minutes": 58,
- "pass_mark": 27,
+ "description": "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 74 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Plus une mission terminal de 8 minutes (4 points). Plus une enquête Crime GeoGuess (7 minutes, 4 points) et trois exercices de détection du phishing dans Cybersup OS (9 minutes, 6 points). Seuil d'admissibilité proposé : 32/64.",
+ "duration_minutes": 74,
+ "pass_mark": 32,
  "domain_floors": {
   "Cybersécurité": 0.3,
   "Logique et diagnostic": 0.3,
@@ -3276,6 +3276,487 @@
     ]
    },
    "explanation": "Missions vérifiées automatiquement sur l'état de la machine simulée."
+  },
+  {
+   "position": 52,
+   "variant_group": null,
+   "variant": null,
+   "type": "external",
+   "domain": "Enquête OSINT",
+   "prompt": "Enquête OSINT : pour chaque scène de crime, retrouvez le lieu sur la carte et résolvez le défi cyber du dossier.",
+   "options": null,
+   "correct": null,
+   "points": 4,
+   "external": {
+    "tool": "crime",
+    "label": "2 enquêtes",
+    "time_limit_s": 420,
+    "scenario": {
+     "count": 2,
+     "difficulty": "normal",
+     "with_flag": true
+    },
+    "answer_key": null
+   }
+  },
+  {
+   "position": 53,
+   "variant_group": null,
+   "variant": null,
+   "type": "external",
+   "domain": "Détection du phishing",
+   "prompt": "Détection du phishing (boîte mail) : Votre boîte de réception : pour chaque mail, frauduleux ou légitime ?",
+   "options": null,
+   "correct": null,
+   "points": 2,
+   "external": {
+    "tool": "win95",
+    "label": "Boîte mail",
+    "time_limit_s": 180,
+    "scenario": {
+     "intro": "Votre boîte de réception : pour chaque mail, frauduleux ou légitime ?",
+     "items": [
+      {
+       "id": "m1",
+       "kind": "mail",
+       "data": {
+        "sender": "no-reply@doctolib.fr",
+        "subject": "Rappel : votre RDV avec Dr. Lefèvre est demain à 10:30",
+        "date": "16/05/2026",
+        "template": "booking",
+        "brand": {
+         "name": "Doctolib",
+         "fullName": "Doctolib · Rappel de rendez-vous",
+         "tagline": "Prenez rendez-vous avec un professionnel de santé",
+         "footer": "Doctolib SAS · 54 quai Charles Pasqua, 92300 Levallois-Perret",
+         "bg": "#107ACA",
+         "text": "#ffffff",
+         "accent": "#ffffff",
+         "logo": "+"
+        },
+        "extras": {
+         "alertLevel": "info",
+         "alertTitle": "Rappel rendez-vous",
+         "alertMessage": "N'oubliez pas votre consultation prévue demain.",
+         "infoTable": [
+          {
+           "label": "Praticien",
+           "value": "Dr. Marie Lefèvre"
+          },
+          {
+           "label": "Spécialité",
+           "value": "Dermatologue"
+          },
+          {
+           "label": "Date du RDV",
+           "value": "17/05/2026 à 10:30",
+           "highlight": true
+          },
+          {
+           "label": "Adresse",
+           "value": "12 rue de la Paix, 75002 Paris"
+          }
+         ],
+         "ctaPrimary": "VOIR MON RDV",
+         "ctaColor": "#107ACA"
+        },
+        "body1": "Bonjour,\n\nPetit rappel : vous avez rendez-vous avec votre praticien demain. Vous pouvez consulter ou annuler votre rendez-vous directement depuis votre espace Doctolib.\n",
+        "link": "https://www.doctolib.fr/account/appointments",
+        "attachment": null,
+        "body2": "\nÀ bientôt,\nL'équipe Doctolib"
+       }
+      },
+      {
+       "id": "m2",
+       "kind": "mail",
+       "data": {
+        "sender": "me.kwame.attorney@gmail.com",
+        "subject": "URGENT : héritage de 875.000 EUR vous attend",
+        "date": "23/05/2026",
+        "template": "lottery",
+        "brand": {
+         "name": "Legal Fund BF",
+         "fullName": "INTERNATIONAL LEGAL & HERITAGE SERVICES",
+         "tagline": "Recovering unclaimed inheritance worldwide since 1998",
+         "footer": "Cabinet juridique international — Ouagadougou, BF",
+         "bg": "#1a1a1a",
+         "text": "#f0c040",
+         "accent": "#f0c040",
+         "logo": "⚖ ILS"
+        },
+        "extras": {
+         "bigAmount": "875.000,00 €",
+         "amountLabel": "MONTANT À RÉCUPÉRER",
+         "countdown": "À CONFIRMER SOUS 7 JOURS",
+         "ctaPrimary": "CONFIRMER MON IDENTITÉ",
+         "ctaColor": "#f0c040"
+        },
+        "body1": "Cher Bénéficiaire,\n\nJe suis Maître Kwame Adebayo, avocat international au Burkina Faso. Mon défunt client, Monsieur Pierre L., partage votre nom de famille et est décédé sans héritier connu en laissant cette somme sur un compte bancaire bloqué.\n\nAprès recherche, vous avez été identifié comme le seul bénéficiaire légitime. Pour débloquer ce fond, vous devez confirmer votre identité et régler les frais de dossier de 480 EUR.\n\nCliquez ci-dessous pour recevoir le formulaire confidentiel :\n",
+        "link": "http://heritage-international-claim.legalfund-bf.com",
+        "attachment": null,
+        "body2": "\nToutes nos condoléances et félicitations.\nMe Kwame Adebayo, avocat international."
+       }
+      },
+      {
+       "id": "m3",
+       "kind": "mail",
+       "data": {
+        "sender": "no-reply@sncf-connect.com",
+        "subject": "Confirmation de votre billet · Paris → Lyon · 18/05",
+        "date": "10/05/2026",
+        "template": "booking",
+        "brand": {
+         "name": "SNCF Connect",
+         "fullName": "SNCF Connect · Confirmation voyage",
+         "tagline": "Tous vos déplacements en un clic",
+         "footer": "SNCF Voyageurs · 9 rue Jean-Philippe Rameau, 93200 Saint-Denis",
+         "bg": "#0a2240",
+         "text": "#ffffff",
+         "accent": "#e1000f",
+         "logo": "SNCF"
+        },
+        "extras": {
+         "alertLevel": "success",
+         "alertTitle": "Billet confirmé",
+         "alertMessage": "Votre billet a bien été enregistré.",
+         "infoTable": [
+          {
+           "label": "Trajet",
+           "value": "Paris Gare de Lyon → Lyon Part-Dieu",
+           "highlight": true
+          },
+          {
+           "label": "Date",
+           "value": "18/05/2026 — 08:36 → 10:34"
+          },
+          {
+           "label": "Train",
+           "value": "TGV INOUI 6605"
+          },
+          {
+           "label": "Voiture / Place",
+           "value": "17 / 84 (fenêtre)"
+          },
+          {
+           "label": "N° dossier",
+           "value": "PNR-X7K2QH"
+          }
+         ],
+         "ctaPrimary": "TÉLÉCHARGER MON BILLET",
+         "ctaColor": "#e1000f"
+        },
+        "body1": "Bonjour,\n\nVotre billet de train a bien été enregistré. Vous pouvez le télécharger depuis votre compte SNCF Connect ou directement dans l'application mobile.\n",
+        "link": "https://www.sncf-connect.com/app/billets",
+        "attachment": null,
+        "body2": "\nBon voyage,\nL'équipe SNCF Connect"
+       }
+      },
+      {
+       "id": "m4",
+       "kind": "mail",
+       "data": {
+        "sender": "bourses-etudiants@crous-paris-etudiants.fr",
+        "subject": "Versement de ta bourse de Mai — confirmation requise",
+        "date": "18/05/2026",
+        "template": "student",
+        "brand": {
+         "name": "CROUS Paris",
+         "fullName": "CROUS de Paris · Service Vie étudiante",
+         "tagline": "L'enseignement supérieur côté vie étudiante",
+         "footer": "CROUS de Paris · 39 av. Georges Bernanos, 75005 Paris",
+         "bg": "#003566",
+         "text": "#ffffff",
+         "accent": "#ffc300",
+         "logo": "CR"
+        },
+        "extras": {
+         "alertLevel": "info",
+         "alertTitle": "Bourse prête à être versée",
+         "alertMessage": "Confirme ton identité pour recevoir ton virement.",
+         "infoTable": [
+          {
+           "label": "N° DSE",
+           "value": "DSE-2026-44128",
+           "highlight": true
+          },
+          {
+           "label": "Échelon",
+           "value": "4"
+          },
+          {
+           "label": "Montant mensuel",
+           "value": "463 €"
+          },
+          {
+           "label": "Période",
+           "value": "Mai 2026"
+          }
+         ],
+         "ctaPrimary": "CONFIRMER MON IDENTITÉ",
+         "ctaColor": "#003566"
+        },
+        "body1": "Bonjour,\n\nTa bourse du mois de Mai est prête à être versée. Avant le virement, nous devons confirmer que c'est bien toi qui consulte ton dossier.\n\nConnecte-toi sur ton espace MesServices.etudiant :\n",
+        "link": "https://crous-paris-etudiants.fr/espace-etudiant/login",
+        "attachment": null,
+        "body2": "\nSans confirmation sous 7 jours, le versement sera reporté au mois suivant.\n\nBon courage pour tes examens !\n\nService Vie étudiante — CROUS de Paris"
+       }
+      },
+      {
+       "id": "m5",
+       "kind": "mail",
+       "data": {
+        "sender": "info@account.netflix.com",
+        "subject": "Voici ce qui arrive sur Netflix en juin",
+        "date": "14/05/2026",
+        "template": "streaming",
+        "brand": {
+         "name": "Netflix",
+         "fullName": "NETFLIX",
+         "tagline": "Films, séries en illimité",
+         "footer": "Netflix International B.V. · Karperstraat 8-10, 1075 KZ Amsterdam",
+         "bg": "#000000",
+         "text": "#e50914",
+         "accent": "#e50914",
+         "logo": "N"
+        },
+        "extras": {
+         "imageBox": {
+          "title": "Stranger Things — Saison 5",
+          "subtitle": "Disponible le 27 juin",
+          "emoji": "👾"
+         },
+         "ctaPrimary": "EXPLORER LES NOUVEAUTÉS",
+         "ctaColor": "#e50914"
+        },
+        "body1": "Salut,\n\nLe mois prochain s'annonce chargé sur Netflix ! Voici quelques sorties qu'on a sélectionnées pour toi :\n\n• Stranger Things — Saison 5 (27 juin)\n• Wednesday — Saison 2 (12 juin)\n• Le nouveau film de Scorsese (20 juin)\n\nBon visionnage !\n",
+        "link": "https://www.netflix.com/browse/coming-soon",
+        "attachment": null,
+        "body2": "\nL'équipe Netflix"
+       }
+      },
+      {
+       "id": "m6",
+       "kind": "mail",
+       "data": {
+        "sender": "facturation@edf-paiement-securise.com",
+        "subject": "[URGENT] Facture impayée — coupure de courant programmée",
+        "date": "14/05/2026",
+        "template": "utility",
+        "brand": {
+         "name": "EDF",
+         "fullName": "EDF · Service Facturation",
+         "tagline": "L'énergie est notre avenir, économisons-la",
+         "footer": "EDF SA · 22-30 av. de Wagram, 75008 Paris · RCS Paris 552 081 317",
+         "bg": "#005bbb",
+         "text": "#ffffff",
+         "accent": "#ff8200",
+         "logo": "edf"
+        },
+        "extras": {
+         "alertLevel": "danger",
+         "alertTitle": "⚡ COUPURE PROGRAMMÉE LE 17/05",
+         "alertMessage": "Votre facture est impayée depuis plus de 30 jours.",
+         "bigAmount": "143,82 €",
+         "amountLabel": "MONTANT DÛ",
+         "infoTable": [
+          {
+           "label": "N° contrat",
+           "value": "EDF-2026-7740912",
+           "highlight": true
+          },
+          {
+           "label": "Période",
+           "value": "Avril 2026"
+          },
+          {
+           "label": "Échéance dépassée",
+           "value": "32 jours"
+          },
+          {
+           "label": "Date de coupure",
+           "value": "17/05/2026 — 14h00"
+          }
+         ],
+         "ctaPrimary": "RÉGLER MA FACTURE MAINTENANT",
+         "ctaColor": "#ff8200"
+        },
+        "body1": "Madame, Monsieur,\n\nNotre service comptable n'a pas reçu le règlement de votre facture d'électricité du mois d'Avril 2026.\n\nSans règlement immédiat, la coupure de votre alimentation électrique est programmée pour le 17 mai à 14h00. Des frais de ré-activation de 89 € s'ajouteront au montant dû.\n\nRéglez en ligne en quelques clics :\n",
+        "link": "https://edf-paiement-securise.com/reglement-urgence?ref=7740912",
+        "attachment": null,
+        "body2": "\nPour toute question, contactez le service client (numéro non surtaxé).\n\nService Facturation — EDF"
+       }
+      }
+     ]
+    },
+    "answer_key": {
+     "m1": "legit",
+     "m2": "fraud",
+     "m3": "legit",
+     "m4": "fraud",
+     "m5": "legit",
+     "m6": "fraud"
+    }
+   }
+  },
+  {
+   "position": 54,
+   "variant_group": null,
+   "variant": null,
+   "type": "external",
+   "domain": "Détection du phishing",
+   "prompt": "Détection du phishing (sms) : Vos SMS : pour chaque message, frauduleux ou légitime ?",
+   "options": null,
+   "correct": null,
+   "points": 2,
+   "external": {
+    "tool": "win95",
+    "label": "SMS",
+    "time_limit_s": 180,
+    "scenario": {
+     "intro": "Vos SMS : pour chaque message, frauduleux ou légitime ?",
+     "items": [
+      {
+       "id": "s1",
+       "kind": "sms",
+       "data": {
+        "sender": "Domino's",
+        "text": "Domino's : merci pour votre commande de 42,87€. À très vite !",
+        "link": null,
+        "time": "Mer."
+       }
+      },
+      {
+       "id": "s2",
+       "kind": "sms",
+       "data": {
+        "sender": "SFR-NET",
+        "text": "[SFR] Reconfiguration de votre ligne nécessaire avant 9/11 : t.co/gg1jnm",
+        "link": "t.co/gg1jnm",
+        "time": "16h42"
+       }
+      },
+      {
+       "id": "s3",
+       "kind": "sms",
+       "data": {
+        "sender": "Cabinet Dr Petit",
+        "text": "Cabinet Dr Petit : rappel de votre RDV demain à 11h15. Pour annuler, appelez le 01 47 34 54 28.",
+        "link": null,
+        "time": "18h22"
+       }
+      },
+      {
+       "id": "s4",
+       "kind": "sms",
+       "data": {
+        "sender": "ANTS-FR",
+        "text": "CONVOCATION : vous êtes convoqué au tribunal de Bordeaux. Détails : lnk.ly/byl43u",
+        "link": "lnk.ly/byl43u",
+        "time": "10h36"
+       }
+      },
+      {
+       "id": "s5",
+       "kind": "sms",
+       "data": {
+        "sender": "Apple-Info",
+        "text": "iCloud : votre identifiant Apple a été compromis. Sécurisez votre compte immédiatement : is.gd/z1k6jd",
+        "link": "is.gd/z1k6jd",
+        "time": "18h34"
+       }
+      },
+      {
+       "id": "s6",
+       "kind": "sms",
+       "data": {
+        "sender": "Maman ❤️",
+        "text": "Pense à appeler ta grand-mère, elle te demande",
+        "link": null,
+        "time": "20h51"
+       }
+      }
+     ]
+    },
+    "answer_key": {
+     "s1": "legit",
+     "s2": "fraud",
+     "s3": "legit",
+     "s4": "fraud",
+     "s5": "fraud",
+     "s6": "legit"
+    }
+   }
+  },
+  {
+   "position": 55,
+   "variant_group": null,
+   "variant": null,
+   "type": "external",
+   "domain": "Détection du phishing",
+   "prompt": "Détection du phishing (adresses web) : Pour chaque adresse web, site frauduleux ou légitime ?",
+   "options": null,
+   "correct": null,
+   "points": 2,
+   "external": {
+    "tool": "win95",
+    "label": "Adresses web",
+    "time_limit_s": 180,
+    "scenario": {
+     "intro": "Pour chaque adresse web, site frauduleux ou légitime ?",
+     "items": [
+      {
+       "id": "u1",
+       "kind": "url",
+       "data": {
+        "url": "https://cutt.ly/IMPOTS-DECLARATION-URGENT"
+       }
+      },
+      {
+       "id": "u2",
+       "kind": "url",
+       "data": {
+        "url": "https://cybersup.ai/agenda/2026"
+       }
+      },
+      {
+       "id": "u3",
+       "kind": "url",
+       "data": {
+        "url": "https://www.app1e.com/icloud"
+       }
+      },
+      {
+       "id": "u4",
+       "kind": "url",
+       "data": {
+        "url": "https://www.linkdin.com"
+       }
+      },
+      {
+       "id": "u5",
+       "kind": "url",
+       "data": {
+        "url": "https://accounts.google.com/signin"
+       }
+      },
+      {
+       "id": "u6",
+       "kind": "url",
+       "data": {
+        "url": "https://cloud.google.com/iam/docs/authentication"
+       }
+      }
+     ]
+    },
+    "answer_key": {
+     "u1": "fraud",
+     "u2": "legit",
+     "u3": "fraud",
+     "u4": "fraud",
+     "u5": "legit",
+     "u6": "legit"
+    }
+   }
   }
  ]
 }

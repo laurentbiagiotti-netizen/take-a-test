@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QuestionBody, { type PublicQ } from "@/components/questions/QuestionBody";
+import { focusInToolFrame, pointInToolFrame } from "@/components/questions/ExternalExercise";
 import QuestionPrompt from "@/components/questions/QuestionPrompt";
 import { ANOMALY_LABEL, startCameraMonitor, type CameraStatus } from "@/lib/proctor/camera-monitor";
 import { CameraChip, CheckRow, ConfirmBar, RulesList, StartRow } from "@/components/exam/ui";
@@ -180,12 +181,14 @@ export default function ExamRoom(props: {
       if (!full) report("fullscreen_exit", undefined, true); else report("fullscreen_return");
     };
     const onVis = () => { if (document.hidden) report("tab_hidden", undefined, true); };
-    const onBlur = () => report("window_blur", undefined, true);
+    // Cliquer dans le cadre d'un exercice externe retire le focus de la page :
+    // ce n'est pas une sortie de fenêtre (l'outil signale lui-même les vraies).
+    const onBlur = () => setTimeout(() => { if (!focusInToolFrame()) report("window_blur", undefined, true); }, 0);
     const block = (kind: string) => (e: Event) => { e.preventDefault(); report(kind); };
     const onCopy = block("copy_blocked"), onPaste = block("paste_blocked"), onCut = block("cut_blocked");
     const onContext = (e: Event) => e.preventDefault();
     const onPrint = () => report("print_attempt", undefined, true);
-    const onLeave = (e: MouseEvent) => { if (!e.relatedTarget) report("mouse_left"); };
+    const onLeave = (e: MouseEvent) => { if (!e.relatedTarget && !pointInToolFrame(e.clientX, e.clientY)) report("mouse_left"); };
     // Recharger ou fermer la page coûte une reprise de session : on prévient
     const onUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
     const onKey = (e: KeyboardEvent) => {
@@ -450,7 +453,7 @@ export default function ExamRoom(props: {
         <div className="h-full bg-accent transition-all" style={{ width: `${((idx + 1) / Math.max(1, questions.length)) * 100}%` }} />
       </div>
 
-      <main className="max-w-3xl mx-auto p-4 sm:p-6 relative z-30">
+      <main className={`${q?.type === "external" ? "max-w-6xl" : "max-w-3xl"} mx-auto p-4 sm:p-6 relative z-30`}>
         <div className="text-sm text-muted mb-3">Question <b className="text-fg">{idx + 1}</b> sur {questions.length}</div>
         {q && (
           <div className="card">
@@ -460,11 +463,17 @@ export default function ExamRoom(props: {
             <div className="mt-1"><QuestionPrompt ref={headingRef} prompt={q.prompt} /></div>
             {q.image_url && <img src={q.image_url} alt="" className="mt-3 max-h-80 rounded border" draggable={false} />}
             <div className="mt-4">
-              <QuestionBody q={q} value={answers[q.id]} onChange={(r) => setChoice(q, r)} onText={(r) => setText(q, r)}
+              <QuestionBody q={q} value={answers[q.id]} onText={(r) => setText(q, r)}
+                onChange={(r) => (q.type === "external" ? setAnswers((a) => ({ ...a, [q.id]: r })) : setChoice(q, r))}
                 runTerminal={async (command) => {
                   const { ok, data } = await post("terminal", { question_id: q.id, command });
                   return ok ? data : { error: data?.message || "Commande refusée." };
-                }} />
+                }}
+                launchExternal={async () => {
+                  const { ok, data } = await post("external", { question_id: q.id });
+                  return ok ? data : { error: data?.message || "Impossible d'ouvrir l'exercice." };
+                }}
+                onExternalBlur={() => report("window_blur", { in_tool: true }, true)} />
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
               <span className="text-xs text-muted">Une réponse validée est définitive.</span>
@@ -477,8 +486,9 @@ export default function ExamRoom(props: {
         <div className="h-20" aria-hidden />
       </main>
       {confirming && q && (() => {
-        const unanswered = questions.filter((x) => x.type !== "terminal" && !isAnswered(answers[x.id])).length;
-        const empty = !isAnswered(answers[q.id]) && q.type !== "terminal";
+        const done = (x: Q) => isAnswered(answers[x.id]) || (x.type === "external" && !!x.external?.completed);
+        const unanswered = questions.filter((x) => x.type !== "terminal" && !done(x)).length;
+        const empty = !done(q) && q.type !== "terminal";
         return confirming === "submit"
           ? <ConfirmBar message="Rendre la copie ?" confirmLabel="Rendre la copie" onConfirm={submit} onCancel={() => setConfirming(null)}
               detail={unanswered ? `${unanswered} question(s) sans réponse. C'est définitif.` : "C'est définitif : votre accusé de réception s'affichera ensuite."} />

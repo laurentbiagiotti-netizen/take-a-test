@@ -13,7 +13,7 @@
 ------------------------------------------------------------
 create type user_role as enum ('admin', 'proctor', 'candidate');
 create type question_type as enum ('mcq_single', 'mcq_multi', 'long_text', 'terminal',
-                                   'ordering', 'matching', 'hotspot', 'short_answer');
+                                   'ordering', 'matching', 'hotspot', 'short_answer', 'external');
 create type attempt_status as enum ('pending', 'in_progress', 'submitted', 'terminated', 'expired');
 create type identity_status as enum ('not_required', 'pending', 'submitted', 'verified', 'rejected');
 
@@ -109,6 +109,22 @@ create table question_terminals (
   question_id uuid primary key references questions(id) on delete cascade,
   scenario jsonb not null,
   flag text check (flag is null or length(flag) between 1 and 200)
+);
+
+-- Questions « exercice externe » : l'exercice se passe dans un outil de
+-- l'école (Crime GeoGuess, Cybersup OS…) ouvert dans l'épreuve.
+--   tool      : identifiant de l'outil (voir lib/external/tools.ts)
+--   scenario  : ce que l'outil reçoit (cas imposés, mails à trier…), sans corrigé
+--   answer_key: corrigé gardé ici quand c'est la plateforme qui note
+--               (outils sans serveur, comme Cybersup OS) ; jamais envoyé
+-- Admin uniquement : rien de cette table n'est lu par le navigateur.
+create table question_externals (
+  question_id uuid primary key references questions(id) on delete cascade,
+  tool text not null check (tool ~ '^[a-z0-9_-]{2,30}$'),
+  scenario jsonb not null default '{}'::jsonb,
+  answer_key jsonb,
+  time_limit_s int check (time_limit_s is null or time_limit_s between 30 and 7200),
+  label text check (label is null or length(label) <= 200)
 );
 
 
@@ -254,6 +270,27 @@ create table terminal_states (
   primary key (attempt_id, question_id)
 );
 
+-- Une session par candidat et par exercice externe. Le nonce lie le jeton
+-- de lancement à la session ; seq empêche de rejouer un ancien résultat.
+create table external_sessions (
+  id uuid primary key default gen_random_uuid(),
+  attempt_id uuid not null references attempts(id) on delete cascade,
+  question_id uuid not null references questions(id) on delete cascade,
+  tool text not null,
+  nonce text not null,
+  launched_at timestamptz not null default now(),
+  deadline_at timestamptz not null,
+  last_seq bigint not null default 0,
+  score_ratio numeric check (score_ratio is null or score_ratio between 0 and 1),
+  raw_score numeric,
+  raw_max numeric,
+  details jsonb,
+  completed boolean not null default false,
+  final boolean not null default false,
+  updated_at timestamptz not null default now(),
+  unique (attempt_id, question_id)
+);
+
 create table api_rate (
   key_id uuid not null references api_keys(id) on delete cascade,
   window_start timestamptz not null,
@@ -351,6 +388,8 @@ alter table api_nonces enable row level security;
 alter table admin_audit enable row level security;
 alter table terminal_history enable row level security;
 alter table terminal_states enable row level security;
+alter table question_externals enable row level security;
+alter table external_sessions enable row level security;
 
 -- Aucun accès anonyme, et aucun droit d'écriture implicite sur les profils.
 revoke all on all tables in schema public from anon;
@@ -385,6 +424,10 @@ create policy "terminals admin all" on question_terminals for all to authenticat
 create policy "terminal history staff read" on terminal_history for select to authenticated
   using (is_staff());
 create policy "terminal states staff read" on terminal_states for select to authenticated
+  using (is_staff());
+create policy "externals admin all" on question_externals for all to authenticated
+  using (is_admin()) with check (is_admin());
+create policy "external sessions staff read" on external_sessions for select to authenticated
   using (is_staff());
 create policy "admin audit read" on admin_audit for select to authenticated using (is_admin());
 
@@ -511,7 +554,7 @@ declare
   v_old jsonb := case when tg_op <> 'INSERT' then to_jsonb(old) end;
   v_new jsonb := case when tg_op <> 'DELETE' then to_jsonb(new) end;
   v_cols jsonb;
-  v_secret boolean := tg_table_name in ('test_secrets', 'answer_keys', 'question_terminals', 'invites', 'api_keys', 'webhooks');
+  v_secret boolean := tg_table_name in ('test_secrets', 'answer_keys', 'question_terminals', 'question_externals', 'invites', 'api_keys', 'webhooks');
 begin
   if tg_op = 'UPDATE' then
     select jsonb_object_agg(k, case when v_secret then '"(masqué)"'::jsonb else v_new->k end)
@@ -533,6 +576,7 @@ create trigger audit_test_secrets after insert or update or delete on test_secre
 create trigger audit_questions after insert or update or delete on questions for each row execute function _admin_audit();
 create trigger audit_answer_keys after insert or update or delete on answer_keys for each row execute function _admin_audit();
 create trigger audit_question_terminals after insert or update or delete on question_terminals for each row execute function _admin_audit();
+create trigger audit_question_externals after insert or update or delete on question_externals for each row execute function _admin_audit();
 create trigger audit_invites after insert or update or delete on invites for each row execute function _admin_audit();
 create trigger audit_profiles after update on profiles for each row execute function _admin_audit();
 create trigger audit_api_keys after insert or update or delete on api_keys for each row execute function _admin_audit();
@@ -654,19 +698,27 @@ begin
 
   for r in
     select q.id as qid, q.type, q.points, q.options, an.id as aid, an.response, k.correct, qt.flag,
-           jsonb_array_length(coalesce(qt.scenario->'objectives', '[]'::jsonb)) as n_obj, ts.done_ids
+           jsonb_array_length(coalesce(qt.scenario->'objectives', '[]'::jsonb)) as n_obj, ts.done_ids,
+           es.score_ratio, es.id as esid
     from questions q
     left join answers an on an.question_id = q.id and an.attempt_id = p_attempt
     left join answer_keys k on k.question_id = q.id
     left join question_terminals qt on qt.question_id = q.id
     left join terminal_states ts on ts.attempt_id = p_attempt and ts.question_id = q.id
+    left join external_sessions es on es.attempt_id = p_attempt and es.question_id = q.id
     where q.id = any(coalesce(a.question_order, '{}'))
   loop
     v_max := v_max + r.points;
     continue when r.type = 'long_text';
-    s := _grade(r.type, r.points, r.response, r.correct, r.flag, r.n_obj, coalesce(r.done_ids, '{}'));
-    if r.aid is null and r.type = 'terminal' and s > 0 then
-      insert into answers(attempt_id, question_id, response, score) values (p_attempt, r.qid, '{}'::jsonb, s);
+    if r.type = 'external' then
+      s := round(r.points * least(1, greatest(0, coalesce(r.score_ratio, 0))), 2);
+      update external_sessions set final = true where id = r.esid;
+    else
+      s := _grade(r.type, r.points, r.response, r.correct, r.flag, r.n_obj, coalesce(r.done_ids, '{}'));
+    end if;
+    if r.aid is null and r.type in ('terminal', 'external') and (s > 0 or r.esid is not null) then
+      insert into answers(attempt_id, question_id, response, score)
+      values (p_attempt, r.qid, case when r.type = 'external' then jsonb_build_object('completed', true) else '{}'::jsonb end, s);
     elsif r.aid is not null then
       update answers set score = s where id = r.aid;
     end if;
@@ -992,6 +1044,11 @@ begin
         from question_terminals qt
         left join terminal_states ts on ts.attempt_id = a.id and ts.question_id = qt.question_id
         where qt.question_id = q2.id and q2.type = 'terminal'),
+      'external', (select jsonb_build_object('tool', qe.tool, 'label', qe.label, 'time_limit_s', qe.time_limit_s,
+                          'started', es.id is not null, 'completed', coalesce(es.completed, false))
+        from question_externals qe
+        left join external_sessions es on es.attempt_id = a.id and es.question_id = qe.question_id
+        where qe.question_id = q2.id and q2.type = 'external'),
       'options', case
         when q2.type in ('mcq_single', 'mcq_multi', 'ordering') then
           (select jsonb_agg(o order by array_position(
@@ -1291,6 +1348,83 @@ begin
   values (p_attempt, p_question, p_state, coalesce(p_done, '{}'), coalesce(p_total, 0), now())
   on conflict (attempt_id, question_id) do update
     set state = excluded.state, done_ids = excluded.done_ids, total = excluded.total, updated_at = now();
+end; $$;
+
+-- Exercice externe : ouvre (ou rouvre) la session de l'exercice pour la
+-- question courante, après les contrôles de session de l'épreuve. Renvoie
+-- le scénario sans corrigé ; le serveur en fait un jeton signé pour l'outil.
+create or replace function public.exam_external_launch(p_user uuid, p_attempt uuid, p_token_hash text,
+                                                       p_question uuid, p_ip text, p_ua text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  a attempts;
+  qe question_externals;
+  es external_sessions;
+begin
+  a := _load_session(p_user, p_attempt, p_token_hash, p_ip, p_ua);
+  if a.status <> 'in_progress' then return jsonb_build_object('status', a.status); end if;
+  if now() > a.deadline_at then raise exception 'time_over' using errcode = 'P0001'; end if;
+  if not (p_question = any(a.question_order)) then raise exception 'bad_question' using errcode = 'P0001'; end if;
+  perform _check_linear(a, p_question);
+  select qx.* into qe from question_externals qx join questions q on q.id = qx.question_id
+   where qx.question_id = p_question and q.type = 'external';
+  if qe.question_id is null then raise exception 'bad_question' using errcode = 'P0001'; end if;
+
+  select * into es from external_sessions where attempt_id = a.id and question_id = p_question;
+  if es.id is null then
+    insert into external_sessions(attempt_id, question_id, tool, nonce, deadline_at)
+    values (a.id, p_question, qe.tool, replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''),
+            least(a.deadline_at, now() + make_interval(secs => coalesce(qe.time_limit_s, 86400))))
+    returning * into es;
+    perform _log(a.id, 'external_launch', 'info', jsonb_build_object('question_id', p_question, 'tool', qe.tool), p_ip);
+  end if;
+  return jsonb_build_object('status', 'in_progress', 'session_id', es.id, 'nonce', es.nonce, 'tool', es.tool,
+    'scenario', qe.scenario, 'deadline_at', es.deadline_at, 'completed', es.completed);
+end; $$;
+
+-- Lecture d'une session d'exercice par le serveur (appelée après vérification
+-- de la signature du jeton). Renvoie aussi le corrigé, pour la correction
+-- faite par la plateforme : jamais à transmettre au navigateur.
+create or replace function public.external_session(p_session uuid, p_nonce text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare es external_sessions; qe question_externals; v_status attempt_status;
+begin
+  select * into es from external_sessions where id = p_session;
+  if es.id is null or p_nonce is null or es.nonce <> p_nonce then raise exception 'session_invalid' using errcode = 'P0001'; end if;
+  select * into qe from question_externals where question_id = es.question_id;
+  select status into v_status from attempts where id = es.attempt_id;
+  return jsonb_build_object('session_id', es.id, 'tool', es.tool, 'scenario', qe.scenario, 'answer_key', qe.answer_key,
+    'deadline_at', es.deadline_at, 'completed', es.completed, 'final', es.final, 'last_seq', es.last_seq,
+    'open', v_status = 'in_progress' and not es.final and now() <= es.deadline_at + interval '2 minutes');
+end; $$;
+
+-- Enregistre le résultat d'un exercice externe. Refusé si la tentative est
+-- close, si le délai de l'exercice est dépassé (2 min de marge réseau), ou si
+-- seq n'est pas strictement croissant (pas de rejeu d'un ancien envoi).
+create or replace function public.external_record(p_session uuid, p_nonce text, p_tool text, p_seq bigint,
+                                                  p_ratio numeric, p_raw numeric, p_max numeric,
+                                                  p_details jsonb, p_completed boolean)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare es external_sessions; v_status attempt_status;
+begin
+  select * into es from external_sessions where id = p_session for update;
+  if es.id is null or p_nonce is null or es.nonce <> p_nonce or es.tool <> p_tool then
+    raise exception 'session_invalid' using errcode = 'P0001';
+  end if;
+  select status into v_status from attempts where id = es.attempt_id;
+  if v_status <> 'in_progress' or es.final then raise exception 'closed' using errcode = 'P0001'; end if;
+  if now() > es.deadline_at + interval '2 minutes' then raise exception 'time_over' using errcode = 'P0001'; end if;
+  if p_seq is null or p_seq <= es.last_seq then raise exception 'replay' using errcode = 'P0001'; end if;
+  if p_ratio is null or p_ratio < 0 or p_ratio > 1 then raise exception 'bad_response' using errcode = 'P0001'; end if;
+  if p_details is not null and length(p_details::text) > 200000 then raise exception 'bad_response' using errcode = 'P0001'; end if;
+  update external_sessions set last_seq = p_seq, score_ratio = p_ratio, raw_score = p_raw, raw_max = p_max,
+         details = p_details, completed = completed or coalesce(p_completed, false), updated_at = now()
+   where id = es.id;
+  if coalesce(p_completed, false) and not es.completed then
+    perform _log(es.attempt_id, 'external_completed', 'info',
+                 jsonb_build_object('question_id', es.question_id, 'tool', es.tool), null);
+  end if;
+  return jsonb_build_object('ok', true, 'completed', es.completed or coalesce(p_completed, false));
 end; $$;
 
 -- API : enregistre un nonce de requête signée ; faux s'il a déjà servi.

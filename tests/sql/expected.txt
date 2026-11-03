@@ -5,3 +5,4 @@ attack4.sql 2
 attack5.sql 8
 attack6.sql 2
 seed.sql 0
+external.sql 9

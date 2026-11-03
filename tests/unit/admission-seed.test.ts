@@ -3,13 +3,15 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { grade } from "@/lib/questions/kinds";
 import { validateScenario } from "@/lib/terminal/shell";
+import { checkKey, publicScenario } from "@/lib/external/grade";
 
 const dir = path.resolve(__dirname, "../../supabase/seed/admission-2026");
 const load = (n: string) => JSON.parse(readFileSync(path.join(dir, `${n}.json`), "utf8"));
 
 describe.each(["b1", "b3", "mastere"])("QCM d'admission %s", (name) => {
   const t = load(name);
-  const qcm = t.questions.filter((q: any) => q.type !== "terminal");
+  const qcm = t.questions.filter((q: any) => q.type !== "terminal" && q.type !== "external");
+  const tools = t.questions.filter((q: any) => q.type === "external");
   const mission = t.questions.find((q: any) => q.type === "terminal");
   const groups = new Map<string, any[]>();
   for (const q of qcm) groups.set(q.variant_group, [...(groups.get(q.variant_group) || []), q]);
@@ -25,8 +27,10 @@ describe.each(["b1", "b3", "mastere"])("QCM d'admission %s", (name) => {
   });
 
   it("durée, total et seuil cohérents avec ce que voit un candidat", () => {
-    const drawnPoints = groups.size + (mission?.points || 0);
-    expect(t.duration_minutes).toBe(groups.size + (mission ? 8 : 0));
+    const toolPoints = tools.reduce((s: number, q: any) => s + q.points, 0);
+    const toolMinutes = tools.reduce((s: number, q: any) => s + q.external.time_limit_s / 60, 0);
+    const drawnPoints = groups.size + (mission?.points || 0) + toolPoints;
+    expect(t.duration_minutes).toBe(groups.size + (mission ? 8 : 0) + toolMinutes);
     expect(t.pass_mark).toBe(Math.ceil(drawnPoints / 2));
     expect(Object.values(t.domain_floors).every((f: any) => f > 0 && f < 1)).toBe(true);
   });
@@ -63,6 +67,21 @@ describe.each(["b1", "b3", "mastere"])("QCM d'admission %s", (name) => {
     const txt = JSON.stringify(qcm.map((q: any) => [q.prompt, q.options, q.explanation, q.domain])) + t.description;
     expect(txt).not.toMatch(/—/);
     expect(txt.replace(/&&/g, "")).not.toMatch(/ & /);
+  });
+
+  it("1 enquête Crime GeoGuess et 3 exercices Cybersup OS, corrigés cohérents et sans fuite", () => {
+    expect(tools.filter((q: any) => q.external.tool === "crime")).toHaveLength(1);
+    const os = tools.filter((q: any) => q.external.tool === "win95");
+    expect(os).toHaveLength(3);
+    for (const q of os) {
+      expect(checkKey(q.external.scenario, q.external.answer_key)).toEqual([]);
+      const pub = JSON.stringify(publicScenario(q.external.scenario));
+      expect(pub).not.toMatch(/isLegit|consequence|"tell"|safe_reason/);
+      expect(Object.values(q.external.answer_key)).toContain("fraud");
+      expect(Object.values(q.external.answer_key)).toContain("legit");
+    }
+    const txt = JSON.stringify(tools.map((q: any) => [q.prompt, q.external.label, q.external.scenario.intro]));
+    expect(txt).not.toMatch(/—/);
   });
 
   if (mission) it("mission terminal valide", () => expect(validateScenario(mission.scenario)).toBeNull());

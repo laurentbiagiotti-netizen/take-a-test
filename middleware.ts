@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ipInCidrs } from "@/lib/security/cidr";
 import { clientIp } from "@/lib/security/request";
+import { TOOLS } from "@/lib/external/tools";
 
 /**
  * 1. Liste d'IP autorisées pour l'administration (ADMIN_ALLOWED_CIDRS),
@@ -14,6 +15,15 @@ import { clientIp } from "@/lib/security/request";
 const ADMIN_PATHS = [/^\/admin(\/|$)/, /^\/api\/admin\//, /^\/api\/staff\//, /^\/api\/seb\//, /^\/mfa(\/|$)/];
 const AUTH_PATHS = [/^\/admin/, /^\/dashboard/, /^\/test\//, /^\/mfa/];
 
+/** Outils externes actifs (secret défini) : seuls cadres autorisés dans l'épreuve. */
+function toolFrameOrigins(): string {
+  return Object.values(TOOLS).flatMap((t) => {
+    const key = t.id.toUpperCase();
+    if ((process.env[`EXTERNAL_${key}_SECRET`] || "").length < 32) return [];
+    try { return [new URL(process.env[`EXTERNAL_${key}_URL`] || t.defaultUrl).origin]; } catch { return []; }
+  }).join(" ");
+}
+
 function csp(nonce: string): string {
   const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const dev = process.env.NODE_ENV !== "production";
@@ -25,7 +35,7 @@ function csp(nonce: string): string {
     "media-src 'self' blob:",
     "font-src 'self'",
     `connect-src 'self' ${supabase} ${supabase.replace(/^http/, "ws")}`.trim(),
-    "frame-src 'none'",
+    toolFrameOrigins() ? `frame-src ${toolFrameOrigins()}` : "frame-src 'none'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'none'",

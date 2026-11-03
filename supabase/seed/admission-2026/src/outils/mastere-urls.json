@@ -1,0 +1,57 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "u1",
+    "kind": "url",
+    "data": {
+     "url": "https://mabanque.bnpparibas/connexion"
+    }
+   },
+   {
+    "id": "u2",
+    "kind": "url",
+    "data": {
+     "url": "https://akamai-cdn.amazon.fr"
+    }
+   },
+   {
+    "id": "u3",
+    "kind": "url",
+    "data": {
+     "url": "https://espace.client.connexion.lcl.fr.banque-en-ligne.online/auth"
+    }
+   },
+   {
+    "id": "u4",
+    "kind": "url",
+    "data": {
+     "url": "https://s.gravatar.com/avatar/abc123"
+    }
+   },
+   {
+    "id": "u5",
+    "kind": "url",
+    "data": {
+     "url": "https://www.lіnkedin.com/in/profil"
+    }
+   },
+   {
+    "id": "u6",
+    "kind": "url",
+    "data": {
+     "url": "https://secure-banque-en-ligne.bnpparibas.tk/auth"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "u1": "legit",
+  "u2": "legit",
+  "u3": "fraud",
+  "u4": "legit",
+  "u5": "fraud",
+  "u6": "fraud"
+ }
+}

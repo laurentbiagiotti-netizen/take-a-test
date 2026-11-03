@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import Terminal, { type TermResult } from "@/components/Terminal";
+import ExternalExercise, { type ExternalInfo, type LaunchResult } from "@/components/questions/ExternalExercise";
 
 /**
  * Affiche une question selon son type et remonte la réponse via onChange.
@@ -10,16 +11,23 @@ export type PublicQ = {
   id: string; type: string; prompt: string; points: number; image_url?: string | null;
   options: any;
   terminal?: { cwd: string; prompt: string; motd?: string | null; has_flag?: boolean; objectives?: { id: string; title: string; done: boolean }[] } | null;
+  external?: ExternalInfo | null;
 };
 
-export default function QuestionBody({ q, value, onChange, onText, runTerminal }: {
+export default function QuestionBody({ q, value, onChange, onText, runTerminal, launchExternal, onExternalBlur }: {
   q: PublicQ;
   value: any;
   onChange: (response: any) => void;
   onText?: (response: any) => void;
   runTerminal?: (command: string) => Promise<TermResult>;
+  launchExternal?: () => Promise<LaunchResult>;
+  onExternalBlur?: () => void;
 }) {
   switch (q.type) {
+    case "external":
+      return launchExternal
+        ? <ExternalExercise key={q.id} q={q} launch={launchExternal} onCompleted={() => onChange({ completed: true })} onToolBlur={onExternalBlur} />
+        : <p className="text-sm text-muted">Exercice disponible uniquement pendant l&apos;épreuve.</p>;
     case "mcq_single": case "mcq_multi": return <Mcq q={q} value={value} onChange={onChange} />;
     case "long_text":
       return (

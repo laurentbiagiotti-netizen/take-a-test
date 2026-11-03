@@ -1,0 +1,75 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "s1",
+    "kind": "sms",
+    "data": {
+     "sender": "Taxi G7",
+     "text": "Taxi G7 : votre chauffeur Mohamed arrive dans 10 min en Mercedes Classe E (AB-851-XY).",
+     "link": null,
+     "time": "14h28"
+    }
+   },
+   {
+    "id": "s2",
+    "kind": "sms",
+    "data": {
+     "sender": "Veepee",
+     "text": "Veepee : votre commande arrive bientôt. Détails sur l'app Veepee.",
+     "link": null,
+     "time": "22h06"
+    }
+   },
+   {
+    "id": "s3",
+    "kind": "sms",
+    "data": {
+     "sender": "N26-FR",
+     "text": "Tentative inhabituelle détectée depuis Moscou. Code de blocage 789-953 - bloquez ici : lnk.ly/oytdcq",
+     "link": "lnk.ly/oytdcq",
+     "time": "8h12"
+    }
+   },
+   {
+    "id": "s4",
+    "kind": "sms",
+    "data": {
+     "sender": "MACIF",
+     "text": "[MACIF] Mise à jour de votre constat amiable requise : short.io/pnov3a",
+     "link": "short.io/pnov3a",
+     "time": "14h18"
+    }
+   },
+   {
+    "id": "s5",
+    "kind": "sms",
+    "data": {
+     "sender": "CIC-Securit",
+     "text": "Code de sécurité BPCE : 634164. Confidentiel.",
+     "link": null,
+     "time": "Hier"
+    }
+   },
+   {
+    "id": "s6",
+    "kind": "sms",
+    "data": {
+     "sender": "CHRONOSERV",
+     "text": "Mondial Relay : votre point relais est plein, choisissez un autre : tinyurl.com/kxojzu",
+     "link": "tinyurl.com/kxojzu",
+     "time": "8h26"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "s1": "legit",
+  "s2": "legit",
+  "s3": "fraud",
+  "s4": "fraud",
+  "s5": "legit",
+  "s6": "fraud"
+ }
+}

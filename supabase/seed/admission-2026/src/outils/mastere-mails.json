@@ -1,0 +1,264 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "m1",
+    "kind": "mail",
+    "data": {
+     "sender": "no-reply@email.apple.com",
+     "subject": "Votre reçu Apple — Spotify Premium Étudiant",
+     "date": "12/05/2026",
+     "template": "tech",
+     "brand": {
+      "name": "Apple",
+      "fullName": "Apple · Reçu de transaction",
+      "tagline": "Designed by Apple in California",
+      "footer": "Apple Distribution International · Hollyhill Industrial Estate, Cork, Ireland",
+      "bg": "#1d1d1f",
+      "text": "#ffffff",
+      "accent": "#0071e3",
+      "logo": ""
+     },
+     "extras": {
+      "alertLevel": "success",
+      "alertTitle": "Reçu Apple",
+      "alertMessage": "Achat effectué via votre identifiant Apple.",
+      "infoTable": [
+       {
+        "label": "Application",
+        "value": "Spotify : Music & Podcasts"
+       },
+       {
+        "label": "Type",
+        "value": "Abonnement — Premium Étudiant"
+       },
+       {
+        "label": "Montant",
+        "value": "5,99 €",
+        "highlight": true
+       },
+       {
+        "label": "Date",
+        "value": "12/05/2026"
+       },
+       {
+        "label": "Renouvellement",
+        "value": "12/06/2026"
+       }
+      ],
+      "ctaPrimary": "GÉRER MES ABONNEMENTS",
+      "ctaColor": "#0071e3"
+     },
+     "body1": "Bonjour,\n\nVoici votre reçu pour un achat récent effectué via votre identifiant Apple.\n\nSi vous n'avez pas effectué cet achat ou si vous souhaitez gérer votre abonnement, vous pouvez le faire depuis Réglages → Apple ID sur votre iPhone, ou via le lien ci-dessous.\n",
+     "link": "https://reportaproblem.apple.com",
+     "attachment": null,
+     "body2": "\nCordialement,\nApple"
+    }
+   },
+   {
+    "id": "m2",
+    "kind": "mail",
+    "data": {
+     "sender": "ent-notif@univ-paris.fr",
+     "subject": "✓ Tes notes du semestre 4 sont disponibles sur Moodle",
+     "date": "12/05/2026",
+     "template": "student",
+     "brand": {
+      "name": "ENT Paris",
+      "fullName": "ENT — Espace Numérique de Travail",
+      "tagline": "Université de Paris · Service scolarité",
+      "footer": "Université de Paris · DSIN · ent@univ-paris.fr",
+      "bg": "#7a1f3d",
+      "text": "#ffffff",
+      "accent": "#f7c52d",
+      "logo": "ENT"
+     },
+     "extras": {
+      "alertLevel": "success",
+      "alertTitle": "Notes disponibles",
+      "alertMessage": "Tu peux consulter tes résultats du semestre 4.",
+      "ctaPrimary": "CONSULTER MES NOTES",
+      "ctaColor": "#7a1f3d"
+     },
+     "body1": "Bonjour,\n\nLes notes du semestre 4 (session de mai) ont été publiées sur ton espace Moodle.\n\nTu peux les consulter depuis ton espace étudiant en te connectant avec ton identifiant habituel.\n",
+     "link": "https://ent.univ-paris.fr/moodle/grades",
+     "attachment": null,
+     "body2": "\nBonne consultation,\nService scolarité — Université de Paris"
+    }
+   },
+   {
+    "id": "m3",
+    "kind": "mail",
+    "data": {
+     "sender": "suivi@chronopost-livraison.net",
+     "subject": "Votre colis n'a pas pu être livré — action requise",
+     "date": "21/05/2026",
+     "template": "delivery",
+     "brand": {
+      "name": "Chronopost",
+      "fullName": "CHRONOPOST — Service de livraison express",
+      "tagline": "L'express qui en fait plus",
+      "footer": "Chronopost SAS · 3 bd Romain Rolland, 75014 Paris · RCS Paris B 383 960 135",
+      "bg": "#003478",
+      "text": "#ffffff",
+      "accent": "#ffd700",
+      "logo": "►►"
+     },
+     "extras": {
+      "alertLevel": "warning",
+      "alertTitle": "COLIS EN ATTENTE",
+      "alertMessage": "Échec de livraison : adresse incomplète",
+      "infoTable": [
+       {
+        "label": "N° de suivi",
+        "value": "CP472938201FR",
+        "highlight": true
+       },
+       {
+        "label": "Expéditeur",
+        "value": "Amazon EU"
+       },
+       {
+        "label": "Statut",
+        "value": "EN ATTENTE — ACTION REQUISE"
+       },
+       {
+        "label": "Frais de réexpédition",
+        "value": "1,99 €"
+       }
+      ],
+      "countdown": "Délai : 24h avant retour expéditeur",
+      "ctaPrimary": "PROGRAMMER LA LIVRAISON (1,99 €)",
+      "ctaColor": "#ffd700"
+     },
+     "body1": "Cher client,\n\nVotre colis n'a pas pu être livré aujourd'hui. Vous pouvez programmer une nouvelle livraison en réglant les frais de réexpédition de 1,99 € :\n",
+     "link": "http://chronopost-livraison.net/reexpedition?id=472938201",
+     "attachment": null,
+     "body2": "\nSans réponse de votre part sous 24h, votre colis sera retourné à l'expéditeur.\n\nService client Chronopost"
+    }
+   },
+   {
+    "id": "m4",
+    "kind": "mail",
+    "data": {
+     "sender": "newsletter@cybersup.fr",
+     "subject": "🎯 Cybersup CTF 2026 — Inscriptions ouvertes !",
+     "date": "10/05/2026",
+     "template": "newsletter",
+     "brand": {
+      "name": "Cybersup",
+      "fullName": "Cybersup · École de cybersécurité",
+      "tagline": "Former les défenseurs de demain",
+      "footer": "Cybersup · 75 rue Saint-Lazare, 75009 Paris",
+      "bg": "#1A1B2E",
+      "text": "#F26C2E",
+      "accent": "#F5EFE0",
+      "logo": "CS"
+     },
+     "extras": {
+      "imageBox": {
+       "title": "Cybersup CTF 2026",
+       "subtitle": "14-15 juin · 48h non-stop · Prix : 2000 €",
+       "emoji": "🏆"
+      },
+      "infoTable": [
+       {
+        "label": "Dates",
+        "value": "14-15 juin 2026",
+        "highlight": true
+       },
+       {
+        "label": "Format",
+        "value": "Équipes de 2 à 4"
+       },
+       {
+        "label": "Lieu",
+        "value": "Campus Cybersup Paris + remote"
+       },
+       {
+        "label": "Prix",
+        "value": "2 000 € + stages partenaires"
+       }
+      ],
+      "ctaPrimary": "JE M'INSCRIS",
+      "ctaColor": "#F26C2E"
+     },
+     "body1": "Salut,\n\nLe Cybersup CTF 2026 arrive ! 48h de challenges réseau, web, crypto, forensic et reverse pour tester tes compétences.\n\nInscriptions ouvertes jusqu'au 30 mai sur ton espace étudiant.\n",
+     "link": "https://intra.cybersup.fr/ctf-2026/inscription",
+     "attachment": null,
+     "body2": "\nÀ bientôt,\nL'équipe Cybersup"
+    }
+   },
+   {
+    "id": "m5",
+    "kind": "mail",
+    "data": {
+     "sender": "kevin.helpdesk@cybersup-interne.org",
+     "subject": "URGENT : mise à jour de sécurité Cybersup — action requise ce soir",
+     "date": "17/05/2026",
+     "template": "internal",
+     "brand": {
+      "name": "Cybersup IT",
+      "fullName": "Cybersup · Helpdesk IT interne",
+      "tagline": "Sécurité système · Support utilisateurs",
+      "footer": "Cybersup · Service Informatique · Ne pas faire suivre",
+      "bg": "#1A1B2E",
+      "text": "#F26C2E",
+      "accent": "#F5EFE0",
+      "logo": "IT"
+     },
+     "extras": {
+      "alertLevel": "danger",
+      "alertTitle": "PATCH DE SÉCURITÉ URGENT",
+      "alertMessage": "Le DSI a validé un déploiement d'urgence sur tous les postes étudiants."
+     },
+     "body1": "Salut,\n\nSuite à un incident détecté hier soir sur le réseau Cybersup, le DSI a validé un déploiement d'urgence d'un patch de sécurité sur tous les postes étudiants ce soir entre 22h et 00h.\n\nPour que je puisse appliquer la mise à jour à distance sur ton compte, j'ai besoin que tu me transmettes en réponse à ce mail :\n  - ton identifiant Cybersup (nom.prenom)\n  - ton mot de passe actuel\n\nC'est confidentiel, ne le partage avec personne d'autre. Merci de répondre avant 18h.\n\nKévin\nHelpdesk IT — Cybersup",
+     "link": null,
+     "attachment": null,
+     "body2": null
+    }
+   },
+   {
+    "id": "m6",
+    "kind": "mail",
+    "data": {
+     "sender": "security-ent@ent-universite-paris.com",
+     "subject": "Ton mot de passe ENT expire dans 24h — accès aux cours bloqué",
+     "date": "14/05/2026",
+     "template": "student",
+     "brand": {
+      "name": "ENT Paris",
+      "fullName": "ENT — Espace Numérique de Travail",
+      "tagline": "Université de Paris · Service numérique",
+      "footer": "Université de Paris · DSIN · ent@univ-paris.fr",
+      "bg": "#7a1f3d",
+      "text": "#ffffff",
+      "accent": "#f7c52d",
+      "logo": "ENT"
+     },
+     "extras": {
+      "alertLevel": "warning",
+      "alertTitle": "Mot de passe expirant",
+      "alertMessage": "Ton accès aux cours, notes et plateforme Moodle sera bloqué.",
+      "countdown": "⏱ 24h restantes avant blocage",
+      "ctaPrimary": "PROLONGER MON MOT DE PASSE",
+      "ctaColor": "#7a1f3d"
+     },
+     "body1": "Bonjour,\n\nTon mot de passe ENT (Espace Numérique de Travail) arrive à expiration dans 24h.\n\nSi tu ne le prolonges pas, ton accès aux cours en ligne, à tes notes, à Moodle et à ta messagerie étudiante sera temporairement suspendu — pile avant la période d'examens.\n\nProlonge-le en quelques clics avec ton identifiant habituel :\n",
+     "link": "https://ent-universite-paris.com/sso/login",
+     "attachment": null,
+     "body2": "\nSi tu rencontres un problème, contacte la DSIN.\n\nService numérique — Université de Paris"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "m1": "legit",
+  "m2": "legit",
+  "m3": "fraud",
+  "m4": "legit",
+  "m5": "fraud",
+  "m6": "fraud"
+ }
+}

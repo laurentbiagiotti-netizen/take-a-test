@@ -51,6 +51,9 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
   const funAnswers = sorted.filter((x: any) => ["ordering", "matching", "hotspot", "short_answer"].includes(x.question?.type));
   const { data: termStates } = await supabase.from("terminal_states").select("question_id, done_ids, total").eq("attempt_id", id);
   const { data: termHistory } = await supabase.from("terminal_history").select("question_id, cwd, command, created_at").eq("attempt_id", id).order("id");
+  const { data: extSessions } = await supabase.from("external_sessions")
+    .select("question_id, tool, launched_at, deadline_at, updated_at, score_ratio, raw_score, raw_max, completed, details, question:questions(prompt, points)")
+    .eq("attempt_id", id);
   const t = (d?: string | null) => d ? new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris" }) : "-";
 
   return (
@@ -131,6 +134,43 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
                     <pre className="mt-3 max-h-60 overflow-y-auto rounded-md border border-line bg-[#05070d] p-3 text-xs font-mono text-[#c9d1e3]">
                       {cmds.map((h: any) => `${new Date(h.created_at).toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris" })}  ${h.cwd}$ ${h.command}`).join("\n")}
                     </pre>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {(extSessions || []).length > 0 && (
+        <section>
+          <h2 className="h2">Exercices dans les outils</h2>
+          <div className="mt-2 space-y-3">
+            {(extSessions || []).sort((x: any, y: any) => order.indexOf(x.question_id) - order.indexOf(y.question_id)).map((x: any) => {
+              const pts = x.question?.points ?? 0;
+              const items: any[] = Array.isArray(x.details?.items) ? x.details.items : Array.isArray(x.details?.cases) ? x.details.cases : [];
+              return (
+                <div key={x.question_id} className="card">
+                  <div className="text-xs text-muted">
+                    {x.tool === "crime" ? "Crime GeoGuess" : x.tool === "win95" ? "Cybersup OS" : x.tool} ·{" "}
+                    {Math.round(pts * Number(x.score_ratio || 0) * 100) / 100}/{pts} pt
+                    {x.raw_max ? ` · ${x.raw_score ?? 0}/${x.raw_max} dans l'outil` : ""}
+                    {" · "}{x.completed ? "terminé" : "non terminé"} · ouvert {t(x.launched_at)} · dernier envoi {t(x.updated_at)}
+                  </div>
+                  <div className="font-medium mt-1 whitespace-pre-wrap">{x.question?.prompt}</div>
+                  {items.length > 0 && (
+                    <ul className="mt-2 text-sm space-y-1">
+                      {items.map((it: any, k: number) => (
+                        <li key={k} className={it.correct === false || it.score === 0 ? "text-danger" : it.correct ? "text-ok" : ""}>
+                          {it.id ?? it.case_id ?? k + 1}
+                          {it.kind ? ` (${it.kind})` : ""}
+                          {it.choice !== undefined ? ` : ${it.choice === "fraud" ? "frauduleux" : it.choice === "legit" ? "légitime" : "sans réponse"}` : ""}
+                          {it.distance_km !== undefined ? ` : ${Math.round(it.distance_km)} km` : ""}
+                          {it.score !== undefined ? ` · ${it.score} pts` : ""}
+                          {it.flag_correct !== undefined && it.flag_correct !== null ? ` · défi ${it.flag_correct ? "réussi" : "raté"}` : ""}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
               );

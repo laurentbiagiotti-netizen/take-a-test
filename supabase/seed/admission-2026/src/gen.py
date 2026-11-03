@@ -6,9 +6,11 @@ Sources (dans ce dossier) :
   patch_v3.py                   mauvaises réponses réécrites à la relecture
   *_variantes.py                une variante jumelle par question (même compétence, même difficulté)
   missions/*.json               mission terminal (B3 et Mastère), générées par missions/build.py
+  outils/*.json                 exercices Cybersup OS (mails, SMS, adresses web) avec leur corrigé,
+                                générés par « npm run export:exam » dans le projet Cybersup OS
   entretiens/*.md               grille d'entretien oral affichée sur la fiche jury
 """
-import json, sys, collections, importlib.util, pathlib
+import json, re, sys, collections, importlib.util, pathlib
 SRC = pathlib.Path(__file__).resolve().parent
 OUT = SRC.parent.parent
 sys.path.insert(0, str(SRC))
@@ -18,7 +20,35 @@ from patch_v3 import P
 # au jury même si son total dépasse le seuil. À ajuster après les premières sessions.
 FLOOR = 0.3
 MISSION_MINUTES = 8
-NO_FLOOR = {"Énigmes CYBEROKU", "Mission terminal"}
+NO_FLOOR = {"Énigmes CYBEROKU", "Mission terminal", "Enquête OSINT", "Détection du phishing"}
+
+# Exercices dans les outils de l'école : 1 Crime GeoGuess et 3 Cybersup OS par épreuve.
+CRIME = {"points": 4, "minutes": 7, "count": 2,
+         "difficulty": {"b1": "easy", "b3": "normal", "mastere": "expert"}}
+WIN95 = [  # (fichier, titre, consigne, points, minutes)
+    ("mails", "Boîte mail", "Votre boîte de réception : pour chaque mail, frauduleux ou légitime ?", 2, 3),
+    ("sms", "SMS", "Vos SMS : pour chaque message, frauduleux ou légitime ?", 2, 3),
+    ("urls", "Adresses web", "Pour chaque adresse web, site frauduleux ou légitime ?", 2, 3),
+]
+
+
+def tool_items(name, start):
+    """Questions « exercice externe » ajoutées en fin d'épreuve."""
+    out = [{"position": start, "variant_group": None, "variant": None, "type": "external", "domain": "Enquête OSINT",
+            "prompt": "Enquête OSINT : pour chaque scène de crime, retrouvez le lieu sur la carte et résolvez le défi cyber du dossier.",
+            "options": None, "correct": None, "points": CRIME["points"],
+            "external": {"tool": "crime", "label": f"{CRIME['count']} enquêtes", "time_limit_s": CRIME["minutes"] * 60,
+                         "scenario": {"count": CRIME["count"], "difficulty": CRIME["difficulty"][name], "with_flag": True},
+                         "answer_key": None}}]
+    for k, (kind, label, consigne, pts, mins) in enumerate(WIN95, 1):
+        data = json.loads((SRC / "outils" / f"{name}-{kind}.json").read_text())
+        scn = {**data["scenario"], "intro": consigne}
+        out.append({"position": start + k, "variant_group": None, "variant": None, "type": "external",
+                    "domain": "Détection du phishing", "prompt": f"Détection du phishing ({label.lower()}) : {consigne}",
+                    "options": None, "correct": None, "points": pts,
+                    "external": {"tool": "win95", "label": label, "time_limit_s": mins * 60,
+                                 "scenario": scn, "answer_key": data["answer_key"]}})
+    return out
 
 
 def load(name):
@@ -89,17 +119,29 @@ for name in ["b1", "b3", "mastere"]:
                       "correct": None, "points": n_obj, "scenario": mission["scenario"],
                       "explanation": "Missions vérifiées automatiquement sur l'état de la machine simulée."})
 
+    tools = tool_items(name, len(base) + (2 if mission else 1))
+    items += tools
+    tool_points = sum(t["points"] for t in tools)
+    tool_minutes = CRIME["minutes"] + sum(w[4] for w in WIN95)
+
     n_q = len(base)
-    total = n_q + (len(mission["scenario"]["objectives"]) if mission else 0)
-    duration = n_q + (MISSION_MINUTES if mission else 0)
+    total = n_q + (len(mission["scenario"]["objectives"]) if mission else 0) + tool_points
+    duration = n_q + (MISSION_MINUTES if mission else 0) + tool_minutes
     pass_mark = (total + 1) // 2
     domains = sorted({it["domain"] for it in items})
     floors = {d: FLOOR for d in domains if d not in NO_FLOOR}
     guide = (SRC / "entretiens" / f"{name}.md").read_text()
     desc = m.DESC
+    extra = (f"Plus une enquête Crime GeoGuess ({CRIME['minutes']} minutes, {CRIME['points']} points) et trois "
+             f"exercices de détection du phishing dans Cybersup OS ({sum(w[4] for w in WIN95)} minutes, "
+             f"{sum(w[3] for w in WIN95)} points).")
     if mission:
         desc = desc.replace("50 minutes", f"{duration} minutes").replace("Seuil d'admissibilité proposé : 25/50.",
-               f"Plus une mission terminal de {MISSION_MINUTES} minutes ({total - n_q} points). Seuil d'admissibilité proposé : {pass_mark}/{total}.")
+               f"Plus une mission terminal de {MISSION_MINUTES} minutes ({len(mission['scenario']['objectives'])} points). "
+               f"{extra} Seuil d'admissibilité proposé : {pass_mark}/{total}.")
+    else:
+        desc = re.sub(r"Seuil d'admissibilité proposé : [^.]*\.", f"{extra} Seuil d'admissibilité proposé : {pass_mark}/{total}.",
+                      desc.replace(f"{n_q} minutes", f"{duration} minutes"))
 
     print(name, f"{n_q} questions x {2 if variants else 1} variante(s)", "+ mission" if mission else "",
           f"| {total} pts, {duration} min, seuil {pass_mark}", dict(collections.Counter(it["domain"] for it in items if it.get("variant") != "B")))
@@ -114,6 +156,12 @@ for name in ["b1", "b3", "mastere"]:
     sql.append(f"            {q(json.dumps(floors, ensure_ascii=False))}::jsonb, {q(guide)}) returning id into v_test;")
     for it in items:
         grp = f"'{it['variant_group']}'" if it["variant_group"] else "null"
+        if it["type"] == "external":
+            x = it["external"]
+            key = f"{q(json.dumps(x['answer_key'], ensure_ascii=False))}::jsonb" if x["answer_key"] else "null"
+            sql.append(f"  insert into questions(test_id, position, type, prompt, points, domain) values (v_test, {it['position']}, 'external', {q(it['prompt'])}, {it['points']}, {q(it['domain'])}) returning id into v_q;")
+            sql.append(f"  insert into question_externals(question_id, tool, label, time_limit_s, scenario, answer_key) values (v_q, '{x['tool']}', {q(x['label'])}, {x['time_limit_s']}, {q(json.dumps(x['scenario'], ensure_ascii=False))}::jsonb, {key});")
+            continue
         if it["type"] == "terminal":
             sql.append(f"  insert into questions(test_id, position, type, prompt, points, domain) values (v_test, {it['position']}, 'terminal', {q(it['prompt'])}, {it['points']}, {q(it['domain'])}) returning id into v_q;")
             sql.append(f"  insert into question_terminals(question_id, scenario, flag) values (v_q, {q(json.dumps(it['scenario'], ensure_ascii=False))}::jsonb, null);")

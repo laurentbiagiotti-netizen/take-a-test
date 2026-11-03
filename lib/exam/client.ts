@@ -10,7 +10,7 @@ import type { CameraStatus } from "@/lib/proctor/camera-monitor";
 export const TYPE_HINT: Record<string, string> = {
   mcq_single: "Une seule réponse", mcq_multi: "Plusieurs réponses possibles", long_text: "Réponse rédigée",
   terminal: "Défi terminal", ordering: "Remettre dans l'ordre", matching: "Associer",
-  hotspot: "Repérer dans le document", short_answer: "Réponse courte",
+  hotspot: "Repérer dans le document", short_answer: "Réponse courte", external: "Exercice pratique",
 };
 
 export const EVENT_LABEL: Record<string, string> = {
@@ -30,7 +30,7 @@ export const EVENT_LABEL: Record<string, string> = {
 export function isAnswered(a: any): boolean {
   if (!a) return false;
   return !!((a.selected && a.selected.length) || (a.text && a.text.trim()) || (a.flag && a.flag.trim())
-    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length));
+    || (a.order && a.order.length) || (a.pairs && Object.keys(a.pairs).length) || a.completed === true);
 }
 
 /** Prêt à démarrer : un seul visage vu, ou détecteur indisponible mais image correcte. */

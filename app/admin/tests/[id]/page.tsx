@@ -6,8 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
 import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kinds";
+import { TOOLS } from "@/lib/external/tools";
+import { checkKey } from "@/lib/external/grade";
 
-type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer";
+type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external";
+type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
 const FUN_TYPES: QType[] = ["ordering", "matching", "hotspot", "short_answer"];
 type Option = { id: string; text: string; image_url?: string | null };
 type Question = {
@@ -16,6 +19,7 @@ type Question = {
   points: number; image_url?: string | null;
   domain?: string | null; variant_group?: string | null;
   terminal?: { scenario: string; flag: string } | null;
+  external?: ExternalDraft | null;
 };
 
 
@@ -50,7 +54,14 @@ export default function EditTest() {
         ? await supabase.from("question_terminals").select("question_id, scenario, flag").in("question_id", ids)
         : { data: [] as any[] };
       const termMap = new Map((terms || []).map((t: any) => [t.question_id, { scenario: JSON.stringify(t.scenario, null, 2), flag: t.flag }]));
-      const withKeys = (qs || []).map((q: any) => ({ ...q, correct: keyMap.get(q.id) || null, terminal: termMap.get(q.id) || null }));
+      const { data: exts } = ids.length
+        ? await supabase.from("question_externals").select("question_id, tool, scenario, answer_key, time_limit_s, label").in("question_id", ids)
+        : { data: [] as any[] };
+      const extMap = new Map((exts || []).map((x: any) => [x.question_id, {
+        tool: x.tool, label: x.label || "", time_limit_min: x.time_limit_s ? String(Math.round(x.time_limit_s / 60)) : "",
+        scenario: JSON.stringify(x.scenario, null, 2), answer_key: x.answer_key ? JSON.stringify(x.answer_key, null, 2) : "",
+      }]));
+      const withKeys = (qs || []).map((q: any) => ({ ...q, correct: keyMap.get(q.id) || null, terminal: termMap.get(q.id) || null, external: extMap.get(q.id) || null }));
       setQuestions(withKeys);
       setLink(`${window.location.origin}/test/${id}`);
     })();
@@ -106,6 +117,7 @@ export default function EditTest() {
       correct: isMcq ? [] : type === "short_answer" ? { answers: [], case_sensitive: false } : null, points: 1, image_url: null,
       ...(type === "hotspot" ? { options: { layout: "code", multi: false, segments: [] }, correct: [] } : {}),
       terminal: type === "terminal" ? { scenario: JSON.stringify(TERMINAL_TEMPLATE, null, 2), flag: "CYBER{exemple_a_changer}" } : null,
+      external: type === "external" ? externalDraft("crime") : null,
     }]);
   };
 
@@ -115,6 +127,11 @@ export default function EditTest() {
       if (FUN_TYPES.includes(q.type)) {
         const err = validateQuestion(q.type as any, q.options, q.correct);
         if (err) { notify(`Question ${i + 1} : ${err}`); return; }
+      }
+      if (q.type === "external") {
+        const err = externalError(q.external);
+        if (err) { notify(`Question ${i + 1} : ${err}`); return; }
+        continue;
       }
       if (q.type !== "terminal") continue;
       try { const x = JSON.parse(q.terminal?.scenario || ""); if (!x.files) throw new Error(); if (!q.terminal?.flag?.trim() && !(x.objectives || []).length) throw new Error("vide"); }
@@ -141,6 +158,20 @@ export default function EditTest() {
       }) : null).filter(Boolean);
       if (termRows.length) {
         const { error } = await supabase.from("question_terminals").upsert(termRows as any[]);
+        if (error) notify(error.message);
+      }
+      const extRows = (inserted || []).map((row: any, idx: number) => {
+        const x = questions[idx].external;
+        if (questions[idx].type !== "external" || !x) return null;
+        const minutes = parseInt(x.time_limit_min, 10);
+        return {
+          question_id: row.id, tool: x.tool, label: x.label.trim() || null,
+          time_limit_s: Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null,
+          scenario: JSON.parse(x.scenario), answer_key: x.answer_key.trim() ? JSON.parse(x.answer_key) : null,
+        };
+      }).filter(Boolean);
+      if (extRows.length) {
+        const { error } = await supabase.from("question_externals").upsert(extRows as any[]);
         if (error) notify(error.message);
       }
     }
@@ -339,6 +370,7 @@ export default function EditTest() {
         <button className="btn-secondary" onClick={() => addQuestion("matching")}>+ Associer</button>
         <button className="btn-secondary" onClick={() => addQuestion("hotspot")}>+ Repérer (code, log, mail, tableau)</button>
         <button className="btn-secondary" onClick={() => addQuestion("short_answer")}>+ Réponse courte / données</button>
+        <button className="btn-secondary" onClick={() => addQuestion("external")}>+ Exercice dans un outil (Crime GeoGuess, Cybersup OS)</button>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -391,6 +423,11 @@ export default function EditTest() {
             {FUN_TYPES.includes(q.type) && (
               <TypeEditor key={(q.id || "new") + i} type={q.type as any} options={q.options} correct={q.correct}
                 onChange={(p) => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, ...p } : x))} />
+            )}
+
+            {q.type === "external" && q.external && (
+              <ExternalEditor value={q.external}
+                onChange={(x) => setQuestions((arr) => arr.map((y, k) => k === i ? { ...y, external: x } : y))} />
             )}
 
             {q.type === "terminal" && q.terminal && (
@@ -480,3 +517,53 @@ const TERMINAL_TEMPLATE = {
     { id: "kill", title: "Arrêter le processus minerd", check: { type: "process_absent", name: "minerd" } },
   ],
 };
+
+function externalDraft(tool: string): ExternalDraft {
+  return { tool, label: "", time_limit_min: "10", scenario: JSON.stringify(TOOLS[tool]?.scenarioExample ?? {}, null, 2), answer_key: tool === "win95" ? JSON.stringify({ u1: "legit" }, null, 2) : "" };
+}
+
+/** Vérifie un exercice externe avant enregistrement ; renvoie un message ou null. */
+function externalError(x: ExternalDraft | null | undefined): string | null {
+  if (!x || !TOOLS[x.tool]) return "choisissez un outil.";
+  const min = x.time_limit_min.trim() ? parseInt(x.time_limit_min, 10) : null;
+  if (min !== null && (!Number.isFinite(min) || min < 1 || min > 120)) return "durée de l'exercice entre 1 et 120 minutes.";
+  let scenario: unknown, key: unknown = null;
+  try { scenario = JSON.parse(x.scenario); } catch { return "scénario JSON invalide."; }
+  if (x.answer_key.trim()) { try { key = JSON.parse(x.answer_key); } catch { return "corrigé JSON invalide."; } }
+  if (TOOLS[x.tool].grading === "platform") {
+    const errs = checkKey(scenario, key);
+    if (errs.length) return errs[0];
+  }
+  return null;
+}
+
+function ExternalEditor({ value, onChange }: { value: ExternalDraft; onChange: (v: ExternalDraft) => void }) {
+  const tool = TOOLS[value.tool];
+  const set = (p: Partial<ExternalDraft>) => onChange({ ...value, ...p });
+  return (
+    <div className="space-y-2">
+      <div className="grid sm:grid-cols-3 gap-2">
+        <label className="block text-sm text-muted">Outil
+          <select className="input mt-1" value={value.tool} onChange={(e) => onChange(externalDraft(e.target.value))}>
+            {Object.values(TOOLS).map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </label>
+        <label className="block text-sm text-muted">Titre affiché (facultatif)
+          <input className="input mt-1" maxLength={200} value={value.label} onChange={(e) => set({ label: e.target.value })} />
+        </label>
+        <label className="block text-sm text-muted">Durée de l&apos;exercice (minutes)
+          <input className="input mt-1" inputMode="numeric" value={value.time_limit_min} onChange={(e) => set({ time_limit_min: e.target.value.replace(/\D/g, "") })} />
+        </label>
+      </div>
+      <p className="text-xs text-muted">{tool?.scenarioHelp} Le chronomètre de l&apos;exercice part à son ouverture et ne dépasse jamais la fin de l&apos;épreuve.</p>
+      <label className="block text-sm text-muted">Scénario (JSON), envoyé à l&apos;outil
+        <textarea className="input mt-1 font-mono text-xs min-h-[160px]" spellCheck={false} value={value.scenario} onChange={(e) => set({ scenario: e.target.value })} />
+      </label>
+      {tool?.grading === "platform" && (
+        <label className="block text-sm text-muted">Corrigé (JSON) : reste sur le serveur, jamais envoyé au candidat
+          <textarea className="input mt-1 font-mono text-xs min-h-[100px]" spellCheck={false} value={value.answer_key} onChange={(e) => set({ answer_key: e.target.value })} />
+        </label>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,75 @@
+{
+ "scenario": {
+  "intro": "Votre boîte de réception, vos SMS et quelques adresses web. Pour chaque élément : frauduleux ou légitime ?",
+  "items": [
+   {
+    "id": "s1",
+    "kind": "sms",
+    "data": {
+     "sender": "Vinted",
+     "text": "[Vinted] Acheteur propose 68,50€ via virement. Confirmez votre IBAN : cutt.ly/5xqv0h",
+     "link": "cutt.ly/5xqv0h",
+     "time": "21h40"
+    }
+   },
+   {
+    "id": "s2",
+    "kind": "sms",
+    "data": {
+     "sender": "Mondial Relay",
+     "text": "Mondial Relay : colis DPD198482775FR disponible chez Presse Voltaire. Horaires sur mondialrelay.fr",
+     "link": null,
+     "time": "13h20"
+    }
+   },
+   {
+    "id": "s3",
+    "kind": "sms",
+    "data": {
+     "sender": "CAF-RECOUV",
+     "text": "CAF Info : votre dossier présente un trop-perçu à rembourser : cutt.ly/5ltd7v",
+     "link": "cutt.ly/5ltd7v",
+     "time": "12h34"
+    }
+   },
+   {
+    "id": "s4",
+    "kind": "sms",
+    "data": {
+     "sender": "06 78 45 23 91",
+     "text": "Salut c'est Kévin du service IT. Ton mdp expire, renvoie-le ici stp : rb.gy/dn97wu",
+     "link": "rb.gy/dn97wu",
+     "time": "Jeu."
+    }
+   },
+   {
+    "id": "s5",
+    "kind": "sms",
+    "data": {
+     "sender": "Dr Bernard",
+     "text": "Dr Bernard : merci d'arriver 10 min avant votre RDV de 17h le 20/7. Carte vitale à apporter.",
+     "link": null,
+     "time": "21h59"
+    }
+   },
+   {
+    "id": "s6",
+    "kind": "sms",
+    "data": {
+     "sender": "Doctolib",
+     "text": "RDV Dr Dubois le 19/6 à 9h confirmé.",
+     "link": null,
+     "time": "8h12"
+    }
+   }
+  ]
+ },
+ "answer_key": {
+  "s1": "fraud",
+  "s2": "legit",
+  "s3": "fraud",
+  "s4": "fraud",
+  "s5": "legit",
+  "s6": "legit"
+ }
+}
