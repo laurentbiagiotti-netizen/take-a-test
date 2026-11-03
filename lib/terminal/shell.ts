@@ -20,7 +20,8 @@ export type Check =
   | { type: "mode"; path: string; mode: string }
   | { type: "process_absent"; name: string }
   | { type: "process_present"; name: string }
-  | { type: "ran"; command: string };
+  | { type: "ran"; command: string }
+  | { type: "all"; checks: Check[] };
 export type Objective = { id: string; title: string; check: Check };
 
 export type Scenario = {
@@ -145,17 +146,21 @@ function checkOne(c: Check, st: ShellState, s: Scenario): boolean {
     case "process_absent": return !st.procs.some((p) => p.cmd.includes(c.name));
     case "process_present": return st.procs.some((p) => p.cmd.includes(c.name));
     case "ran": return (st.ran || []).includes(c.command);
+    case "all": return Array.isArray(c.checks) && c.checks.length > 0 && c.checks.every((x) => x.type !== "all" && checkOne(x, st, s));
     default: return false;
   }
 }
 
 // ------------------------------------------------------------------ lexique
 type Token = { w: string } | { op: "|" | ";" | "&&" | ">" | ">>" };
+const GLOB = "\u0001";
+const unglob = (w: string) => (w.startsWith(GLOB) ? w.slice(1) : w);
 
 function tokenize(line: string): Token[] | string {
   const out: Token[] = [];
-  let cur = "", has = false, q: string | null = null;
-  const push = () => { if (has) out.push({ w: cur }); cur = ""; has = false; };
+  let cur = "", has = false, q: string | null = null, glob = false;
+  // Un mot qui contient * ou ? hors guillemets est marqué (\u0001) pour être développé comme dans bash.
+  const push = () => { if (has) out.push({ w: glob ? GLOB + cur : cur }); cur = ""; has = false; glob = false; };
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (q) { if (ch === q) q = null; else cur += ch; continue; }
@@ -168,6 +173,7 @@ function tokenize(line: string): Token[] | string {
     if (ch === ";") { push(); out.push({ op: ";" }); continue; }
     if (ch === "&") { if (line[i + 1] === "&") { push(); out.push({ op: "&&" }); i++; continue; } return "bash: tâches de fond non prises en charge"; }
     if (ch === ">") { push(); if (line[i + 1] === ">") { out.push({ op: ">>" }); i++; } else out.push({ op: ">" }); continue; }
+    if (ch === "*" || ch === "?") glob = true;
     cur += ch; has = true;
   }
   if (q) return "bash: guillemet non fermé";
@@ -197,7 +203,7 @@ function parse(line: string): Seq | string {
     if (t.op === ">" || t.op === ">>") {
       const nx = toks[i + 1];
       if (!nx || !("w" in nx)) return "bash: fichier de redirection manquant";
-      pipe.redirect = { append: t.op === ">>", path: nx.w }; i++; continue;
+      pipe.redirect = { append: t.op === ">>", path: unglob(nx.w) }; i++; continue;
     }
     if (!close(t.op)) return `bash: erreur de syntaxe près de « ${t.op} »`;
   }
@@ -209,11 +215,11 @@ function parse(line: string): Seq | string {
 const HELP = `Fichiers   : ls [-a -l] · cd · pwd · cat · head/tail [-n N] · stat · file · tree
              touch · mkdir [-p] · cp · mv · rm [-r -f] · chmod (600, u+x…)
 Texte      : grep [-i -v -n -c -r -l] · find [-name -type -perm -user] · wc [-l]
-             sort [-n -r -u] · uniq [-c] · cut -d X -f N · tr · sed 's/a/b/g' [-i] · rev
+             sort [-n -r -u] · uniq [-c] · cut -d X -f N · tr · sed 's/a/b/g' ou '/motif/d' [-i] · rev
 Encodage   : base64 [-d] · md5sum · sha256sum
 Système    : ps [aux] · kill [-9] PID · ss -tlnp · ip a · whoami · id · hostname · uname -a
              env · export VAR=valeur · crontab -l · sudo -l · sudo <commande> · history · date
-Shell      : pipes « | », enchaînement « ; » et « && », redirections « > » et « >> »
+Shell      : pipes « | », « ; » et « && », redirections « > » et « >> », jokers * et ?
 Raccourcis : ↑ ↓ historique · Ctrl+L effacer`;
 
 // ------------------------------------------------------------------ moteur
@@ -329,7 +335,7 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
     let ok = true;
     const errs: string[] = [];
     for (const words of pl.cmds) {
-      let root = false, w = words;
+      let root = false, w = [unglob(words[0]), ...words.slice(1).flatMap(expandGlob)];
       if (w[0] === "sudo") {
         if (w[1] === "-l") { input = sudoList(); continue; }
         const allowed = (scn.sudo || []).includes(w[1]);
@@ -352,6 +358,21 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
       out = "";
     }
     return { out: [...errs, out].filter((x) => x !== "").join("\n"), ok };
+  }
+
+  /** Développement de « * » et « ? » (dernier élément du chemin seulement), trié, fichiers cachés exclus. */
+  function expandGlob(word: string): string[] {
+    if (!word.startsWith(GLOB)) return [word];
+    const pat = word.slice(1);
+    const cut = pat.lastIndexOf("/");
+    const dirTyped = cut >= 0 ? pat.slice(0, cut + 1) : "";
+    const base = cut >= 0 ? pat.slice(cut + 1) : pat;
+    if (!base || dirTyped.includes("*") || dirTyped.includes("?")) return [pat];
+    const dir = resolve(dirTyped || ".");
+    if (!st.nodes[dir] || st.nodes[dir].t !== "d" || !canAccess(dir, 4, false)) return [pat];
+    const names = Object.keys(st.nodes).filter((k) => k !== dir && parentOf(k) === dir).map(baseOf)
+      .filter((n) => (base.startsWith(".") || !n.startsWith(".")) && globMatch(base, n)).sort();
+    return names.length ? names.slice(0, 500).map((n) => dirTyped + n) : [pat];
   }
 
   function sudoList(): string {
@@ -564,6 +585,18 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
         const inPlace = args[0] === "-i";
         const a = inPlace ? args.slice(1) : args;
         const expr = a[0] || "";
+        if (expr.length > 3 && expr[0] === "/" && expr.endsWith("/d")) {
+          // sed '/motif/d' : supprime les lignes qui contiennent le motif (texte simple)
+          const pat = expr.slice(1, -2);
+          const drop = (t: string) => lines(t).filter((l) => !l.includes(pat)).join("\n");
+          if (inPlace) {
+            if (!a[1]) return E("sed: -i nécessite un fichier");
+            const r = readFile(a[1], "sed", root); if (r.err) return E(r.err);
+            const e = writeFile(a[1], drop(r.text!) + "\n", false, "sed", root); return e ? E(e) : { out: "" };
+          }
+          const r = textIn(a.slice(1), input, "sed", root); if (r.err) return E(r.err);
+          return { out: drop(r.text!) };
+        }
         const m = expr.length > 2 && expr[0] === "s" ? expr : "";
         if (!m) return E("sed: seule la substitution est disponible : sed 's/ancien/nouveau/g' [fichier]");
         const sep = m[1], parts = m.slice(2).split(sep);
@@ -726,6 +759,15 @@ export function runShell(scn: Scenario, stIn: ShellState | null, line: string): 
       }
       case "cp": case "mv": {
         const { f, rest } = flags(args);
+        if (rest.length > 2) {
+          // Plusieurs sources (souvent issues de « * ») : la destination doit être un dossier
+          const dest = rest[rest.length - 1];
+          if (st.nodes[resolve(dest)]?.t !== "d") return E(`${cmd}: la cible '${dest}' n'est pas un répertoire`);
+          const opts = args.filter((a) => a.startsWith("-"));
+          const errs: string[] = [];
+          for (const src of rest.slice(0, -1)) { const r = exec(cmd, [...opts, src, dest], null, root); if (r.err) errs.push(r.err); }
+          return errs.length ? E(errs.join("\n")) : { out: "" };
+        }
         if (rest.length !== 2) return E(`${cmd}: indiquez une source et une destination`);
         const src = resolve(rest[0]), n = st.nodes[src];
         if (!n) return E(`${cmd}: impossible d'évaluer '${rest[0]}': Aucun fichier ou dossier de ce type`);
@@ -848,7 +890,8 @@ export function validateScenario(x: any): string | null {
   }
   const types = ["exists", "absent", "contains", "equals", "mode", "process_absent", "process_present", "ran"];
   for (const o of x.objectives || []) {
-    if (!o?.id || !o?.title || !o?.check || !types.includes(o.check.type)) return `Mission invalide : ${JSON.stringify(o).slice(0, 80)}`;
+    const ok = o?.check && (types.includes(o.check.type) || (o.check.type === "all" && Array.isArray(o.check.checks) && o.check.checks.length > 0 && o.check.checks.length <= 20 && o.check.checks.every((c: any) => types.includes(c?.type))));
+    if (!o?.id || !o?.title || !ok) return `Mission invalide : ${JSON.stringify(o).slice(0, 80)}`;
   }
   for (const p of x.processes || []) if (!Number.isInteger(p?.pid) || typeof p?.cmd !== "string") return "Processus invalide (pid entier et cmd attendus)";
   return null;

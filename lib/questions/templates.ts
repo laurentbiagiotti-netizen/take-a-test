@@ -1,3 +1,4 @@
+import { MISSIONS } from "./missions";
 import { encodeForRecipe, type RecipeStep } from "./decode";
 import { intrusionLogs } from "./evtx-scenario";
 import { suggestKey } from "./headers";
@@ -173,9 +174,6 @@ export const PACKS: Record<"b1" | "b3" | "m1", { label: string; minutes: number;
       { type: "headers", domain: "Réflexes cyber", points: 2, time_limit_s: 240,
         prompt: "Un étudiant a reçu ce mail et vous demande s'il doit cliquer. Les informations sont dans les tableaux : lisez-les attentivement, la réponse à chaque question y figure.",
         options: clone(PRACTICAL_TEMPLATES.headers.options), correct: clone(PRACTICAL_TEMPLATES.headers.correct) },
-      { type: "decode", domain: "Logique et raisonnement", points: 2, time_limit_s: 240,
-        prompt: "Ce message a été brouillé plusieurs fois pour être illisible. À gauche, des boutons appliquent des transformations : essayez-les une par une, regardez le résultat, retirez celles qui n'aident pas. Quand le texte devient lisible et commence par CYBER{, recopiez-le.",
-        options: clone(PRACTICAL_TEMPLATES.decode.options), correct: clone(PRACTICAL_TEMPLATES.decode.correct) },
       { type: "blocks", domain: "Logique et raisonnement", points: 2, time_limit_s: 300,
         prompt: "Vous êtes le gardien de l'entrée du serveur de l'école. Chaque visiteur annonce sa porte (le « port ») et son adresse (l'« IP »). Les règles à appliquer :\n• tout le monde peut entrer par les portes 80 et 443 (le site web) ;\n• la porte 22 (la maintenance) seulement pour les adresses qui commencent par 10. ;\n• tout le reste est refusé.\nAssemblez les blocs, puis vérifiez dans le tableau du bas que chaque visiteur reçoit la bonne décision.",
         options: clone(PRACTICAL_TEMPLATES.blocks.options), correct: clone(PRACTICAL_TEMPLATES.blocks.correct) },
@@ -473,9 +471,6 @@ PACKS.m1.questions.push(
     options: { mode: "injection", help: false, setup: "CREATE TABLE comptes (login TEXT, mdp TEXT, role TEXT);\nINSERT INTO comptes VALUES ('admin', 'Xk9!pq2#Lm', 'administrateur'), ('j.dupont', 'Soleil2026', 'utilisateur');",
       template: "SELECT login, role FROM comptes WHERE login = '{input}' AND mdp = 'mot_de_passe_inconnu'", field_label: "Identifiant" },
     correct: { must_contain: "administrateur" } },
-  { type: "decode", domain: "Cybersécurité", points: 2, time_limit_s: 300, prompt: "Un script malveillant contient cette chaîne. La clé XOR « cyber » apparaît plus loin dans le code. Retrouvez le flag.",
-    options: { help: false, input: encodeForRecipe("CYBER{x0r_n_3st_p4s_du_chiffr3m3nt}", [{ op: "from_base64" }, { op: "xor", arg: "cyber" }, { op: "reverse" }]) },
-    correct: { answers: ["CYBER{x0r_n_3st_p4s_du_chiffr3m3nt}"], case_sensitive: true, recipe: [{ op: "from_base64" }, { op: "xor", arg: "cyber" }, { op: "reverse" }] } },
   { type: "subnet", domain: "Réseaux", points: 3, time_limit_s: 300, prompt: "Segmentez le réseau du nouveau site entre les services, sans gaspiller d'adresses.",
     options: { mode: "vlsm", services: 4, help: false }, correct: null },
 );
@@ -575,3 +570,12 @@ for (const [k, t] of [["b3", BASH_TEMPLATES.ssh], ["b3", BASH_TEMPLATES.rangemen
   PACKS[k].questions.push({ type: "bash", domain: t.domain, points: t.points, time_limit_s: t.time_limit_s, prompt: t.prompt, options: clone(t.options), correct: clone(t.correct) });
   PACKS[k].minutes += Math.round(t.time_limit_s / 60);
 }
+
+// Missions de terminal Linux : 2 de plus en B1, 2 en B3, 1 en Mastère (le décodage a été retiré des packs).
+for (const m of MISSIONS) {
+  PACKS[m.level].questions.push({ type: "terminal", domain: m.domain, points: m.scenario.objectives?.length || 1, time_limit_s: m.minutes * 60,
+    prompt: m.prompt, options: null, correct: null, terminal: { scenario: JSON.stringify(m.scenario, null, 2), flag: "" } });
+  PACKS[m.level].minutes += m.minutes;
+}
+PACKS.b1.minutes -= 4;
+PACKS.m1.minutes -= 5;

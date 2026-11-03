@@ -489,7 +489,6 @@ export default function EditTest() {
             ["terminal", "Défi terminal", "Linux simulé"],
             ["external", "Exercice outil", "Crime GeoGuess, Cybersup OS"],
             ["sql", "Requête SQL", "logs en base, injection"],
-            ["decode", "Décodage", "Base64, ROT13, XOR…"],
             ["password", "Mots de passe", "classer ou créer"],
             ["blocks", "Pare-feu en blocs", "règles à assembler"],
             ["headers", "En-têtes de mail", "phishing : IP, SPF, Reply-To"],
