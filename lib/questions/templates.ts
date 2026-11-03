@@ -51,7 +51,7 @@ const MAIL_KEY = Object.fromEntries(MAIL_ASK.map((k) => [k, suggestKey(MAIL)[k]]
 export const PRACTICAL_TEMPLATES = {
   headers: {
     prompt: "Un étudiant a reçu ce mail et vous demande s'il doit cliquer. Analysez ses en-têtes.",
-    options: { raw: MAIL, view: "table", ask: MAIL_ASK },
+    options: { raw: MAIL, view: "table", ask: MAIL_ASK, help: true },
     correct: MAIL_KEY,
     points: 2,
   },
@@ -63,25 +63,25 @@ export const PRACTICAL_TEMPLATES = {
   },
   netpuzzle: {
     prompt: "Le serveur central (le carré) doit être relié à tous les postes de la salle. Remettez les câbles dans le bon sens.",
-    options: { w: 5, h: 5 },
+    options: { w: 5, h: 5, help: true },
     correct: null,
     points: 2,
   },
   sql: {
     prompt: "La table connexions trace les ouvertures de session. Trouvez les comptes qui se sont connectés avec succès entre 2 h et 4 h du matin (2 h 00 à 3 h 59). Affichez seulement la colonne login, une fois par compte.",
-    options: { mode: "query", setup: SETUP, show_tables: true },
+    options: { mode: "query", setup: SETUP, show_tables: true, help: true },
     correct: { expected_sql: "SELECT DISTINCT login FROM connexions WHERE succes = 1 AND CAST(strftime('%H', heure) AS INTEGER) BETWEEN 2 AND 3;", ordered: false },
     points: 2,
   },
   decode: {
     prompt: "Ce message a été intercepté sur le réseau de l'école. Il cache un flag. Construisez la recette qui le décode, puis recopiez le flag.",
-    options: { input: encodeForRecipe(DECODE_FLAG, DECODE_RECIPE) },
+    options: { input: encodeForRecipe(DECODE_FLAG, DECODE_RECIPE), help: true },
     correct: { answers: [DECODE_FLAG], case_sensitive: true, recipe: DECODE_RECIPE },
     points: 2,
   },
   password: {
     prompt: "Classez ces mots de passe du plus facile à casser au plus robuste.",
-    options: { mode: "rank", items: [
+    options: { mode: "rank", help: true, items: [
       { id: "p1", text: "azerty123" }, { id: "p2", text: "P@ssw0rd2024" }, { id: "p3", text: "Marseille13!" },
       { id: "p4", text: "tortue-velo-nuage-47" }, { id: "p5", text: "j7#Qx!r9Lw2$" },
     ] },
@@ -90,7 +90,7 @@ export const PRACTICAL_TEMPLATES = {
   },
   blocks: {
     prompt: "Programmez le pare-feu du serveur web de l'école :\n• le site (ports 80 et 443) doit rester accessible à tous ;\n• SSH (port 22) seulement depuis le réseau interne 10.0.0.0/8 ;\n• tout le reste est bloqué.",
-    options: { sample: [
+    options: { help: true, sample: [
       pk("s1", "Visiteur du site", "88.12.4.9", 443, "tcp", "FR", 14, "allow"),
       pk("s2", "Admin au bureau", "10.0.4.20", 22, "tcp", "FR", 10, "allow"),
       pk("s3", "SSH depuis internet", "185.220.101.7", 22, "tcp", "DE", 3, "block"),

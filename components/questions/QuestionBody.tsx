@@ -5,6 +5,7 @@ import ExternalExercise, { type ExternalInfo, type LaunchResult } from "@/compon
 import dynamic from "next/dynamic";
 import { DecodeQuestion, PasswordCreate, SqlQuestion } from "@/components/questions/Practical";
 import { HeadersQuestion, NetPuzzle, SubnetQuestion } from "@/components/questions/Networky";
+import MiniCours from "@/components/questions/MiniCours";
 const FirewallBlocks = dynamic(() => import("@/components/questions/FirewallBlocks"), { ssr: false, loading: () => <p className="text-sm text-muted">Chargement de l&apos;éditeur de blocs…</p> });
 
 /**
@@ -27,6 +28,9 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
   launchExternal?: () => Promise<LaunchResult>;
   onExternalBlur?: () => void;
 }) {
+  const body = renderBody();
+  return q.options?.help && q.type !== "subnet" ? <><MiniCours type={q.type} />{body}</> : body;
+  function renderBody() {
   switch (q.type) {
     case "external":
       return launchExternal
@@ -69,6 +73,7 @@ export default function QuestionBody({ q, value, onChange, onText, runTerminal, 
         </div>
       ) : null;
     default: return <p className="text-muted text-sm">Type de question non pris en charge.</p>;
+  }
   }
 }
 

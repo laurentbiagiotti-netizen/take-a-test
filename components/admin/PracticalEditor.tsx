@@ -27,7 +27,23 @@ function textToPackets(t: string, prefix: string): { packets: FwPacket[]; error:
   return { packets, error: null };
 }
 
-export default function PracticalEditor({ type, options, correct, onChange }: Props) {
+export default function PracticalEditor(props: Props) {
+  const { type, options, correct, onChange } = props;
+  const withHelp = ["sql", "decode", "password", "blocks", "headers", "netpuzzle"].includes(type);
+  return (
+    <div className="space-y-2">
+      {withHelp && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!options?.help} onChange={(e) => onChange({ options: { ...(options || {}), help: e.target.checked }, correct })} />
+          Afficher « le petit cours » au candidat (pour les B1 qui partent de zéro)
+        </label>
+      )}
+      <PracticalForm {...props} />
+    </div>
+  );
+}
+
+function PracticalForm({ type, options, correct, onChange }: Props) {
   const o = options || {}, k = correct || {};
   const set = (opt: any, key: any = k) => onChange({ options: opt, correct: key });
 
@@ -80,7 +96,7 @@ export default function PracticalEditor({ type, options, correct, onChange }: Pr
         {rank ? (
           <Field label="Mots de passe à classer" hint="un par ligne, dans n'importe quel ordre : le bon classement est calculé par zxcvbn">
             <textarea className="input font-mono text-xs min-h-[110px]" value={(o.items || []).map((i: any) => i.text).join("\n")}
-              onChange={(e) => set({ mode: "rank", items: e.target.value.split("\n").filter((x) => x.trim()).slice(0, 8).map((t, i) => ({ id: `p${i + 1}`, text: t.trim() })) }, null)} />
+              onChange={(e) => set({ ...o, mode: "rank", items: e.target.value.split("\n").filter((x) => x.trim()).slice(0, 8).map((t, i) => ({ id: `p${i + 1}`, text: t.trim() })) }, null)} />
           </Field>
         ) : (
           <div className="grid sm:grid-cols-3 gap-3 text-sm">
