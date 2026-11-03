@@ -46,13 +46,14 @@ To: <etudiant@cybersup-ecole.example>
 Subject: [URGENT] Votre compte sera suspendu sous 24 h
 Date: Tue, 3 Nov 2026 08:13:19 +0100
 Message-ID: <20261103071319.4471@pc-0451>`;
+const MAIL_BODY = "Cher client,\n\nNous avons détecté une activité inhabituelle sur votre compte. Sans vérification de votre part dans les 24 heures, votre compte sera suspendu et vos cartes bloquées.\n\nMerci de confirmer votre identité en cliquant sur le bouton ci-dessous.\n\nLe service client Banque Horizon";
 const MAIL_ASK = ["origin_ip", "spf", "reply_to", "verdict"] as const;
 const MAIL_KEY = Object.fromEntries(MAIL_ASK.map((k) => [k, suggestKey(MAIL)[k]]));
 
 export const PRACTICAL_TEMPLATES = {
   headers: {
     prompt: "Un étudiant a reçu ce mail et vous demande s'il doit cliquer. Analysez ses en-têtes.",
-    options: { raw: MAIL, view: "table", ask: MAIL_ASK, help: true },
+    options: { raw: MAIL, view: "table", ask: MAIL_ASK, help: true, body: MAIL_BODY, button: { label: "Vérifier mon compte", url: "https://banque-horizon.verif-compte-urgent.example/connexion" } },
     correct: MAIL_KEY,
     points: 2,
   },

@@ -125,6 +125,13 @@ function PracticalForm({ type, options, correct, onChange }: Props) {
         <Field label="En-têtes bruts du mail" hint="copiés depuis « Afficher l'original » ; anonymisez les vraies adresses">
           <textarea className="input font-mono text-xs min-h-[160px]" value={o.raw || ""} onChange={(e) => set({ ...o, raw: e.target.value }, keyFor(e.target.value, ask))} />
         </Field>
+        <Field label="Texte du mail affiché dans la messagerie" hint="facultatif">
+          <textarea className="input text-xs min-h-[90px]" value={o.body || ""} onChange={(e) => set({ ...o, body: e.target.value || undefined })} />
+        </Field>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <Field label="Bouton dans le mail" hint="facultatif"><input className="input text-xs" value={o.button?.label || ""} placeholder="Vérifier mon compte" onChange={(e) => set({ ...o, button: e.target.value ? { ...(o.button || {}), label: e.target.value } : undefined })} /></Field>
+          <Field label="Lien du bouton"><input className="input text-xs font-mono" value={o.button?.url || ""} disabled={!o.button} onChange={(e) => set({ ...o, button: { ...(o.button || {}), url: e.target.value } })} /></Field>
+        </div>
         <div className="flex flex-wrap gap-4 text-sm">
           {[["table", "Tableau lisible (B1)"], ["raw", "En-têtes bruts seulement (B3)"]].map(([v, l]) => (
             <label key={v} className="flex items-center gap-2"><input type="radio" checked={(o.view || "raw") === v} onChange={() => set({ ...o, view: v })} />{l}</label>

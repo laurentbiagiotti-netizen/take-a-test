@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import AppWindow from "@/components/questions/AppWindow";
 import { HEADER_QUESTIONS, hops, summary, type HeaderField } from "@/lib/questions/headers";
 import { basicProblem, FIELD_LABEL, vlsmProblem, type SubnetOptions } from "@/lib/questions/subnet";
 import { connected, makeGrid, shown, solved } from "@/lib/questions/netpuzzle";
@@ -15,36 +16,90 @@ export function HeadersQuestion({ q, value, onText, onChange }: { q: any; value:
   const hs = useMemo(() => hops(raw), [raw]);
   const ask: HeaderField[] = o.ask || [];
   const set = (k: string, v: string, typed = false) => (typed ? onText : onChange)({ fields: { ...f, [k]: v } });
+  const [tab, setTab] = useState<string>("");
+
+  const head = (name: string) => (raw.match(new RegExp(`^${name}:\\s*(.*)$`, "mi")) || [])[1] || "";
+  const fromName = (s.from || "").replace(/<.*>/, "").replace(/"/g, "").trim() || s.from || "Expéditeur";
+  const fromAddr = ((s.from || "").match(/<([^>]+)>/) || [])[1] || s.from || "";
+  const body: string = o.body || `Bonjour,\n\nVous trouverez ci-dessous les informations concernant votre dossier.\n\nCordialement,\n${fromName}`;
+  const tabs: [string, string][] = [["message", "Message"], ...(o.view === "table" ? [["analyse", "Analyse des en-têtes"]] as [string, string][] : []), ["source", "Afficher la source"]];
+  const tabNow = tab || "message";
+  const others = [
+    ["Service scolarité", "Planning de la semaine 45", "lun."], ["Bureau des étudiants", "Soirée d'intégration : inscriptions ouvertes", "ven."], ["Bibliothèque", "Rappel : retour des ouvrages", "jeu."],
+  ];
 
   return (
     <div className="space-y-4">
-      {o.view === "table" ? (
-        <div className="space-y-3">
-          <div className="rounded-lg border border-line overflow-hidden">
-            <div className="px-3 py-2 bg-surface-2 text-[11px] uppercase tracking-wider text-muted">Résumé du message</div>
-            <dl className="grid grid-cols-[8rem_1fr] text-sm">
-              {[["Expéditeur (From)", s.from], ["Répondre à (Reply-To)", s.replyTo], ["Retour (Return-Path)", s.returnPath], ["Objet", s.subject], ["Date", s.date]].filter(([, v]) => v).map(([k, v]) => (
-                <div key={k} className="contents"><dt className="px-3 py-1.5 text-muted border-t border-line">{k}</dt><dd className="px-3 py-1.5 font-mono text-xs border-t border-line break-all">{v}</dd></div>
-              ))}
-            </dl>
+      <AppWindow title="Messagerie : Boîte de réception" bodyClass="bg-white text-[#242424] text-[13px]">
+        <div className="grid grid-cols-[11.5rem_15rem_1fr] min-h-[26rem] max-lg:grid-cols-[1fr]">
+          <nav className="bg-[#f3f2f1] border-r border-[#e1dfdd] py-2 max-lg:hidden" aria-label="Dossiers">
+            <div className="px-3 pb-2 mb-1 border-b border-[#e1dfdd]"><span className="inline-block rounded bg-[#0f6cbd] text-white text-xs px-3 py-1.5">✉ Nouveau message</span></div>
+            {[["📥", "Boîte de réception", "4"], ["⚠️", "Courrier indésirable", ""], ["📤", "Éléments envoyés", ""], ["🗑️", "Éléments supprimés", ""], ["🗄️", "Archives", ""]].map(([i, n, c], k) => (
+              <div key={n} className={`px-3 py-1.5 flex items-center gap-2 ${k === 0 ? "bg-[#e1dfdd] font-semibold" : "text-[#424242]"}`}><span aria-hidden>{i}</span><span className="truncate">{n}</span>{c && <span className="ml-auto text-[#0f6cbd]">{c}</span>}</div>
+            ))}
+          </nav>
+          <div className="border-r border-[#e1dfdd] max-lg:hidden">
+            <div className="px-3 py-2 border-b border-[#e1dfdd] font-semibold">Boîte de réception</div>
+            <div className="px-3 py-2 border-l-4 border-[#0f6cbd] bg-[#cfe4fa]/60">
+              <div className="font-semibold truncate">{fromName}</div>
+              <div className="truncate text-[#0f6cbd] font-semibold text-xs">{s.subject}</div>
+              <div className="truncate text-xs text-[#616161]">{body.split("\n").find((l) => l.trim()) || ""}</div>
+            </div>
+            {others.map(([a, b, d]) => (
+              <div key={a} className="px-3 py-2 border-t border-[#edebe9] text-[#616161]"><div className="flex"><span className="truncate text-[#242424]">{a}</span><span className="ml-auto text-xs">{d}</span></div><div className="truncate text-xs">{b}</div></div>
+            ))}
           </div>
-          <div className="rounded-lg border border-line overflow-auto">
-            <div className="px-3 py-2 bg-surface-2 text-[11px] uppercase tracking-wider text-muted">Trajet du message, du premier serveur au dernier</div>
-            <table className="w-full text-xs font-mono">
-              <thead><tr className="text-muted">{["Saut", "Depuis", "Reçu par", "IP", "Délai"].map((h) => <th key={h} className="text-left px-3 py-1.5 font-normal">{h}</th>)}</tr></thead>
-              <tbody>{hs.map((h) => (
-                <tr key={h.n} className="border-t border-line"><td className="px-3 py-1.5">{h.n}</td><td className="px-3 break-all">{h.from}</td><td className="px-3 break-all">{h.by}</td><td className="px-3">{h.ip || "-"}</td><td className="px-3">{h.delay_s === null ? "-" : `${h.delay_s} s`}</td></tr>
-              ))}</tbody>
-            </table>
+          <div className="min-w-0 flex flex-col">
+            <div className="px-5 pt-4 pb-3 border-b border-[#edebe9]">
+              <div className="text-[17px] font-semibold leading-snug">{s.subject}</div>
+              <div className="mt-3 flex items-start gap-3">
+                <span aria-hidden className="w-9 h-9 rounded-full bg-[#8764b8] text-white grid place-items-center font-semibold shrink-0">{fromName.slice(0, 1)}</span>
+                <div className="min-w-0 text-xs leading-5">
+                  <div className="text-[13px]"><b>{fromName}</b> <span className="text-[#616161]">&lt;{fromAddr}&gt;</span></div>
+                  <div className="text-[#616161] truncate">À : {head("To").replace(/[<>]/g, "") || "vous"}</div>
+                  {s.replyTo && <div className="text-[#616161] truncate">Répondre à : {s.replyTo.replace(/[<>]/g, "")}</div>}
+                  <div className="text-[#616161]">{s.date}</div>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-1 text-xs" role="tablist" aria-label="Affichage du message">
+                {tabs.map(([k, l]) => (
+                  <button key={k} type="button" role="tab" aria-selected={tabNow === k} onClick={() => setTab(k)}
+                    className={`px-2.5 py-1 rounded ${tabNow === k ? "bg-[#ebf3fc] text-[#0f6cbd] font-semibold" : "text-[#424242] hover:bg-[#f5f5f5]"}`}>{l}</button>
+                ))}
+              </div>
+            </div>
+            <div className="p-5 overflow-auto max-h-[22rem]">
+              {tabNow === "message" && (
+                <div className="whitespace-pre-line leading-relaxed">
+                  {body}
+                  {o.button && <div className="mt-4"><span className="inline-block rounded bg-[#c50f1f] text-white px-4 py-2 text-sm font-semibold" title={o.button.url}>{o.button.label}</span><div className="mt-1 text-[11px] text-[#616161] font-mono">Lien : {o.button.url}</div></div>}
+                </div>
+              )}
+              {tabNow === "source" && <pre className="text-[11.5px] font-mono whitespace-pre-wrap break-all leading-relaxed text-[#1b1b1b]">{raw}</pre>}
+              {tabNow === "analyse" && (
+                <div className="space-y-4 text-xs">
+                  <table className="w-full border border-[#e1dfdd]"><tbody>
+                    {[["Expéditeur (From)", s.from], ["Répondre à (Reply-To)", s.replyTo], ["Retour (Return-Path)", s.returnPath], ["Objet", s.subject], ["Date", s.date]].filter(([, v]) => v).map(([k, v]) => (
+                      <tr key={k} className="border-t border-[#e1dfdd]"><th className="text-left font-normal text-[#616161] bg-[#faf9f8] px-2 py-1.5 w-40 align-top">{k}</th><td className="px-2 py-1.5 font-mono break-all">{v}</td></tr>
+                    ))}
+                  </tbody></table>
+                  <div>
+                    <div className="font-semibold mb-1">Trajet du message, du premier serveur au dernier</div>
+                    <table className="w-full border border-[#e1dfdd] font-mono">
+                      <thead className="bg-[#faf9f8] text-[#616161]"><tr>{["Saut", "Depuis", "Reçu par", "IP", "Délai"].map((h) => <th key={h} className="text-left font-normal px-2 py-1">{h}</th>)}</tr></thead>
+                      <tbody>{hs.map((h) => (
+                        <tr key={h.n} className="border-t border-[#e1dfdd]"><td className="px-2 py-1">{h.n}</td><td className="px-2 break-all">{h.from}</td><td className="px-2 break-all">{h.by}</td><td className="px-2">{h.ip || "-"}</td><td className="px-2">{h.delay_s === null ? "-" : `${h.delay_s} s`}</td></tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                  {s.auth && <div><div className="font-semibold mb-1">Authentication-Results</div><pre className="font-mono whitespace-pre-wrap break-all bg-[#faf9f8] border border-[#e1dfdd] p-2">{s.auth}</pre></div>}
+                </div>
+              )}
+            </div>
           </div>
-          {s.auth && <div className="rounded-lg border border-line p-3"><div className="text-[11px] uppercase tracking-wider text-muted mb-1">Authentication-Results</div><pre className="text-xs font-mono whitespace-pre-wrap break-all">{s.auth}</pre></div>}
         </div>
-      ) : (
-        <div>
-          <div className="text-[11px] uppercase tracking-wider text-muted mb-1">En-têtes bruts du message</div>
-          <pre className="text-xs font-mono whitespace-pre-wrap break-all rounded-lg bg-bg border border-line p-3 max-h-80 overflow-auto leading-relaxed">{raw}</pre>
-        </div>
-      )}
+      </AppWindow>
+      <div className="text-sm font-semibold">Votre analyse</div>
       <div className="grid gap-3">
         {ask.map((k) => {
           const meta = HEADER_QUESTIONS[k];
