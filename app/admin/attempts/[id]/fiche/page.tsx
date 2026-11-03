@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { VERDICT_BADGE, VERDICT_LABEL, fmt20, type Verdict } from "@/lib/exam/verdict";
 import PrintButton from "@/components/PrintButton";
 
 export const dynamic = "force-dynamic";
@@ -65,18 +66,26 @@ export default async function Fiche({ params }: { params: Promise<{ id: string }
       <section className="card print:border print:border-black">
         <div className="flex flex-wrap items-end gap-6">
           <div>
-            <div className="text-xs text-muted print:text-black">Résultat au QCM</div>
-            <div className="font-display text-4xl text-accent print:text-black">{report?.score ?? "-"}<span className="text-faint text-xl print:text-black"> / {report?.max_score ?? "-"}</span></div>
+            <div className="text-xs text-muted print:text-black">Note</div>
+            <div className="font-display text-4xl text-accent print:text-black">{fmt20(report?.score20)}</div>
+            <div className="text-xs text-muted print:text-black">{report?.score ?? "-"} / {report?.max_score ?? "-"} points</div>
           </div>
-          {report?.pass_mark != null && (
-            <div className={`badge ${report.passed ? "badge-ok" : "badge-danger"} print:border print:border-black`}>
-              {report.passed ? "Admissible" : below.length && (report.score ?? 0) >= report.pass_mark ? "Seuil atteint, mais plancher non atteint" : "Sous le seuil"} (seuil {report.pass_mark})
+          {report?.verdict && (
+            <div className={`${VERDICT_BADGE[report.verdict as Verdict]} text-base print:border print:border-black`}>
+              {VERDICT_LABEL[report.verdict as Verdict]}{report.verdict_override ? " (décision de l'équipe)" : ""}
             </div>
           )}
           <div className="text-sm text-muted print:text-black">
             {STATUS[a.status] || a.status} · {minutes != null ? `${minutes} min utilisées sur ${a.test?.duration_minutes + (a.extra_minutes || 0)}` : ""}{a.extra_minutes ? ` (tiers-temps +${a.extra_minutes} min)` : ""}
           </div>
         </div>
+        {report?.thresholds && (
+          <p className="mt-2 text-xs text-muted print:text-black">
+            Réussi à partir de {report.thresholds.pass}/20, échoué sous {report.thresholds.fail}/20.
+            {report.verdict_override ? ` Calcul automatique : ${report.verdict_auto ? VERDICT_LABEL[report.verdict_auto as Verdict] : "-"}. Motif de la décision : ${report.verdict_override.reason}` : ""}
+            {report.needs_manual ? " Une réponse rédigée reste à corriger." : ""}
+          </p>
+        )}
         {below.length > 0 && <p className="mt-3 text-danger print:text-black">À creuser en entretien : résultat sous le plancher en {below.join(", ")}.</p>}
 
         <table className="mt-4 w-full text-sm">

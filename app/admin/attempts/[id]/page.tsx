@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Grader from "@/components/Grader";
 import StaffActions from "@/components/StaffActions";
+import VerdictPanel from "@/components/VerdictPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
     identity = { document: signed?.[0]?.signedUrl || undefined, selfie: signed?.[1]?.signedUrl || undefined };
   }
 
+  const { data: report } = await supabase.rpc("attempt_report", { p_attempt: id });
   const order: string[] = a.question_order || [];
   const sorted = (answers || []).sort((x: any, y: any) => order.indexOf(x.question_id) - order.indexOf(y.question_id));
   const longAnswers = sorted.filter((x: any) => x.question?.type === "long_text");
@@ -74,6 +76,8 @@ export default async function AttemptDetail({ params }: { params: Promise<{ id: 
           <span className="col-span-2 truncate">IP : {a.client_ip || "-"} · {a.user_agent || ""}</span>
         </div>
       </div>
+
+      <VerdictPanel attemptId={a.id} report={report} finished={!["pending", "in_progress"].includes(a.status)} />
 
       <StaffActions attemptId={a.id} status={a.status} identityStatus={a.identity_status} isAdmin={profile?.role === "admin"} suspicionAt={a.suspicion_at} />
 

@@ -58,8 +58,13 @@ create table tests (
   pass_mark numeric check (pass_mark is null or pass_mark >= 0),
   domain_floors jsonb not null default '{}'::jsonb,
   interview_guide text check (interview_guide is null or length(interview_guide) <= 50000),
+  -- Résultat sur 20 : « Test réussi » à partir de verdict_pass, « Test échoué » sous
+  -- verdict_fail, « À statuer » entre les deux (et dès qu'une réponse reste à corriger).
+  verdict_pass numeric not null default 10 check (verdict_pass between 0 and 20),
+  verdict_fail numeric not null default 8 check (verdict_fail between 0 and 20),
   created_at timestamptz not null default now(),
-  check (opens_at is null or closes_at is null or opens_at < closes_at)
+  check (opens_at is null or closes_at is null or opens_at < closes_at),
+  check (verdict_fail <= verdict_pass)
 );
 
 -- Secrets du test : jamais lisibles par un candidat (admin uniquement).
@@ -163,6 +168,11 @@ create table attempts (
   -- Suspicion de fraude retenue par une personne de l'équipe (jamais automatique)
   suspicion_at timestamptz,
   suspicion_note text,
+  -- Décision forcée par l'équipe (toujours motivée et journalisée)
+  verdict_override text check (verdict_override is null or verdict_override in ('pass', 'review', 'fail')),
+  verdict_reason text check (verdict_reason is null or length(verdict_reason) <= 1000),
+  verdict_by uuid references profiles(id) on delete set null,
+  verdict_at timestamptz,
   unique (test_id, candidate_id)
 );
 create index on attempts(status, deadline_at);
@@ -1500,6 +1510,25 @@ begin
   elsif p_action = 'clear_suspicion' then
     update attempts set suspicion_at = null, suspicion_note = null where id = a.id;
     perform _log(a.id, 'staff_suspicion_cleared', 'info', jsonb_build_object('by', p_actor), null);
+  elsif p_action = 'set_verdict' then
+    -- Décision forcée : seulement sur une copie rendue, toujours avec un motif.
+    if a.status in ('pending', 'in_progress') then raise exception 'attempt_not_finished' using errcode = 'P0001'; end if;
+    if p_arg->>'verdict' is null then
+      update attempts set verdict_override = null, verdict_reason = null, verdict_by = p_actor, verdict_at = now() where id = a.id;
+    else
+      if p_arg->>'verdict' not in ('pass', 'review', 'fail') then raise exception 'bad_verdict' using errcode = 'P0001'; end if;
+      if length(trim(coalesce(p_arg->>'reason', ''))) < 3 then raise exception 'reason_required' using errcode = 'P0001'; end if;
+      update attempts set verdict_override = p_arg->>'verdict', verdict_reason = left(trim(p_arg->>'reason'), 1000),
+                          verdict_by = p_actor, verdict_at = now() where id = a.id;
+    end if;
+    perform _log(a.id, 'staff_verdict', 'info', jsonb_build_object('by', p_actor, 'verdict', p_arg->>'verdict',
+                 'reason', left(p_arg->>'reason', 1000)), null);
+    perform _enqueue_webhook('attempt.verdict', jsonb_build_object(
+      'attempt_id', a.id, 'test_id', a.test_id, 'candidate_id', a.candidate_id,
+      'candidate_email', (select email from profiles where id = a.candidate_id),
+      'admission', _attempt_report(a.id),
+      'external_ref', (select i.external_ref from invites i join profiles pr on pr.email = i.email
+                       where i.test_id = a.test_id and pr.id = a.candidate_id)));
   elsif p_action = 'reset_attempt' then
     if not _is_admin_user(p_actor) then raise exception 'forbidden' using errcode = '42501'; end if;
     delete from attempts where id = a.id;
@@ -1599,9 +1628,15 @@ end; $$;
 ------------------------------------------------------------
 
 -- Score par domaine et décision indicative (seuil global + planchers).
+create or replace function public._verdict_label(p text)
+returns text language sql immutable as $$
+  select case p when 'pass' then 'Test réussi' when 'review' then 'À statuer' when 'fail' then 'Test échoué' end;
+$$;
+
 create or replace function public._attempt_report(p_attempt uuid)
 returns jsonb language plpgsql stable security definer set search_path = public as $$
 declare a attempts; t tests; v_domains jsonb; v_below jsonb; v_score numeric; v_max numeric;
+  v_s20 numeric; v_manual boolean; v_auto text; v_final text;
 begin
   select * into a from attempts where id = p_attempt;
   if a.id is null then return null; end if;
@@ -1622,10 +1657,30 @@ begin
          coalesce(jsonb_agg(domain order by domain) filter (where floor is not null and ratio is not null and ratio < floor), '[]'::jsonb),
          sum(score), sum(max)
     into v_domains, v_below, v_score, v_max from f;
+  -- Réponse rédigée pas encore corrigée : rien n'est décidé tant qu'une personne ne l'a pas notée.
+  select exists (select 1 from answers an join questions q on q.id = an.question_id
+                 where an.attempt_id = a.id and q.type = 'long_text' and an.score is null
+                   and q.id = any(coalesce(a.question_order, '{}'))) into v_manual;
+  if a.score is not null and coalesce(a.max_score, 0) > 0 then
+    v_s20 := round(a.score / a.max_score * 20, 2);
+    v_auto := case
+      when v_manual then 'review'
+      when v_s20 < t.verdict_fail then 'fail'
+      when v_s20 >= t.verdict_pass and jsonb_array_length(v_below) = 0
+           and (t.pass_mark is null or a.score >= t.pass_mark) then 'pass'
+      else 'review' end;
+  end if;
+  v_final := coalesce(a.verdict_override, v_auto);
   return jsonb_build_object(
     'score', coalesce(a.score, v_score), 'max_score', coalesce(a.max_score, v_max), 'pass_mark', t.pass_mark,
-    'passed', case when t.pass_mark is null or a.score is null then null
-                   else a.score >= t.pass_mark and jsonb_array_length(v_below) = 0 end,
+    'score20', v_s20, 'thresholds', jsonb_build_object('pass', t.verdict_pass, 'fail', t.verdict_fail),
+    'needs_manual', v_manual,
+    'verdict', v_final, 'verdict_label', _verdict_label(v_final),
+    'verdict_auto', v_auto, 'verdict_auto_label', _verdict_label(v_auto),
+    'verdict_override', case when a.verdict_override is null then null else jsonb_build_object(
+        'verdict', a.verdict_override, 'reason', a.verdict_reason, 'at', a.verdict_at,
+        'by', (select coalesce(full_name, email) from profiles where id = a.verdict_by)) end,
+    'passed', case when v_final is null then null else v_final = 'pass' end,
     'below_floors', v_below, 'domains', v_domains);
 end; $$;
 
@@ -1646,6 +1701,15 @@ returns jsonb language plpgsql stable security definer set search_path = public 
 begin
   if not is_staff() then raise exception 'forbidden' using errcode = '42501'; end if;
   return _attempt_report(p_attempt) || jsonb_build_object('receipt', _receipt(p_attempt));
+end; $$;
+
+-- Résultats d'une épreuve (note sur 20, résultat, décision forcée), pour la liste
+-- des tentatives et les exports. Réservé à l'équipe.
+create or replace function public.test_results(p_test uuid)
+returns jsonb language plpgsql stable security definer set search_path = public as $$
+begin
+  if not is_staff() then raise exception 'forbidden' using errcode = '42501'; end if;
+  return coalesce((select jsonb_object_agg(a.id, _attempt_report(a.id)) from attempts a where a.test_id = p_test), '{}'::jsonb);
 end; $$;
 
 -- Statistiques par question sur les copies terminées :
@@ -1721,7 +1785,7 @@ end; $$;
 ------------------------------------------------------------
 revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function public.is_admin(), public.is_staff(), public.my_dashboard() to authenticated;
-grant execute on function public.attempt_report(uuid), public.item_stats(uuid), public.staff_live(uuid) to authenticated;
+grant execute on function public.attempt_report(uuid), public.item_stats(uuid), public.staff_live(uuid), public.test_results(uuid) to authenticated;
 grant execute on all functions in schema public to service_role;
 
 ------------------------------------------------------------

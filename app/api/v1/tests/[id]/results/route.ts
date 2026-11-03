@@ -22,7 +22,10 @@ export const GET = withApi<{ id: string }>("results:read", async ({ admin, req }
     return {
       attempt_id: a.id, email: a.candidate?.email, full_name: a.candidate?.full_name,
       external_ref: refs.get(a.candidate?.email) ?? null, status: a.status,
-      score: a.score, max_score: a.max_score, pass_mark: r?.pass_mark ?? null, passed: r?.passed ?? null,
+      score: a.score, max_score: a.max_score, score20: r?.score20 ?? null,
+      verdict: r?.verdict ?? null, verdict_label: r?.verdict_label ?? null,
+      verdict_forced: r?.verdict_override ? r.verdict_override.reason : null,
+      pass_mark: r?.pass_mark ?? null, passed: r?.passed ?? null,
       below_floors: (r?.below_floors || []).join(", "),
       violation_count: a.violation_count, identity_status: a.identity_status,
       started_at: a.started_at, submitted_at: a.submitted_at, end_reason: a.end_reason, extra_minutes: a.extra_minutes,

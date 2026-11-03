@@ -1,9 +1,11 @@
 "use client";
 import { DataTable, type Column } from "@/components/admin/DataTable";
+import { VERDICT_BADGE, VERDICT_LABEL, fmt20, type Verdict } from "@/lib/exam/verdict";
 
 export type AttemptRow = {
   id: string; name: string; email: string; status: string; score: number | null; max_score: number | null;
   violations: number; camera: number; identity: string | null; silent: boolean; submitted_at: string | null;
+  score20: number | null; verdict: Verdict | null; forced: boolean;
 };
 
 const STATUS: Record<string, string> = { pending: "pas commencé", in_progress: "en cours", submitted: "rendu", terminated: "interrompu", expired: "temps écoulé" };
@@ -16,8 +18,14 @@ const columns: Column<AttemptRow>[] = [
   },
   { key: "status", label: "Statut", sort: (a) => STATUS[a.status] || a.status, cell: (a) => STATUS[a.status] || a.status },
   {
-    key: "score", label: "Note", sort: (a) => (a.score != null && a.max_score ? a.score / a.max_score : a.score),
-    cell: (a) => <>{a.score ?? "-"}{a.max_score != null ? ` / ${a.max_score}` : ""}</>,
+    key: "score", label: "Note", sort: (a) => a.score20,
+    cell: (a) => <><b>{fmt20(a.score20)}</b><div className="text-xs text-muted">{a.score ?? "-"}{a.max_score != null ? ` / ${a.max_score} pts` : ""}</div></>,
+  },
+  {
+    key: "verdict", label: "Résultat", sort: (a) => (a.verdict ? { pass: 1, review: 2, fail: 3 }[a.verdict] : null),
+    cell: (a) => (a.verdict
+      ? <span className={VERDICT_BADGE[a.verdict]} title={a.forced ? "Décision forcée par l'équipe" : undefined}>{VERDICT_LABEL[a.verdict]}{a.forced ? " *" : ""}</span>
+      : <span className="text-faint">-</span>),
   },
   {
     key: "violations", label: "Infractions", sort: (a) => a.violations,

@@ -25,7 +25,10 @@ info:
     `X-Cybersup-Signature: t=<timestamp>,v1=<hex>` avec
     `v1 = HMAC-SHA256(secret, "<t>.<corps brut>")`. Vérifiez la signature et
     refusez un `t` de plus de 5 minutes. Événements : `attempt.submitted`,
-    `attempt.terminated`, `attempt.expired`. Renvois automatiques avec
+    `attempt.terminated`, `attempt.expired`, `attempt.flagged` (seuil
+    d'infractions atteint) et `attempt.verdict` (décision forcée par l'équipe).
+    Le champ `admission` porte la note sur 20 (`score20`) et le résultat
+    (`verdict` : pass, review ou fail ; `verdict_label`). Renvois automatiques avec
     attente croissante (8 essais).
 servers:
   - url: /api/v1

@@ -3,7 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { requireStaff } from "@/lib/auth/staff";
 import { kickWebhooks } from "@/lib/webhooks";
 
-const ACTIONS = new Set(["reset_session", "extend_time", "terminate", "review_identity", "reset_attempt", "flag_suspicion", "clear_suspicion"]);
+const ACTIONS = new Set(["reset_session", "extend_time", "terminate", "review_identity", "reset_attempt", "flag_suspicion", "clear_suspicion", "set_verdict"]);
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,6 +15,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     p_actor: s.userId, p_attempt: id, p_action: body.action, p_arg: body.arg ?? {},
   });
   if (error) return NextResponse.json({ error: error.message.split(":")[0] }, { status: 400 });
-  if (body.action === "terminate") kickWebhooks();
+  if (body.action === "terminate" || body.action === "set_verdict") kickWebhooks();
   return NextResponse.json(data);
 }

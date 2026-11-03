@@ -48,3 +48,16 @@ select external_record(:'sid', :'nonce', 'crime', 4, 1, null, null, null, true) 
 reset role;
 select score, max_score from attempts;
 select score from answers order by score;
+-- 7. Résultat sur 20 et décision forcée
+set role service_role;
+select _attempt_report(:'att')->>'score20' as sur20, _attempt_report(:'att')->>'verdict' as auto;
+select staff_action('00000000-0000-0000-0000-00000000000a', :'att', 'set_verdict', '{"verdict":"pass"}') as sans_motif;
+select staff_action('00000000-0000-0000-0000-00000000000a', :'att', 'set_verdict', '{"verdict":"admis","reason":"ok ok"}') as verdict_inconnu;
+select staff_action('00000000-0000-0000-0000-00000000000c', :'att', 'set_verdict', '{"verdict":"pass","reason":"moi"}') as candidat;
+select staff_action('00000000-0000-0000-0000-00000000000a', :'att', 'set_verdict', '{"verdict":"review","reason":"Panne réseau pendant l enquête"}')->>'ok' as force;
+select _attempt_report(:'att')->>'verdict' as final, _attempt_report(:'att')->'verdict_override'->>'reason' as motif,
+       _attempt_report(:'att')->>'verdict_auto' as calcul, (_attempt_report(:'att')->>'passed')::boolean as admis;
+select count(*) as journal_et_webhook from proctor_events where kind = 'staff_verdict';
+select staff_action('00000000-0000-0000-0000-00000000000a', :'att', 'set_verdict', '{"verdict":null}')->>'ok' as annule;
+select _attempt_report(:'att')->>'verdict' as retour_auto;
+reset role;

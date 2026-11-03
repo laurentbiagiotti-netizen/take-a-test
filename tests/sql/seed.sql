@@ -52,6 +52,8 @@ do $$ declare a attempts; begin
   if (select count(distinct variant_group) from questions where id = any(a.question_order)) <> 55 then raise exception 'tirage : deux variantes d''un même groupe'; end if;
   if a.extra_minutes <> 15 or a.deadline_at - a.started_at <> interval '86 minutes' then raise exception 'tiers-temps non appliqué (% min)', a.extra_minutes; end if;
   if (_attempt_report(a.id)->>'passed')::boolean is not true then raise exception 'rapport : candidat à 61/65 non admissible'; end if;
+  if _attempt_report(a.id)->>'verdict' <> 'pass' or (_attempt_report(a.id)->>'score20')::numeric <> 18.77 then
+    raise exception 'résultat sur 20 : %', _attempt_report(a.id); end if;
   if jsonb_array_length(_attempt_report(a.id)->'domains') <> 8 then raise exception 'rapport : domaines manquants'; end if;
   if length(_receipt(a.id)->>'reference') <> 12 then raise exception 'accusé de réception absent'; end if;
   if a.violation_count <> 0 then raise exception 'la caméra refusée ne doit pas compter comme infraction'; end if;

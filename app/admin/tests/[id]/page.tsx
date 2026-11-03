@@ -271,9 +271,23 @@ export default function EditTest() {
 
         <div className="border-t pt-3 space-y-2 text-sm">
           <div className="font-medium">Admission</div>
-          <label className="block">Seuil d&apos;admissibilité (points, vide = aucun)
-            <input className="input mt-1 w-32" type="number" min={0} step={0.5} value={test.pass_mark ?? ""} onChange={(e) => updateTest({ pass_mark: e.target.value === "" ? null : Number(e.target.value) })} />
-          </label>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <label className="block">« Test réussi » à partir de (sur 20)
+              <input className="input mt-1 w-28" type="number" min={0} max={20} step={0.5} value={test.verdict_pass ?? 10}
+                onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 20 && v >= (test.verdict_fail ?? 8)) updateTest({ verdict_pass: v }); }} />
+            </label>
+            <label className="block">« Test échoué » sous (sur 20)
+              <input className="input mt-1 w-28" type="number" min={0} max={20} step={0.5} value={test.verdict_fail ?? 8}
+                onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 20 && v <= (test.verdict_pass ?? 10)) updateTest({ verdict_fail: v }); }} />
+            </label>
+            <label className="block">Points minimum en plus (facultatif)
+              <input className="input mt-1 w-28" type="number" min={0} step={0.5} value={test.pass_mark ?? ""} onChange={(e) => updateTest({ pass_mark: e.target.value === "" ? null : Number(e.target.value) })} />
+            </label>
+          </div>
+          <p className="text-xs text-muted">
+            Entre les deux seuils, le résultat est « À statuer ». Il l&apos;est aussi tant qu&apos;une réponse rédigée n&apos;est pas corrigée,
+            ou si un plancher par domaine n&apos;est pas atteint. L&apos;équipe peut toujours forcer la décision, avec un motif.
+          </p>
           <div>
             <div>Plancher par domaine (% minimum de réussite ; en dessous, le candidat est signalé au jury)</div>
             <div className="grid sm:grid-cols-2 gap-2 mt-1">

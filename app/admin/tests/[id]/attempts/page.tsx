@@ -23,6 +23,7 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
     : { data: [] as any[] };
   const camCount = new Map<string, number>();
   for (const e of camEv || []) camCount.set(e.attempt_id, (camCount.get(e.attempt_id) || 0) + 1);
+  const { data: results } = await supabase.rpc("test_results", { p_test: id });
   const now = Date.now();
   const rows: AttemptRow[] = (attempts || []).map((a: any) => ({
     id: a.id,
@@ -36,6 +37,9 @@ export default async function Attempts({ params }: { params: Promise<{ id: strin
     identity: a.identity_status,
     silent: !!(a.status === "in_progress" && a.last_seen_at && now - new Date(a.last_seen_at).getTime() > 45_000),
     submitted_at: a.submitted_at,
+    score20: results?.[a.id]?.score20 ?? null,
+    verdict: results?.[a.id]?.verdict ?? null,
+    forced: !!results?.[a.id]?.verdict_override,
   }));
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
