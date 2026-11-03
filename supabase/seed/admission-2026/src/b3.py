@@ -1,5 +1,5 @@
 TITLE = "Admission Bachelor 3 Cybersécurité 2026"
-DESC = "QCM d'admission B3 Cyber (proposition de Dylan, v4, relue). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50."
+DESC = "QCM d'admission B3 Cyber (proposition de Dylan, v5, relue). 50 minutes, 1 point par question ; questions à plusieurs réponses : tout ou rien. Niveau visé : sortie de BTS SIO SISR ou BTS CIEL IR. Seuil d'admissibilité proposé : 25/50."
 Q = [
 ("Combien d'adresses d'hôtes utilisables contient le réseau 192.168.10.0/26 ?", ["64","62","30","126"], "B", "Réseaux", "Un /26 laisse 6 bits d'hôte : 2^6 = 64 adresses, moins l'adresse réseau et l'adresse de broadcast = 62 hôtes."),
 ("Un poste a l'adresse 192.168.1.130/25. Quelle est l'adresse de son réseau ?", ["192.168.1.255","192.168.1.127","192.168.1.0","192.168.1.128"], "D", "Réseaux", "Masque /25 = 255.255.255.128. Les réseaux sont .0 à .127 et .128 à .255 ; .130 appartient au réseau 192.168.1.128."),

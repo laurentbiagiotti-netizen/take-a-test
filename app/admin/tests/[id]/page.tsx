@@ -11,6 +11,7 @@ import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kind
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
+import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
 
 type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
@@ -145,6 +146,15 @@ export default function EditTest() {
       image_url: null, terminal: p.terminal ? { ...p.terminal } : null, external: null, explanation: p.explanation ?? null,
     }))]);
     notify(`${pack.questions.length} exercices ajoutés. Allongez la durée d'environ ${pack.minutes} min, puis cliquez sur « Enregistrer ».`);
+  };
+
+  const addBank = (bq: BankQuestion[]) => {
+    setQuestions((qs) => [...qs, ...bq.map((p, j) => ({
+      test_id: id, position: qs.length + j, type: p.type as QType, prompt: p.prompt, domain: p.domain, points: p.points,
+      time_limit_s: null, options: JSON.parse(JSON.stringify(p.options)), correct: [...p.correct],
+      image_url: null, terminal: null, external: null, explanation: p.explanation ?? null, variant_group: p.variant_group,
+    }))]);
+    notify(`${bq.length} questions ajoutées. Allongez la durée si besoin, puis cliquez sur « Enregistrer ».`);
   };
 
   const saveAll = async () => {
@@ -501,11 +511,12 @@ export default function EditTest() {
       </div>
 
       <div className="mt-3 rounded-lg border border-dashed border-line-strong p-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-muted mr-1">Packs prêts à l&apos;emploi (grilles de Dylan) :</span>
+        <span className="text-muted mr-1">Packs d&apos;exercices pratiques (d&apos;après les grilles de Dylan) :</span>
         {(["b1", "b3", "m1"] as const).map((k) => (
           <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>+ {PACKS[k].label} · {PACKS[k].questions.length} exercices</button>
         ))}
       </div>
+      <DylanBank disabled={locked} onAdd={addBank} />
 
       {questions.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
