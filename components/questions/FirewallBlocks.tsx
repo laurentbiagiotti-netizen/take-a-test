@@ -124,7 +124,7 @@ export default function FirewallBlocks({ q, value, onText }: { q: any; value: an
     <div className="space-y-4">
       {err ? <p className="text-danger text-sm">L&apos;éditeur de blocs n&apos;a pas pu se charger. Rechargez la page.</p>
         : <div ref={host} className="h-[440px] rounded-xl overflow-hidden border border-line" aria-label="Espace de travail du pare-feu : glissez des blocs depuis la gauche" />}
-      <p className="text-xs text-faint">Glissez une règle « si … alors » sous le bloc orange, puis une condition dans la règle. Réseau au format 10.0.0.0/8, liste séparée par des virgules.</p>
+      <p className="text-xs text-faint">Glissez une règle « si … alors » sous le bloc orange, puis une condition dans le trou de la règle. Cliquez sur un mot pour le changer. « 10.0.0.0/8 » veut dire : toutes les adresses qui commencent par 10. Dans une liste, séparez par des virgules (80, 443).</p>
       {sample.length > 0 && (
         <div>
           <div className="text-[11px] uppercase tracking-wider text-muted mb-1">Paquets d&apos;exemple et décision de votre pare-feu</div>
