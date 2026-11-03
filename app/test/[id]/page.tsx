@@ -28,7 +28,7 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?next=/test/${id}`);
+  if (!user) redirect("/acces");
 
   const admin = adminClient();
   const { data: test } = await admin.from("tests").select("id, require_seb, is_published, seb_accept_config_key").eq("id", id).maybeSingle();

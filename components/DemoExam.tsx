@@ -346,7 +346,7 @@ export default function DemoExam({ questions, terminal, api = serverApi, staticS
             </div>
             <div className="flex gap-3">
               <button className="btn-secondary" onClick={() => window.location.reload()}>Recommencer l&apos;essai</button>
-              {!staticSite && <a className="btn" href="/login">Accéder à mes examens</a>}
+              {!staticSite && <a className="btn" href="/acces">Accéder à mon épreuve</a>}
             </div>
           </section>
         )}

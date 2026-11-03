@@ -8,6 +8,9 @@ export type ConvocationInput = {
   origin: string; testId: string;
 };
 
+/** Lien d'accès direct : le code est après #, il n'est jamais envoyé au serveur ni journalisé. */
+export const accessLink = (origin: string, code: string) => `${origin}/acces#code=${code}`;
+
 const fmt = (d: string) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "full", timeStyle: "short" });
 
 export function convocation(i: ConvocationInput): { to: string; subject: string; body: string } {
@@ -22,9 +25,9 @@ export function convocation(i: ConvocationInput): { to: string; subject: string;
     `Durée : ${duration} minutes${i.extraMinutes ? ` (dont ${i.extraMinutes} minutes de temps supplémentaire accordé)` : ""}, chronométrées dès le démarrage.`,
     "",
     "Pour passer l'épreuve :",
-    `1. Créez votre compte avec cette adresse (${i.email}) : ${i.origin}/signup`,
-    `2. Ouvrez l'épreuve : ${i.origin}/test/${i.testId}`,
-    `3. Saisissez votre code d'accès personnel : ${i.code}`,
+    `1. Ouvrez ce lien personnel : ${accessLink(i.origin, i.code)}`,
+    `2. Ou rendez-vous sur ${i.origin}/acces et saisissez votre code : ${i.code}`,
+    "Aucun compte à créer. Ce code est personnel : ne le transmettez à personne.",
     "",
     "La veille, testez votre matériel sur la page d'essai (caméra, plein écran) :",
     `${i.origin}/demo`,

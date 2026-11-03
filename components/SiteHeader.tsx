@@ -26,7 +26,10 @@ export default async function SiteHeader() {
               <form action="/auth/signout" method="post"><button className="btn-secondary">Déconnexion</button></form>
             </>
           ) : (
-            <Link href="/login" className="btn">Se connecter</Link>
+            <>
+              <Link href="/login" className="px-3 py-2 text-muted hover:text-fg">Espace équipe</Link>
+              <Link href="/acces" className="btn">J&apos;ai un code</Link>
+            </>
           )}
         </nav>
       </div>

@@ -29,8 +29,8 @@ function LoginInner() {
 
   return (
     <main className="max-w-md mx-auto px-6 py-16">
-      <h1 className="h1">Connexion</h1>
-      <p className="text-sm text-muted mt-2">Candidat convoqué à une épreuve ? Connectez-vous avec l&apos;adresse qui a reçu la convocation ; le code d&apos;accès vous sera demandé ensuite.</p>
+      <h1 className="h1">Espace équipe</h1>
+      <p className="text-sm text-muted mt-2">Connexion réservée à l&apos;équipe Cybersup (administration, surveillance, correction).</p>
       <form onSubmit={submit} className="mt-6 space-y-4">
         <Field label="Adresse e-mail" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         <PasswordField autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -39,10 +39,10 @@ function LoginInner() {
         <button className="btn w-full justify-center" disabled={loading}>{loading ? "Connexion…" : "Se connecter"}</button>
       </form>
       <div className="mt-6 card text-sm">
-        <div className="font-medium">Première fois ?</div>
-        <p className="text-muted mt-1">Créez votre compte avec l&apos;adresse de votre convocation, puis testez votre matériel sur la page d&apos;essai.</p>
+        <div className="font-medium">Vous êtes candidat ?</div>
+        <p className="text-muted mt-1">Pas de compte à créer : utilisez le code de votre convocation.</p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Link href="/signup" className="btn-secondary">Créer un compte</Link>
+          <Link href="/acces" className="btn-secondary">Entrer mon code</Link>
           <Link href="/demo" className="btn-secondary">Tester mon matériel</Link>
         </div>
       </div>

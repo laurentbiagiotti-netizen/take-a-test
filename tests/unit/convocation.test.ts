@@ -30,7 +30,8 @@ describe("convocation", () => {
     const c = convocation(base);
     expect(c.subject).toBe("Convocation : Admission B1");
     expect(c.body).toContain("Bonjour Alice,");
-    expect(c.body).toContain("https://exam.cybersup.ai/test/t1");
+    expect(c.body).toContain("https://exam.cybersup.ai/acces#code=AB12-CD34");
+    expect(c.body).not.toContain("/signup");
     expect(c.body).toContain("AB12-CD34");
     expect(c.body).toContain("https://exam.cybersup.ai/demo");
     expect(c.body).not.toMatch(/—|&/);

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
-import { convocation, importCandidates } from "@/lib/exam/convocation";
+import { accessLink, convocation, importCandidates } from "@/lib/exam/convocation";
 import { DataTable } from "@/components/admin/DataTable";
 
 type Invite = {
@@ -102,7 +102,7 @@ export default function InvitesPage() {
 
   const exportCodes = () => {
     const csv = "email,nom,code,tiers_temps,lien,identifiant_externe\n" + invites.map((i) =>
-      [i.email, i.full_name || "", i.code, String(i.extra_minutes), `${origin}/test/${id}`, i.external_ref || ""].map(cell).join(",")).join("\n");
+      [i.email, i.full_name || "", i.code, String(i.extra_minutes), accessLink(origin, i.code), i.external_ref || ""].map(cell).join(",")).join("\n");
     download(`invitations-${id}.csv`, "﻿" + csv, "text/csv");
   };
 
@@ -170,12 +170,13 @@ export default function InvitesPage() {
           },
           {
             key: "state", label: "État", sort: (i) => i.used_at,
-            cell: (i) => i.used_at ? <span className="text-ok">compte lié le {new Date(i.used_at).toLocaleString("fr-FR")}</span> : <span className="text-muted">en attente</span>,
+            cell: (i) => i.used_at ? <span className="text-ok">code utilisé le {new Date(i.used_at).toLocaleString("fr-FR")}</span> : <span className="text-muted">en attente</span>,
           },
           {
             key: "actions", label: "", actions: true,
             cell: (i) => <>
               <button className="underline mr-3" onClick={() => setPreview(i)}>voir</button>
+              <button className="underline mr-3" onClick={() => { navigator.clipboard.writeText(accessLink(origin, i.code)); notify("Lien d'accès copié"); }}>lien</button>
               <a href={mailto(i)} className="text-accent underline mr-3">brouillon</a>
               <button className="text-danger" onClick={() => remove(i.id)}>supprimer</button>
             </>,

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { RuleIcon } from "@/components/exam/ui";
 
 const STEPS = [
-  { n: "1", t: "Créez votre compte", d: "Avec l'adresse e-mail qui a reçu votre convocation." },
+  { n: "1", t: "Gardez votre code", d: "Il est dans votre convocation : pas de compte à créer." },
   { n: "2", t: "Testez votre matériel", d: "La veille, sur la page d'essai : caméra, plein écran, types de questions." },
-  { n: "3", t: "Passez l'épreuve", d: "Ouvrez le lien de la convocation et saisissez votre code d'accès personnel." },
+  { n: "3", t: "Passez l'épreuve", d: "Ouvrez le lien de la convocation ou saisissez votre code sur la page d'accès." },
 ];
 
 const NEEDS = [
@@ -34,7 +34,7 @@ export default function Home() {
           Voici comment ça se passe.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/login" className="btn">Accéder à mon épreuve</Link>
+          <Link href="/acces" className="btn">Accéder à mon épreuve</Link>
           <Link href="/demo" className="btn-secondary">Faire l&apos;essai</Link>
         </div>
       </section>
