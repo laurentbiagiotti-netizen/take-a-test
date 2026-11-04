@@ -506,8 +506,9 @@ export default function ExamRoom(props: {
             <span aria-hidden className={`w-1.5 h-1.5 rounded-full ${saving === "error" ? "bg-danger" : saving === "saving" ? "bg-warn animate-pulse" : "bg-ok"}`} />
             {saving === "saving" ? "Enregistrement…" : saving === "error" ? "Non enregistré" : "Enregistré"}
           </span>
-          <span className={`text-xs px-2 py-1 rounded-full border ${violations ? "border-warn/50 text-warn" : "border-line text-muted"}`} title="Infractions relevées">
-            {violations}/{maxViolations} infraction{maxViolations > 1 ? "s" : ""}
+          <span className={`text-xs px-2 py-1 rounded-full border ${violations > maxViolations ? "border-danger/60 text-danger" : violations ? "border-warn/50 text-warn" : "border-line text-muted"}`}
+            title={violations > maxViolations ? "Le seuil est dépassé : le surveillant examine votre épreuve" : `Seuil : ${maxViolations}`}>
+            {violations > maxViolations ? `${violations} infractions · signalé au surveillant` : `${violations} infraction${violations > 1 ? "s" : ""} sur ${maxViolations} tolérée${maxViolations > 1 ? "s" : ""}`}
           </span>
           <CameraChip videoRef={camera.attach} live={camera.state === "live"} cam={cam} />
           <div className={`flex items-baseline gap-2 px-3 py-1.5 rounded-lg border ${remaining < 300 ? "border-danger/60 bg-danger/10 text-danger" : "border-line bg-bg"}`} aria-label={`Temps restant ${formatClock(remaining)}`}>

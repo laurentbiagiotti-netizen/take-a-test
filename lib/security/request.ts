@@ -36,7 +36,12 @@ export function publicUrl(req: Request | NextRequest): string {
 export function sameOrigin(req: Request | NextRequest): boolean {
   const expected = appUrl();
   const origin = req.headers.get("origin");
-  if (origin) return origin === expected;
+  if (origin && origin !== "null") return origin === expected;
+  // Avec « Referrer-Policy: no-referrer », Chrome envoie « Origin: null » sur les formulaires.
+  // Sec-Fetch-Site est posé par le navigateur lui-même : une page tierce ne peut pas le falsifier.
+  const site = req.headers.get("sec-fetch-site");
+  if (site) return site === "same-origin";
+  if (origin === "null") return false;
   const referer = req.headers.get("referer");
   return !!referer && (referer === expected || referer.startsWith(expected + "/"));
 }
