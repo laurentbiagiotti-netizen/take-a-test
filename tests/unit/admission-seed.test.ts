@@ -69,10 +69,10 @@ describe.each(["b1", "b3", "mastere"])("QCM d'admission %s", (name) => {
     expect(txt.replace(/&&/g, "")).not.toMatch(/ & /);
   });
 
-  it("1 enquête Crime GeoGuess et 3 exercices Cybersup OS, corrigés cohérents et sans fuite", () => {
+  it("1 enquête Crime GeoGuess ; Cybersup OS retiré le 04/11 (remplacé par le tirage d'activités)", () => {
     expect(tools.filter((q: any) => q.external.tool === "crime")).toHaveLength(1);
     const os = tools.filter((q: any) => q.external.tool === "win95");
-    expect(os).toHaveLength(3);
+    expect(os).toHaveLength(0);
     for (const q of os) {
       expect(checkKey(q.external.scenario, q.external.answer_key)).toEqual([]);
       const pub = JSON.stringify(publicScenario(q.external.scenario));

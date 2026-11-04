@@ -1,14 +1,14 @@
 \set ON_ERROR_STOP 0
 -- Charge les épreuves d'admission 2026, fait passer le B1 à un candidat qui se trompe
--- sur les questions à plusieurs réponses, réussit à moitié l'enquête Crime GeoGuess et sans faute
--- les trois exercices Cybersup OS, puis vérifie le score et l'alerte caméra.
+-- sur les questions à plusieurs réponses et réussit à moitié l'enquête Crime GeoGuess
+-- (Cybersup OS retiré le 04/11), puis vérifie le score et l'alerte caméra.
 insert into auth.users values ('00000000-0000-0000-0000-00000000000a','admin@cybersup.ai','{}'),('00000000-0000-0000-0000-00000000000c','eve@test.fr','{}');
 update profiles set role='admin' where email='admin@cybersup.ai';
 \i ../../supabase/seed/admission-2026.sql
 do $$ begin
-  if (select count(*) from questions) <> 314 then raise exception 'seed : % questions au lieu de 314', (select count(*) from questions); end if;
+  if (select count(*) from questions) <> 305 then raise exception 'seed : % questions au lieu de 305', (select count(*) from questions); end if;
   if (select count(*) from question_terminals) <> 2 then raise exception 'seed : missions terminal manquantes'; end if;
-  if (select count(*) from question_externals where tool = 'crime') <> 3 or (select count(*) from question_externals where tool = 'win95' and answer_key is not null) <> 9 then
+  if (select count(*) from question_externals where tool = 'crime') <> 3 or (select count(*) from question_externals where tool = 'win95') <> 0 then
     raise exception 'seed : exercices dans les outils manquants'; end if;
   if exists (select 1 from questions q left join answer_keys k on k.question_id = q.id where k.question_id is null and q.type not in ('terminal', 'external')) then raise exception 'seed : question sans clé'; end if;
 end $$;
@@ -45,16 +45,16 @@ end $$;
 select exam_submit('00000000-0000-0000-0000-00000000000c',:'att',repeat('a',64),'1','UA') is not null as ok;
 do $$ declare a attempts; begin
   select * into a from attempts limit 1;
-  if a.score <> 56 or a.max_score <> 60 then raise exception 'score attendu 56/60 (48 QCM + 2 enquête + 6 phishing), obtenu %/%', a.score, a.max_score; end if;
-  if array_length(a.question_order, 1) <> 54 then raise exception 'tirage : % questions au lieu de 54', array_length(a.question_order, 1); end if;
-  if (select sum(score) from answers an join questions q on q.id = an.question_id where q.type = 'external' and an.attempt_id = a.id) <> 8 then
+  if a.score <> 50 or a.max_score <> 54 then raise exception 'score attendu 50/54 (48 QCM + 2 enquête), obtenu %/%', a.score, a.max_score; end if;
+  if array_length(a.question_order, 1) <> 51 then raise exception 'tirage : % questions au lieu de 51', array_length(a.question_order, 1); end if;
+  if (select sum(score) from answers an join questions q on q.id = an.question_id where q.type = 'external' and an.attempt_id = a.id) <> 2 then
     raise exception 'exercices dans les outils mal comptés'; end if;
   if (select count(distinct variant_group) from questions where id = any(a.question_order)) <> 50 then raise exception 'tirage : deux variantes d''un même groupe'; end if;
-  if a.extra_minutes <> 15 or a.deadline_at - a.started_at <> interval '81 minutes' then raise exception 'tiers-temps non appliqué (% min)', a.extra_minutes; end if;
-  if (_attempt_report(a.id)->>'passed')::boolean is not true then raise exception 'rapport : candidat à 56/60 non admissible'; end if;
-  if _attempt_report(a.id)->>'verdict' <> 'pass' or (_attempt_report(a.id)->>'score20')::numeric <> 18.67 then
+  if a.extra_minutes <> 15 or a.deadline_at - a.started_at <> interval '72 minutes' then raise exception 'tiers-temps non appliqué (% min)', a.extra_minutes; end if;
+  if (_attempt_report(a.id)->>'passed')::boolean is not true then raise exception 'rapport : candidat à 50/54 non admissible'; end if;
+  if _attempt_report(a.id)->>'verdict' <> 'pass' or (_attempt_report(a.id)->>'score20')::numeric <> 18.52 then
     raise exception 'résultat sur 20 : %', _attempt_report(a.id); end if;
-  if jsonb_array_length(_attempt_report(a.id)->'domains') <> 7 then raise exception 'rapport : domaines manquants'; end if;
+  if jsonb_array_length(_attempt_report(a.id)->'domains') <> 6 then raise exception 'rapport : domaines manquants'; end if;
   if length(_receipt(a.id)->>'reference') <> 12 then raise exception 'accusé de réception absent'; end if;
   if a.violation_count <> 0 then raise exception 'la caméra refusée ne doit pas compter comme infraction'; end if;
   if not exists (select 1 from proctor_events where kind = 'camera_refused' and severity = 'warning') then raise exception 'alerte caméra absente'; end if;
@@ -66,7 +66,7 @@ do $$ declare t uuid; a uuid; s jsonb; begin
   select id into t from tests where title like '%Bachelor 1%';
   select id into a from attempts limit 1;
   s := item_stats(t);
-  if (s->>'copies')::int <> 1 or jsonb_array_length(s->'questions') <> 54 then raise exception 'item_stats : %', s; end if;
+  if (s->>'copies')::int <> 1 or jsonb_array_length(s->'questions') <> 51 then raise exception 'item_stats : %', s; end if;
   s := staff_live(t);
   if jsonb_array_length(s->'attempts') <> 1 then raise exception 'staff_live : %', s; end if;
   if attempt_report(a)->'receipt'->>'reference' is null then raise exception 'attempt_report sans accusé'; end if;
