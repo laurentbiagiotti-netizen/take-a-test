@@ -27,11 +27,12 @@ FORMATION = {"b1": "Bachelor 1 Cybersécurité", "b3": "Bachelor 3 Cybersécurit
 
 CRIME = {"points": 4, "minutes": 7, "count": 2,
          "difficulty": {"b1": "easy", "b3": "normal", "mastere": "expert"}}
-WIN95 = [  # (fichier, titre, consigne, points, minutes)
+WIN95_RETIRES = [  # (fichier, titre, consigne, points, minutes) : retirés le 04/11, remplacés par le tirage d'activités
     ("mails", "Boîte mail", "Votre boîte de réception : pour chaque mail, frauduleux ou légitime ?", 2, 3),
     ("sms", "SMS", "Vos SMS : pour chaque message, frauduleux ou légitime ?", 2, 3),
     ("urls", "Adresses web", "Pour chaque adresse web, site frauduleux ou légitime ?", 2, 3),
 ]
+WIN95 = []
 
 
 def tool_items(name, start):

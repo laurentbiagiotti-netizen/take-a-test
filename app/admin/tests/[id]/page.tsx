@@ -333,6 +333,10 @@ export default function EditTest() {
           <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
             <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />
           </label>
+          <label className="block">Activités pratiques tirées au hasard, durée maximale par candidat (minutes, vide = toutes les activités)
+            <input className="input mt-1 w-32" type="number" min={1} max={600} value={test.activity_minutes ?? ""} onChange={(e) => updateTest({ activity_minutes: e.target.value ? parseInt(e.target.value) : null })} />
+          </label>
+          <p className="text-xs text-muted">Avec une durée, chaque candidat reçoit tous les QCM, plus des activités (terminal, simulations, jeux, outils…) tirées au hasard, de types variés, sans dépasser cette durée. Pensez à régler la durée de l&apos;épreuve en conséquence (durée des QCM + cette durée).</p>
           <p className="text-xs text-muted">Variantes : les questions qui partagent un même « groupe de variantes » sont interchangeables ; chaque candidat n&apos;en reçoit qu&apos;une, tirée au hasard.</p>
         </div>
 

@@ -13,3 +13,4 @@ scan.sql 7
 practical.sql 5
 networky.sql 2
 games.sql 7
+tirage.sql 0

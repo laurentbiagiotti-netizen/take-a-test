@@ -45,6 +45,8 @@ create table tests (
   seb_accept_config_key boolean not null default false,
   linear_navigation boolean not null default true,
   draw_count int check (draw_count is null or draw_count > 0),
+  -- Activités pratiques tirées au hasard pour chaque candidat, dans la limite de N minutes (null = toutes)
+  activity_minutes int check (activity_minutes is null or activity_minutes between 1 and 600),
   shuffle_questions boolean not null default true,
   shuffle_options boolean not null default true,
   max_violations int not null default 3 check (max_violations between 1 and 50),
@@ -1026,6 +1028,7 @@ declare
   a attempts;
   t tests;
   v_order uuid[];
+  v_act int := 0;
   v_opts jsonb := '{}'::jsonb;
   v_one jsonb;
   q record;
@@ -1056,11 +1059,31 @@ begin
     -- 1. une variante tirée au hasard par groupe ; 2. tirage de N questions ; 3. ordre
     select array_agg(id) into v_order from (
       select id from (
-        select distinct on (coalesce(variant_group, id::text)) id
+        select distinct on (coalesce(variant_group, id::text)) id, type
         from questions where test_id = t.id
         order by coalesce(variant_group, id::text), random()) pool
+      where t.activity_minutes is null or pool.type in ('mcq_single', 'mcq_multi', 'long_text', 'short_answer')
       order by random()
       limit coalesce(t.draw_count, 100000)) s;
+    -- Activités pratiques : tirées au hasard, de types variés d'abord, sans dépasser activity_minutes.
+    if t.activity_minutes is not null then
+      for q in
+        select x.id, x.secs from (
+          select p.id, coalesce(p.time_limit_s, qe.time_limit_s, 480) as secs,
+                 row_number() over (partition by p.type order by random()) as rk, random() as r
+          from (select distinct on (coalesce(variant_group, id::text)) id, type, time_limit_s
+                  from questions where test_id = t.id
+                  order by coalesce(variant_group, id::text), random()) p
+          left join question_externals qe on qe.question_id = p.id
+          where p.type not in ('mcq_single', 'mcq_multi', 'long_text', 'short_answer')) x
+        order by x.rk, x.r
+      loop
+        if v_act + q.secs <= t.activity_minutes * 60 then
+          v_order := coalesce(v_order, '{}') || q.id;
+          v_act := v_act + q.secs;
+        end if;
+      end loop;
+    end if;
     if t.shuffle_questions then
       select array_agg(id order by random()) into v_order from questions where id = any(v_order);
     else
