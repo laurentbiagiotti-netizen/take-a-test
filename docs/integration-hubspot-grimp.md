@@ -13,6 +13,7 @@ La plateforme sait déjà recevoir des candidats et renvoyer leurs résultats. I
 2. **Entrée des candidats** : à chaque nouveau candidat (formulaire HubSpot ou candidature Grimp), l'outil appelle
    `POST /api/v1/tests/{id}/invites` avec `{"candidates": [{"email": "...", "full_name": "...", "extra_minutes": 0, "external_ref": "<id HubSpot ou Grimp>"}]}`.
    La réponse contient le code personnel du candidat, à reporter dans le brouillon de convocation.
+   Pour aller plus loin (suivre le statut, tiers-temps, changer d'épreuve, désinscrire), voir l'API des inscriptions : `docs/api-inscriptions.md` (`/api/v1/registrations`).
 3. **Retour des résultats** : dans *Admin, API*, ajoutez un webhook vers votre outil, sur l'événement `attempt.submitted` (et `attempt.expired`, `attempt.terminated`). Chaque notification est signée (HMAC, en-tête `X-Cx-Signature`) et contient :
    - `external_ref` : l'identifiant du candidat dans HubSpot ou Grimp ;
    - `score`, `max_score`, `violation_count` ;

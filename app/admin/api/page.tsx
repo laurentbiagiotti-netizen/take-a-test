@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { API_SCOPES } from "@/lib/api/scopes";
 import { randomHex } from "@/lib/security/tokens";
 
-const EVENTS = ["attempt.submitted", "attempt.terminated", "attempt.expired", "attempt.flagged", "attempt.verdict"];
+const EVENTS = ["attempt.submitted", "attempt.terminated", "attempt.expired", "attempt.flagged", "attempt.verdict", "registration.created", "registration.updated", "registration.deleted"];
 
 export default function ApiAdmin() {
   const supabase = createClient();
