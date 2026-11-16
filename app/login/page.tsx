@@ -19,7 +19,7 @@ function LoginInner() {
   const [gLoading, setGLoading] = useState(false);
   const urlErr = params.get("error");
   const ssoErr = urlErr === "non_autorise" ? "Ce compte Google n'a pas accès à l'espace équipe. Utilisez votre adresse @cybersup.ai autorisée."
-    : urlErr === "google" ? "La connexion Google a échoué, réessayez." : null;
+    : urlErr === "google" ? `La connexion Google a échoué, réessayez.${params.get("detail") ? ` (${params.get("detail")})` : ""}` : null;
 
   const google = async () => {
     setGLoading(true); setErr(null);
