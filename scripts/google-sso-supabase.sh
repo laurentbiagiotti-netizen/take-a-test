@@ -1,15 +1,24 @@
 #!/usr/bin/env bash
 # Active la connexion Google (SSO) dans Supabase avec le client OAuth téléchargé depuis Google Cloud
-# (fichier client_secret_….json dans ~/Downloads), et ajoute l'URL de retour du site.
-# Le secret n'est jamais affiché ; le fichier JSON est supprimé une fois la configuration faite.
+# (code secret lu dans le presse-papiers, ou fichier client_secret_….json passé en argument), et ajoute l'URL de retour du site.
+# Le secret n'est jamais affiché ; le presse-papiers est vidé et le fichier supprimé une fois la configuration faite.
 #
-# Usage : ./scripts/google-sso-supabase.sh [chemin/vers/client_secret.json]
+# Usage : ./scripts/google-sso-supabase.sh            (copier d'abord le code secret GOCSPX-…)
+#         ./scripts/google-sso-supabase.sh fichier.json
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/_jeton-supabase.sh
 
-J="${1:-$(ls -t "$HOME"/Downloads/client_secret_*.json 2>/dev/null | head -1 || true)}"
-[ -n "$J" ] && [ -f "$J" ] || { echo "Fichier client_secret_….json introuvable dans ~/Downloads (téléchargez-le depuis Google Cloud)." >&2; exit 1; }
+CLIENT_ID="${GOOGLE_CLIENT_ID:-505370948041-lvhm2vp0fktqqmdis172l7sa6rgsn356.apps.googleusercontent.com}"
+J="${1:-}"
+if [ -z "$J" ]; then
+  read -r -p "Copiez le code secret du client Google (GOCSPX-…), puis appuyez sur Entrée… " _
+  SECRET="$(pbpaste | tr -d '[:space:]')"; printf '' | pbcopy
+  [[ "$SECRET" == GOCSPX-* ]] || { echo "Ce n'est pas un code secret Google (il commence par GOCSPX-)." >&2; exit 1; }
+  J="$(mktemp)"; chmod 600 "$J"
+  printf '{"web":{"client_id":"%s","client_secret":"%s"}}' "$CLIENT_ID" "$SECRET" > "$J"; unset SECRET
+fi
+[ -f "$J" ] || { echo "Fichier introuvable : $J" >&2; exit 1; }
 APP="$(get APP_URL)"; APP="${APP:-https://exam.cybersup.ai}"
 CB="$APP/auth/callback"
 API="https://api.supabase.com/v1/projects/$REF/config/auth"
