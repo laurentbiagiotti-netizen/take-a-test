@@ -11,6 +11,8 @@ import { validateQuestion, TYPE_LABEL as KIND_LABEL } from "@/lib/questions/kind
 import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
+import ExamFileTools from "@/components/admin/ExamFileTools";
+import { writeQuestions } from "@/lib/admin/save-questions";
 import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
 
 type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx" | "bash" | "sim";
@@ -174,44 +176,8 @@ export default function EditTest() {
       catch (e: any) { notify(`Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`); return; }
     }
     setSaving(true);
-    const del = await supabase.from("questions").delete().eq("test_id", id);
-    if (del.error) { setSaving(false); notify(del.error.message); return; }
-    if (questions.length) {
-      const rows = questions.map((q, i) => ({
-        test_id: id, position: i, type: q.type, prompt: q.prompt,
-        options: q.options, points: q.points,
-        image_url: q.image_url ?? null,
-        domain: q.domain?.trim() || null, variant_group: q.variant_group?.trim() || null,
-        explanation: q.explanation?.trim() || null, time_limit_s: q.time_limit_s || null,
-      }));
-      const { data: inserted } = await supabase.from("questions").insert(rows).select("id");
-      // Re-attach answer keys (only for MCQ)
-      const keyRows = (inserted || []).map((row: any, idx: number) => ({
-        question_id: row.id, correct: questions[idx].correct ?? [],
-      })).filter((_, idx) => ["mcq_single", "mcq_multi", ...FUN_TYPES].includes(questions[idx].type));
-      if (keyRows.length) await supabase.from("answer_keys").upsert(keyRows);
-      const termRows = (inserted || []).map((row: any, idx: number) => questions[idx].type === "terminal" ? ({
-        question_id: row.id, scenario: JSON.parse(questions[idx].terminal!.scenario), flag: questions[idx].terminal!.flag.trim() || null,
-      }) : null).filter(Boolean);
-      if (termRows.length) {
-        const { error } = await supabase.from("question_terminals").upsert(termRows as any[]);
-        if (error) notify(error.message);
-      }
-      const extRows = (inserted || []).map((row: any, idx: number) => {
-        const x = questions[idx].external;
-        if (questions[idx].type !== "external" || !x) return null;
-        const minutes = parseInt(x.time_limit_min, 10);
-        return {
-          question_id: row.id, tool: x.tool, label: x.label.trim() || null,
-          time_limit_s: Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null,
-          scenario: JSON.parse(x.scenario), answer_key: x.answer_key.trim() ? JSON.parse(x.answer_key) : null,
-        };
-      }).filter(Boolean);
-      if (extRows.length) {
-        const { error } = await supabase.from("question_externals").upsert(extRows as any[]);
-        if (error) notify(error.message);
-      }
-    }
+    const err = await writeQuestions(supabase as any, id, questions as any);
+    if (err) notify(err);
     setSaving(false);
   };
 
@@ -478,6 +444,8 @@ export default function EditTest() {
         <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
           onFormation={(f) => updateTest({ formation: f || null })}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
+        <ExamFileTools test={test} questions={questions as any} locked={locked}
+          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
       </div>
       <div className="mt-3">
         <div className="text-xs uppercase tracking-wider text-muted mb-2">Ajouter une question</div>
