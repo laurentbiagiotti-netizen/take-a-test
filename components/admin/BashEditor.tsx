@@ -59,7 +59,7 @@ export default function BashEditor({ o, k, set }: { o: any; k: any; set: (o: any
       </label>
       <div className="flex items-start gap-3">
         <button className="btn-secondary !py-1 text-xs" onClick={tryRef}>Tester la référence</button>
-        {test && <pre className="text-xs bg-black/40 rounded p-2 flex-1 whitespace-pre-wrap max-h-48 overflow-auto">{test}</pre>}
+        {test && <pre className="text-xs bg-[#1e1e1e] text-[#d4d4d4] rounded p-2 flex-1 whitespace-pre-wrap max-h-48 overflow-auto">{test}</pre>}
       </div>
 
       <div className="space-y-2">

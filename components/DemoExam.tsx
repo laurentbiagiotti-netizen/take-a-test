@@ -43,7 +43,7 @@ const HINT: Record<string, string> = {
   hotspot: "Repérer", short_answer: "Analyse de données", long_text: "Réponse rédigée", external: "Exercice pratique",
 };
 
-export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo-blanc.svg", modelUrl = "/models" }: {
+export default function DemoExam({ questions, terminal, api = serverApi, staticSite = false, logoSrc = "/cybersup-logo.svg", modelUrl = "/models" }: {
   questions: PublicQ[];
   terminal: { prompt: string; motd: string | null; objectives: Objective[] };
   api?: DemoApi;

@@ -656,13 +656,28 @@ create trigger admin_audit_no_change before update or delete on admin_audit
 ------------------------------------------------------------
 -- Inscription : toujours candidat.
 ------------------------------------------------------------
+-- Espace admin : connexion Google réservée aux adresses de staff_allowlist (voir migration 2026-11-16).
+create table if not exists public.staff_allowlist (
+  email text primary key check (email = lower(email)),
+  role user_role not null default 'admin',
+  full_name text,
+  created_at timestamptz not null default now()
+);
+alter table public.staff_allowlist enable row level security;
+revoke all on public.staff_allowlist from anon, authenticated;
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare v_role user_role;
 begin
+  select role into v_role from staff_allowlist where email = lower(new.email);
+  if coalesce(new.raw_app_meta_data->>'provider', '') = 'google' and v_role is null then
+    raise exception 'sso_non_autorise' using errcode = '42501';
+  end if;
   insert into public.profiles (id, email, full_name, role)
   values (new.id, lower(new.email),
           left(coalesce(new.raw_user_meta_data->>'full_name', new.email), 200),
-          'candidate'::user_role)
+          coalesce(v_role, 'candidate'::user_role))
   on conflict (id) do nothing;
   return new;
 end; $$;

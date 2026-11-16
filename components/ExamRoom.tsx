@@ -497,7 +497,7 @@ export default function ExamRoom(props: {
       {timeAlert && remaining <= 300 && <div className="bg-warn text-bg text-center py-1 text-sm font-medium relative z-50" role="status">{timeAlert}</div>}
       <header className="flex flex-wrap items-center justify-between gap-3 p-4 border-b bg-surface relative z-30">
         <div className="flex items-center gap-4 min-w-0">
-          <img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" />
+          <img src="/cybersup-logo.svg" alt="Cybersup" className="h-5 w-auto" />
           <span className="text-faint">|</span>
           <b className="font-display uppercase text-sm truncate">{title}</b>
         </div>

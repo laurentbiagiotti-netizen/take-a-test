@@ -112,7 +112,7 @@ export default function ScanPage() {
   return (
     <main className="min-h-screen max-w-lg mx-auto p-5 flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-5 w-auto" />
+        <img src="/cybersup-logo.svg" alt="Cybersup" className="h-5 w-auto" />
         <span className="text-faint">|</span>
         <span className="text-sm text-muted truncate">{title || "Scan de la pièce"}</span>
       </div>

@@ -84,6 +84,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    { source: "/((?!_next/static|_next/image|favicon\\.ico$|cybersup-logo-blanc\\.svg$|openapi\\.yaml$).*)" },
+    { source: "/((?!_next/static|_next/image|favicon\\.ico$|cybersup-logo-blanc\\.svg$|cybersup-logo\\.svg$|openapi\\.yaml$).*)" },
   ],
 };

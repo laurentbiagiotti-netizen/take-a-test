@@ -16,7 +16,7 @@ export default async function SiteHeader() {
     <header className="border-b border-line bg-bg">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center py-5" aria-label="Accueil Cybersup Exam">
-          <img src="/cybersup-logo-blanc.svg" alt="Cybersup" className="h-6 w-auto" />
+          <img src="/cybersup-logo.svg" alt="Cybersup" className="h-6 w-auto" />
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link href="/demo" className="hidden sm:inline px-3 py-2 text-muted hover:text-fg">Démo</Link>

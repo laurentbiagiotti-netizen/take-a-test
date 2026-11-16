@@ -260,7 +260,7 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
     const on = sel.includes(id);
     onChange({ selected: on ? sel.filter((x) => x !== id) : multi ? [...sel, id] : [id] });
   };
-  const mark = (id: string) => sel.includes(id) ? "bg-accent/20 shadow-[inset_3px_0_0_#fd7119]" : "hover:bg-white/5";
+  const mark = (id: string) => sel.includes(id) ? "bg-accent/20 shadow-[inset_3px_0_0_#fd7119]" : "hover:bg-fg/5";
   const hint = (
     <p className="text-xs text-muted mb-3 flex flex-wrap items-center gap-2">
       <span>{multi ? "Cliquez sur tous les éléments concernés (une erreur retire des points)." : "Cliquez sur un seul élément."} Recliquez pour désélectionner.</span>
@@ -368,7 +368,7 @@ function ShortAnswer({ q, value, onChange }: { q: PublicQ; value: any; onChange:
                   </th>
                 ))}</tr>
               </thead>
-              <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line odd:bg-white/[0.02] hover:bg-accent/5">{r.map((c, j) => <td key={j} className="px-3 py-1.5 font-mono text-xs">{c}</td>)}</tr>)}</tbody>
+              <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line odd:bg-fg/[0.03] hover:bg-accent/5">{r.map((c, j) => <td key={j} className="px-3 py-1.5 font-mono text-xs">{c}</td>)}</tr>)}</tbody>
             </table>
           </div>
         </div>

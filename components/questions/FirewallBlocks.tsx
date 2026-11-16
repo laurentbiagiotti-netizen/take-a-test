@@ -93,7 +93,7 @@ export default function FirewallBlocks({ q, value, onText }: { q: any; value: an
         defineBlocks(B);
         const theme = B.Theme.defineTheme("cybersup", {
           base: B.Themes.Classic, name: "cybersup",
-          componentStyles: { workspaceBackgroundColour: "#0b0e16", toolboxBackgroundColour: "#10141f", flyoutBackgroundColour: "#161b29",
+          componentStyles: { workspaceBackgroundColour: "#f7f8fc", toolboxBackgroundColour: "#ffffff", flyoutBackgroundColour: "#161b29",
             flyoutOpacity: 1, scrollbarColour: "#323b55", insertionMarkerColour: "#fd7119", cursorColour: "#fd7119" },
           fontStyle: { family: "\"DM Sans\", system-ui, sans-serif", weight: "500", size: 11 },
         });
