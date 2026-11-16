@@ -10,29 +10,8 @@
 # presse-papiers (macOS), rangé dans .env.production (droits 600) et jamais affiché.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-F=.env.production
-[ -f "$F" ] || { echo "Fichier $F introuvable." >&2; exit 1; }
 [ $# -ge 1 ] || { echo "Usage : $0 fichier.sql [autre.sql …]" >&2; exit 1; }
-
-get() { grep -E "^$1=" "$F" | tail -1 | cut -d= -f2- | tr -d "\"'[:space:]" || true; }
-
-TOKEN="$(get SUPABASE_ACCESS_TOKEN)"
-if [[ "$TOKEN" != sbp_* ]]; then
-  while true; do
-    read -r -p "Copiez votre jeton personnel Supabase (sbp_…), puis appuyez sur Entrée… " _
-    v="$(pbpaste | tr -d '[:space:]')"
-    if [[ "$v" == sbp_* ]]; then
-      awk -v v="$v" 'BEGIN{d=0} /^SUPABASE_ACCESS_TOKEN=/ {print "SUPABASE_ACCESS_TOKEN="v; d=1; next} {print} END{if(!d) print "SUPABASE_ACCESS_TOKEN="v}' "$F" > "$F.tmp"
-      mv "$F.tmp" "$F"; chmod 600 "$F"; printf '' | pbcopy
-      TOKEN="$v"; echo "  ✓ jeton enregistré, presse-papiers vidé"; break
-    fi
-    echo "  Ce n'est pas un jeton personnel Supabase (il commence par sbp_). Réessayez."
-  done
-fi
-
-URL="$(get NEXT_PUBLIC_SUPABASE_URL)"
-REF="$(printf '%s' "$URL" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')"
-[ -n "$REF" ] && [ "$REF" != "$URL" ] || { echo "Référence du projet introuvable dans NEXT_PUBLIC_SUPABASE_URL." >&2; exit 1; }
+source scripts/_jeton-supabase.sh
 
 for SQL in "$@"; do
   [ -f "$SQL" ] || { echo "Fichier introuvable : $SQL" >&2; exit 1; }
