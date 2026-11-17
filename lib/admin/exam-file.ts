@@ -17,7 +17,7 @@ export const EXAM_VERSION = 1;
 export const TEST_FIELDS = [
   "title", "description", "duration_minutes", "require_seb", "invite_only", "require_id_check", "require_webcam",
   "id_verify_before_start", "seb_accept_config_key", "linear_navigation", "draw_count", "activity_minutes",
-  "shuffle_questions", "shuffle_options", "max_violations", "room_scan_after", "timing", "question_time_s",
+  "shuffle_questions", "shuffle_options", "max_violations", "timing", "question_time_s",
   "partial_points", "fast_answer_s", "allow_resume", "grace_seconds", "retention_days", "pass_mark",
   "domain_floors", "interview_guide", "formation", "verdict_pass", "verdict_fail",
 ] as const;

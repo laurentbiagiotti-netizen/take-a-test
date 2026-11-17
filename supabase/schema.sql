@@ -51,7 +51,7 @@ create table tests (
   shuffle_options boolean not null default true,
   max_violations int not null default 3 check (max_violations between 1 and 50),
   -- Au N-ième avertissement, pause et scan à 360° de la pièce au téléphone (0 = jamais)
-  room_scan_after int not null default 3 check (room_scan_after between 0 and 50),
+  room_scan_after int not null default 0 check (room_scan_after between 0 and 50),
   -- Chronométrage : durée totale (global) ou temps par question (question), sans retour
   timing text not null default 'global' check (timing in ('global', 'question')),
   question_time_s int not null default 60 check (question_time_s between 10 and 3600),
