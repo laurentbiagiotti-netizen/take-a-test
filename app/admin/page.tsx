@@ -50,6 +50,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         </div>
         <div className="flex flex-wrap gap-2">
           {isAdmin && <Link href="/admin/audit" className="btn-secondary">Journal</Link>}
+          <Link href="/admin/banque" className="btn-secondary">Banque de questions</Link>
           {isAdmin && <Link href="/admin/api" className="btn-secondary">API et webhooks</Link>}
           {isAdmin && <Link href="/admin/new" className="btn">+ Nouvelle épreuve</Link>}
         </div>

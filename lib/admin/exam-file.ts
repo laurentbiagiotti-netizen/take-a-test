@@ -34,6 +34,7 @@ export type DraftQuestion = {
 
 /** Question telle qu'elle est écrite dans le fichier (scénarios en objets). */
 export type FileQuestion = {
+  level?: string | null;
   type: string; prompt: string; options?: any; correct?: any; points?: number;
   image_url?: string | null; domain?: string | null; variant_group?: string | null;
   explanation?: string | null; time_limit_s?: number | null;
@@ -151,6 +152,7 @@ const ALIASES: Record<string, string[]> = {
   terminal: ["terminaljson", "terminal", "scenarioterminal"],
   external: ["externejson", "externe", "external", "exerciceexterne"],
   image_url: ["image", "imageurl", "illustration"],
+  level: ["niveau", "level", "promo", "annee", "classe", "formation"],
 };
 const LETTERS6 = ["a", "b", "c", "d", "e", "f"];
 const ANSWER_COLS = LETTERS6.map((l) => [`reponse${l}`, `choix${l}`, `option${l}`, `proposition${l}`, l]);
@@ -211,6 +213,7 @@ export function readExamCsv(text: string): CsvImport {
         domain: get(r, idx.domain) || null, variant_group: get(r, idx.variant_group) || null,
         explanation: get(r, idx.explanation) || null, time_limit_s: t ? parseInt(t, 10) || null : null,
         image_url: get(r, idx.image_url) || null,
+        level: get(r, idx.level) || null,
         options: null, correct: null,
       };
       if (!(Number(q.points) >= 0)) throw new Error("points invalides");

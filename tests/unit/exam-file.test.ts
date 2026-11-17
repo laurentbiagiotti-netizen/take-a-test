@@ -53,3 +53,26 @@ describe("import CSV tolérant", () => {
     expect(x.questions[0]).toMatchObject({ type: "long_text", domain: "Réseau", explanation: "ok" });
   });
 });
+
+import { normLevel, fileToBank, bankToDraft } from "@/lib/admin/bank";
+import { cleanName } from "@/lib/exam/names";
+describe("banque et noms", () => {
+  it("niveaux", () => {
+    expect(normLevel("Bachelor 3 Cybersécurité")).toBe("B3");
+    expect(normLevel("Mastère 1 IA et Data")).toBe("M1");
+    expect(normLevel("b1")).toBe("B1");
+    expect(normLevel("Mastère DPO")).toBe("Tous");
+  });
+  it("CSV avec colonne Niveau vers la banque, puis vers l'éditeur", () => {
+    const x = readExamCsv("Niveau;Thème;Question;Réponse A;Réponse B;Bonne réponse\nBachelor 1;Réseau;Port SSH ?;22;80;A\n");
+    const row = fileToBank(x.questions[0], "Tous", "f.csv");
+    expect(row).toMatchObject({ level: "B1", domain: "Réseau", type: "mcq_single", correct: ["a"] });
+    expect(bankToDraft(row)).toMatchObject({ prompt: "Port SSH ?", domain: "Réseau", correct: ["a"] });
+  });
+  it("prénom et nom", () => {
+    expect(cleanName("  Inès  ")).toBe("Inès");
+    expect(cleanName("Jean-Pierre O’Neil")).toBe("Jean-Pierre O'Neil");
+    expect(cleanName("x@y.fr")).toBeNull();
+    expect(cleanName("")).toBeNull();
+  });
+});

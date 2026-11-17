@@ -13,6 +13,8 @@ import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 import ExamFileTools from "@/components/admin/ExamFileTools";
 import ImportFromTests from "@/components/admin/ImportFromTests";
+import BankPicker from "@/components/admin/BankPicker";
+import { normLevel } from "@/lib/admin/bank";
 import PublishButton from "@/components/admin/PublishButton";
 import { loadDrafts } from "@/lib/admin/load-questions";
 import { writeQuestions } from "@/lib/admin/save-questions";
@@ -437,6 +439,8 @@ export default function EditTest() {
         <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
           onFormation={(f) => updateTest({ formation: f || null })}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
+        <BankPicker locked={locked} existing={questions.map((q: any) => q.prompt)} defaultLevel={test.formation ? normLevel(test.formation) : ""}
+          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
         <ImportFromTests currentId={id} locked={locked} existing={questions.map((q: any) => q.prompt)}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
         <ExamFileTools test={test} questions={questions as any} locked={locked}

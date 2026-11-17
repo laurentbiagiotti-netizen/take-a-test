@@ -9,6 +9,8 @@ import Link from "next/link";
  */
 export default function AccessPage() {
   const [code, setCode] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +27,7 @@ export default function AccessPage() {
     setLoading(true); setErr(null);
     const r = await fetch("/api/access", {
       method: "POST", credentials: "same-origin",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }),
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, first_name: first, last_name: last }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     if (r?.ok && j.redirect) { window.location.assign(j.redirect); return; }
@@ -44,8 +46,17 @@ export default function AccessPage() {
             autoCapitalize="characters" spellCheck={false} placeholder="XXXX-XXXX-XXXX" maxLength={40}
             onChange={(e) => setCode(e.target.value.toUpperCase())} required />
         </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block text-sm">Prénom
+            <input className="input mt-1" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" maxLength={80} required />
+          </label>
+          <label className="block text-sm">Nom
+            <input className="input mt-1" value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" maxLength={80} required />
+          </label>
+        </div>
+        <p className="text-xs text-muted -mt-2">Tels qu&apos;ils figurent sur votre pièce d&apos;identité.</p>
         {err && <p className="text-sm text-danger" role="alert">{err}</p>}
-        <button className="btn w-full justify-center" disabled={loading || !code.trim()}>{loading ? "Vérification…" : "Accéder à l'épreuve"}</button>
+        <button className="btn w-full justify-center" disabled={loading || !code.trim() || !first.trim() || !last.trim()}>{loading ? "Vérification…" : "Accéder à l'épreuve"}</button>
       </form>
       <div className="mt-6 card text-sm">
         <div className="font-medium">Avant l&apos;épreuve</div>

@@ -3,6 +3,7 @@ import { adminClient } from "@/lib/supabase/admin";
 import { clientIp, sameOrigin } from "@/lib/security/request";
 import { hit } from "@/lib/security/ratelimit";
 import { ensureUser, openSession } from "@/lib/auth/session";
+import { cleanName } from "@/lib/exam/names";
 
 /**
  * Entrée d'un candidat avec le code de sa convocation : pas de compte à créer.
@@ -15,9 +16,12 @@ export async function POST(req: NextRequest) {
   if (!sameOrigin(req)) return fail(403, "Requête refusée.");
   const ip = clientIp(req);
   if (!hit(`access:${ip || "?"}`, 20, 10 * 60_000)) return fail(429, "Trop d'essais. Réessayez dans 10 minutes.");
-  const body = (await req.json().catch(() => null)) as { code?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { code?: unknown; first_name?: unknown; last_name?: unknown } | null;
   const code = typeof body?.code === "string" ? body.code.slice(0, 64) : "";
   if (!code.trim()) return fail(400, "Saisissez votre code.");
+  const first = cleanName(body?.first_name), last = cleanName(body?.last_name);
+  if (!first || !last) return fail(400, "Saisissez votre prénom et votre nom, tels qu'ils figurent sur votre pièce d'identité.");
+  const fullName = `${first} ${last.toLocaleUpperCase("fr-FR")}`;
 
   const admin = adminClient();
   const { data, error } = await admin.rpc("access_by_code", { p_code: code, p_ip: ip });
@@ -31,8 +35,11 @@ export async function POST(req: NextRequest) {
   const { data: prof } = await admin.from("profiles").select("role").eq("email", data.email).maybeSingle();
   if (prof && prof.role !== "candidate") return fail(403, "Ce code est rattaché à un compte de l'équipe : connectez-vous depuis l'espace équipe.");
 
-  const userId = await ensureUser(data.email, data.full_name);
+  const userId = await ensureUser(data.email, fullName);
   if (!userId) return fail(500, "Impossible d'ouvrir votre accès, réessayez.");
+  // Nom déclaré par le candidat : c'est lui qu'affichent les listes et les résultats
+  await admin.from("profiles").update({ full_name: fullName, first_name: first, last_name: last.toLocaleUpperCase("fr-FR") }).eq("id", userId);
+  await admin.from("invites").update({ full_name: fullName }).eq("test_id", data.test_id).eq("email", data.email).is("full_name", null);
 
   const res = NextResponse.json({ redirect: `/test/${data.test_id}` });
   if (!(await openSession(req, res, data.email))) return fail(500, "Impossible d'ouvrir votre accès, réessayez.");
