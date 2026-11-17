@@ -11,7 +11,8 @@ const count = <T,>(rows: T[] | null, key: (r: T) => string) => {
   return m;
 };
 
-export default async function AdminHome() {
+export default async function AdminHome({ searchParams }: { searchParams: Promise<{ promo?: string }> }) {
+  const { promo } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -25,6 +26,8 @@ export default async function AdminHome() {
     supabase.from("invites").select("test_id, email, preview"),
     supabase.from("attempts").select("test_id, status, paused_at, candidate:profiles(email)"),
   ]);
+  const promos = Array.from(new Set((tests || []).map((t: any) => t.formation).filter(Boolean))).sort() as string[];
+  const shownTests = (tests || []).filter((t: any) => !promo || (promo === "commune" ? !t.formation : t.formation === promo));
   const previews = new Set((invites || []).filter((i: any) => i.preview).map((i: any) => i.email));
   const real = (attempts || []).filter((a: any) => !previews.has(a.candidate?.email));
   const nQuestions = count(questions, (q: any) => q.test_id);
@@ -52,14 +55,23 @@ export default async function AdminHome() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {(tests || []).length === 0 && (
+      {promos.length > 0 && (
+        <nav className="mt-6 flex flex-wrap gap-2 text-sm" aria-label="Filtrer par promo">
+          {[{ k: "", l: "Toutes" }, ...promos.map((p) => ({ k: p, l: p })), { k: "commune", l: "Communes" }].map((x) => (
+            <Link key={x.k || "all"} href={x.k ? `/admin?promo=${encodeURIComponent(x.k)}` : "/admin"}
+              className={`rounded-full border px-3 py-1 ${(promo || "") === x.k ? "border-accent bg-accent/10 text-fg" : "border-line text-muted hover:text-fg"}`}>{x.l}</Link>
+          ))}
+        </nav>
+      )}
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {shownTests.length === 0 && (
           <div className="card md:col-span-2 text-center py-12">
             <p className="text-muted">Aucune épreuve pour l&apos;instant.</p>
             {isAdmin && <Link href="/admin/new" className="btn mt-4">Créer la première épreuve</Link>}
           </div>
         )}
-        {(tests || []).map((t: any) => {
+        {shownTests.map((t: any) => {
           const q = nQuestions.get(t.id) || 0, inv = nInvites.get(t.id) || 0, live = nLive.get(t.id) || 0;
           const done = nDone.get(t.id) || 0, paused = nPaused.get(t.id) || 0;
           const window = t.opens_at || t.closes_at
@@ -105,7 +117,7 @@ export default async function AdminHome() {
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-auto pt-3 border-t border-line">
-                {isAdmin && !t.is_published && <PublishButton id={t.id} title={t.title} published={false} questions={q} />}
+                {isAdmin && !t.is_published && <PublishButton id={t.id} title={t.title} published={false} questions={q} formation={t.formation} />}
                 {isAdmin && <Link href={`/admin/tests/${t.id}`} className={t.is_published ? "btn !py-1.5" : "btn-secondary !py-1.5"}>Modifier</Link>}
                 {isAdmin && <PreviewButton testId={t.id} className="btn-secondary !py-1.5" />}
                 <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm ml-1" aria-label={`Suivi de ${t.title}`}>

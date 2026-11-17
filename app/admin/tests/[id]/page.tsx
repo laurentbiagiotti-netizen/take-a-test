@@ -13,6 +13,7 @@ import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 import ExamFileTools from "@/components/admin/ExamFileTools";
 import ImportFromTests from "@/components/admin/ImportFromTests";
+import PublishButton from "@/components/admin/PublishButton";
 import { loadDrafts } from "@/lib/admin/load-questions";
 import { writeQuestions } from "@/lib/admin/save-questions";
 import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
@@ -210,10 +211,8 @@ export default function EditTest() {
         </div>
         <span className={`ml-auto shrink-0 badge ${test.is_published ? "border-ok/40 text-ok" : "border-line-strong text-muted"}`}>{test.is_published ? "Publiée" : "Brouillon"}</span>
         {!test.is_published && (
-          <button className="btn !py-1.5 shrink-0" onClick={() => {
-            if (!questions.length) return notify("Ajoutez au moins une question avant de publier.");
-            if (confirm("Publier l'épreuve ? Les candidats inscrits pourront la commencer dans sa fenêtre d'ouverture.")) updateTest({ is_published: true });
-          }}>Publier</button>
+          <PublishButton id={id} title={test.title} published={false} questions={questions.length} formation={test.formation}
+            className="btn !py-1.5 shrink-0" onDone={(p) => setTest((t: any) => ({ ...t, ...p }))} />
         )}
         <button className="btn !py-1.5 shrink-0" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
       </nav>
