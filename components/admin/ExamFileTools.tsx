@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { notify } from "@/components/Toaster";
-import { buildExamFile, examToCsv, parseExamCsv, parseExamJson, toDraftQuestion, type DraftQuestion } from "@/lib/admin/exam-file";
+import { buildExamFile, examToCsv, readExamCsv, parseExamJson, toDraftQuestion, type DraftQuestion } from "@/lib/admin/exam-file";
 
 function download(name: string, data: string, type: string) {
   const url = URL.createObjectURL(new Blob([data], { type }));
@@ -15,9 +15,20 @@ export const slug = (s: string) => (s || "epreuve").normalize("NFD").replace(/[�
 export async function readExamFile(f: File) {
   if (f.size > 20 * 1024 * 1024) throw new Error("fichier trop lourd (20 Mo maximum)");
   const text = await f.text();
-  if (/\.csv$/i.test(f.name)) return { test: {} as Record<string, any>, questions: parseExamCsv(text) };
+  if (/\.(csv|tsv|txt)$/i.test(f.name)) {
+    const x = readExamCsv(text);
+    return { test: {} as Record<string, any>, questions: x.questions, skipped: x.skipped, ignoredColumns: x.ignoredColumns };
+  }
   const file = parseExamJson(text);
-  return { test: file.test, questions: file.questions };
+  return { test: file.test, questions: file.questions, skipped: [] as { line: number; error: string }[], ignoredColumns: [] as string[] };
+}
+
+/** Résumé lisible des lignes écartées et des colonnes non reconnues. */
+export function importReport(x: { skipped: { line: number; error: string }[]; ignoredColumns: string[] }): string {
+  const parts: string[] = [];
+  if (x.skipped.length) parts.push(`${x.skipped.length} ligne(s) écartée(s) : ` + x.skipped.slice(0, 5).map((s) => `ligne ${s.line} (${s.error})`).join(" ; ") + (x.skipped.length > 5 ? "…" : ""));
+  if (x.ignoredColumns.length) parts.push(`colonnes non reconnues : ${x.ignoredColumns.join(", ")}`);
+  return parts.join(". ");
 }
 
 /**
@@ -44,9 +55,13 @@ export default function ExamFileTools({ test, questions, locked, onImport }: {
   const read = async (f: File) => {
     setBusy(true);
     try {
-      const { questions: qs } = await readExamFile(f);
-      if (!qs.length) notify("Aucune question dans ce fichier.");
-      else { onImport(qs.map(toDraftQuestion)); notify(`${qs.length} question(s) ajoutée(s) depuis ${f.name}. Pensez à enregistrer.`, "ok"); }
+      const x = await readExamFile(f);
+      const rep = importReport(x);
+      if (!x.questions.length) notify(`Aucune question importée. ${rep}`);
+      else {
+        onImport(x.questions.map(toDraftQuestion));
+        notify(`${x.questions.length} question(s) ajoutée(s) depuis ${f.name}. Pensez à enregistrer.${rep ? ` ${rep}.` : ""}`, rep ? "info" : "ok");
+      }
     } catch (e: any) {
       notify(`Import impossible : ${e?.message || "fichier illisible"}.`);
     } finally {
@@ -66,7 +81,7 @@ export default function ExamFileTools({ test, questions, locked, onImport }: {
           {busy ? "Lecture…" : "Importer des questions"}
         </button>
       </div>
-      <input ref={input} type="file" accept=".json,.csv,application/json,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
+      <input ref={input} type="file" accept=".json,.csv,.tsv,.txt,application/json,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && read(e.target.files[0])} />
     </div>
   );
 }

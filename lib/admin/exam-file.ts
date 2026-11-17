@@ -133,27 +133,125 @@ export function examToCsv(questions: DraftQuestion[]): string {
   return toCsv([CSV_COLUMNS, ...rows]);
 }
 
-export function parseExamCsv(text: string): FileQuestion[] {
+/** En-tête comparable : minuscules, sans accents, ponctuation ni espaces. */
+const hkey = (s: string) => String(s ?? "").replace(/^﻿/, "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/** Noms de colonnes acceptés pour chaque champ (format Cybersup, modèle Excel de Dylan, anglais). */
+const ALIASES: Record<string, string[]> = {
+  type: ["type", "typequestion", "typedequestion", "questiontype", "kind"],
+  prompt: ["enonce", "question", "intitule", "libelle", "prompt", "texte", "consigne"],
+  points: ["points", "point", "pts", "bareme", "score", "note"],
+  domain: ["domaine", "theme", "matiere", "competence", "categorie", "domain", "topic"],
+  variant_group: ["groupevariante", "variante", "groupe", "variantgroup"],
+  explanation: ["explication", "explications", "correction", "commentaire", "explanation", "feedback"],
+  time_limit_s: ["temps", "temps_s", "temps s", "tempssecondes", "dureesecondes", "duree", "timelimit", "timelimits", "chrono"].map(hkey),
+  options: ["optionsjson", "options", "choix", "propositions"],
+  correct: ["corrigejson", "corrige", "correct", "corrigé", "bonnereponse", "bonnesreponses", "bonnesreponse", "reponsecorrecte", "reponsesattendues", "reponseattendue", "solution", "answer", "answers"].map(hkey),
+  terminal: ["terminaljson", "terminal", "scenarioterminal"],
+  external: ["externejson", "externe", "external", "exerciceexterne"],
+  image_url: ["image", "imageurl", "illustration"],
+};
+const LETTERS6 = ["a", "b", "c", "d", "e", "f"];
+const ANSWER_COLS = LETTERS6.map((l) => [`reponse${l}`, `choix${l}`, `option${l}`, `proposition${l}`, l]);
+
+/** Types tels que les gens les écrivent → types de la plateforme. */
+const TYPE_ALIASES: Record<string, string> = {
+  qcm: "mcq_single", qcmunique: "mcq_single", qcu: "mcq_single", choixunique: "mcq_single", unique: "mcq_single", single: "mcq_single", mcq: "mcq_single", mcqsingle: "mcq_single",
+  qcmmultiple: "mcq_multi", qcmmultiples: "mcq_multi", qcmm: "mcq_multi", choixmultiple: "mcq_multi", multiple: "mcq_multi", multi: "mcq_multi", mcqmulti: "mcq_multi",
+  vraifaux: "truefalse", vraioufaux: "truefalse", vf: "truefalse", truefalse: "truefalse",
+  reponsecourte: "short_answer", courte: "short_answer", short: "short_answer", shortanswer: "short_answer",
+  ouverte: "long_text", questionouverte: "long_text", libre: "long_text", redaction: "long_text", texte: "long_text", longtext: "long_text", open: "long_text",
+  ordre: "ordering", remettreenordre: "ordering", association: "matching", relier: "matching", zone: "hotspot", zoneimage: "hotspot",
+};
+const typeOf = (raw: string) => { const k = hkey(raw); if (TYPES.has(raw.trim())) return raw.trim(); return TYPE_ALIASES[k] || (TYPES.has(k) ? k : ""); };
+
+export type CsvImport = { questions: FileQuestion[]; skipped: { line: number; error: string }[]; ignoredColumns: string[] };
+
+/**
+ * Lit un CSV de questions, tolérant : en-têtes avec ou sans accents ni majuscules,
+ * synonymes (Question, Thème, Bonne(s) réponse(s)…), modèle Excel de la banque
+ * (colonnes Réponse A à F), types écrits librement (QCM_unique, Vrai_Faux…).
+ * Une ligne fautive est écartée avec son motif, sans bloquer les autres.
+ */
+export function readExamCsv(text: string): CsvImport {
   const rows = parseCsv(text).filter((r) => r.some((c) => c.trim()));
   if (!rows.length) throw new Error("fichier vide");
-  const head = rows[0].map((h) => h.trim().toLowerCase());
-  const col = (name: string) => head.indexOf(name);
-  if (col("type") < 0 || col("enonce") < 0) throw new Error(`colonnes attendues : ${CSV_COLUMNS.join(", ")}`);
-  const get = (r: string[], name: string) => { const i = col(name); const v = i >= 0 ? (r[i] ?? "") : ""; return v.replace(/^'(?=[=+\-@])/, ""); };
-  const js = (r: string[], name: string, n: number) => {
-    const v = get(r, name).trim(); if (!v) return null;
-    try { return JSON.parse(v); } catch { throw new Error(`ligne ${n} : colonne ${name} n'est pas du JSON valide`); }
-  };
-  const qs = rows.slice(1).map((r, i) => {
-    const n = i + 2;
-    const t = get(r, "temps_s").trim();
-    return {
-      type: get(r, "type").trim(), prompt: get(r, "enonce"), points: get(r, "points").trim() ? Number(get(r, "points").replace(",", ".")) : 1,
-      domain: get(r, "domaine").trim() || null, variant_group: get(r, "groupe_variante").trim() || null,
-      explanation: get(r, "explication").trim() || null, time_limit_s: t ? parseInt(t, 10) : null,
-      options: js(r, "options_json", n), correct: js(r, "corrige_json", n),
-      terminal: js(r, "terminal_json", n), external: js(r, "externe_json", n),
-    };
+  const head = rows[0].map(hkey);
+  const used = new Set<number>();
+  const col = (names: string[]) => { for (const n of names) { const i = head.indexOf(hkey(n)); if (i >= 0) { used.add(i); return i; } } return -1; };
+  const idx: Record<string, number> = {};
+  for (const [k, names] of Object.entries(ALIASES)) idx[k] = col(names);
+  const ans = ANSWER_COLS.map(col);
+  if (idx.prompt < 0) throw new Error(`colonne de l'énoncé introuvable (attendu « enonce » ou « Question »). Colonnes lues : ${rows[0].join(", ")}`);
+  const ignoredColumns = rows[0].filter((h, i) => !used.has(i) && h.trim()).map((h) => h.trim());
+
+  const get = (r: string[], i: number) => (i >= 0 ? String(r[i] ?? "").replace(/^'(?=[=+\-@])/, "").trim() : "");
+  const json = (v: string, what: string) => { if (!v) return null; try { return JSON.parse(v); } catch { throw new Error(`${what} n'est pas du JSON valide`); } };
+  const questions: FileQuestion[] = [];
+  const skipped: { line: number; error: string }[] = [];
+
+  rows.slice(1).forEach((r, k) => {
+    const line = k + 2;
+    try {
+      const prompt = get(r, idx.prompt);
+      if (!prompt) throw new Error("énoncé vide");
+      const answers = ans.map((i) => get(r, i));
+      const hasLetters = answers.some(Boolean);
+      const rawType = get(r, idx.type);
+      let type = rawType ? typeOf(rawType) : "";
+      if (rawType && !type) throw new Error(`type inconnu « ${rawType} »`);
+      const goodRaw = get(r, idx.correct);
+      if (!type) type = hasLetters ? (goodRaw.split(/[;,\s]+/).filter(Boolean).length > 1 ? "mcq_multi" : "mcq_single") : "long_text";
+
+      const pts = get(r, idx.points).replace(",", ".");
+      const t = get(r, idx.time_limit_s);
+      const q: FileQuestion = {
+        type, prompt, points: pts ? Number(pts) : 1,
+        domain: get(r, idx.domain) || null, variant_group: get(r, idx.variant_group) || null,
+        explanation: get(r, idx.explanation) || null, time_limit_s: t ? parseInt(t, 10) || null : null,
+        image_url: get(r, idx.image_url) || null,
+        options: null, correct: null,
+      };
+      if (!(Number(q.points) >= 0)) throw new Error("points invalides");
+
+      const optJson = get(r, idx.options);
+      if (type === "truefalse") {
+        const v = hkey(goodRaw);
+        if (v !== "vrai" && v !== "faux" && v !== "true" && v !== "false") throw new Error("bonne réponse attendue : Vrai ou Faux");
+        q.type = "mcq_single"; q.options = [{ id: "vrai", text: "Vrai" }, { id: "faux", text: "Faux" }];
+        q.correct = [v === "faux" || v === "false" ? "faux" : "vrai"];
+      } else if ((type === "mcq_single" || type === "mcq_multi") && !optJson.startsWith("[")) {
+        const opts = LETTERS6.map((id, i) => ({ id, text: answers[i] })).filter((o) => o.text);
+        const fromOptCol = !opts.length && optJson ? optJson.split(/\s*[|\n]\s*/).filter(Boolean).map((text, i) => ({ id: LETTERS6[i] || String(i), text })) : opts;
+        if (fromOptCol.length < 2) throw new Error("au moins 2 réponses (colonnes Réponse A, B…)");
+        q.options = fromOptCol;
+        const good = goodRaw.startsWith("[") ? json(goodRaw, "le corrigé") : goodRaw.toLowerCase().split(/[;,\s]+/).filter(Boolean);
+        const ids = (good as any[]).map((g) => (typeof g === "number" ? fromOptCol[g]?.id : String(g).toLowerCase()));
+        if (!ids.length || ids.some((g) => !fromOptCol.some((o) => o.id === g))) throw new Error(`bonne réponse « ${goodRaw || "vide"} » sans proposition correspondante`);
+        if (type === "mcq_single" && ids.length > 1) throw new Error("QCM à réponse unique avec plusieurs bonnes réponses");
+        q.correct = ids;
+      } else if (type === "short_answer" && goodRaw && !goodRaw.startsWith("[") && !goodRaw.startsWith("{")) {
+        q.options = optJson ? json(optJson, "options") : {};
+        q.correct = { answers: goodRaw.split(/[;|]/).map((x) => x.trim()).filter(Boolean), case_sensitive: false };
+      } else {
+        q.options = optJson ? json(optJson, "options") : null;
+        q.correct = goodRaw ? json(goodRaw, "le corrigé") : null;
+      }
+      q.terminal = json(get(r, idx.terminal), "terminal");
+      q.external = json(get(r, idx.external), "externe");
+      checkQuestions([q]);
+      questions.push(q);
+    } catch (e: any) {
+      skipped.push({ line, error: String(e?.message || e).replace(/^question 1 : /, "") });
+    }
   });
-  return checkQuestions(qs);
+  return { questions, skipped, ignoredColumns };
+}
+
+/** Compatibilité : lève une erreur si une ligne est fautive. */
+export function parseExamCsv(text: string): FileQuestion[] {
+  const x = readExamCsv(text);
+  if (x.skipped.length) throw new Error(`ligne ${x.skipped[0].line} : ${x.skipped[0].error}`);
+  return x.questions;
 }

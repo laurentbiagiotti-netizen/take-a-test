@@ -47,6 +47,12 @@ export default function EditTest() {
   const domains = Array.from(new Set(questions.map((q) => q.domain?.trim()).filter(Boolean) as string[])).sort();
   const [link, setLink] = useState("");
 
+  // Compte rendu d'un import (lignes écartées, colonnes non reconnues)
+  useEffect(() => {
+    const msg = new URLSearchParams(window.location.search).get("import");
+    if (msg) { notify(msg, "info"); window.history.replaceState(null, "", window.location.pathname); }
+  }, []);
+
   useEffect(() => {
     (async () => {
       const { data: t } = await supabase.from("tests").select("*").eq("id", id).single();

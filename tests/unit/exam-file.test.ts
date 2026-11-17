@@ -28,3 +28,28 @@ describe("fichier d'épreuve", () => {
     expect(() => parseExamJson(JSON.stringify([{ type: "terminal", prompt: "a", terminal: { scenario: {} } }]))).toThrow(/files/);
   });
 });
+
+import { readExamCsv } from "@/lib/admin/exam-file";
+describe("import CSV tolérant", () => {
+  it("modèle Excel : Question, Type, Réponse A…, Bonne(s) réponse(s), Thème, séparateur ;", () => {
+    const csv = "﻿Question;Type;Réponse A;Réponse B;Réponse C;Bonne(s) réponse(s);Thème;Points;Colonne perso\n" +
+      "Port SSH ?;QCM_unique;22;80;443;A;Réseau;2;x\n" +
+      "Chiffrés ?;QCM_multiple;HTTPS;Telnet;SSH;A,C;Réseau;;\n" +
+      "Le ciel est bleu;Vrai_Faux;;;;Vrai;;;\n" +
+      "Expliquez XSS;Ouverte;;;;;Web;4;\n" +
+      "Commande pour lister ?;Reponse_courte;;;;ls | ls -l;Linux;;\n" +
+      "Mauvaise;QCM_unique;oui;non;;D;;;\n";
+    const x = readExamCsv(csv);
+    expect(x.questions.map((q) => q.type)).toEqual(["mcq_single", "mcq_multi", "mcq_single", "long_text", "short_answer"]);
+    expect(x.questions[0].correct).toEqual(["a"]);
+    expect(x.questions[1].correct).toEqual(["a", "c"]);
+    expect(x.questions[0].domain).toBe("Réseau");
+    expect(x.questions[4].correct).toEqual({ answers: ["ls", "ls -l"], case_sensitive: false });
+    expect(x.skipped).toEqual([{ line: 7, error: expect.stringMatching(/sans proposition/) }]);
+    expect(x.ignoredColumns).toEqual(["Colonne perso"]);
+  });
+  it("en-têtes avec accents et majuscules, virgule", () => {
+    const x = readExamCsv('Énoncé,TYPE,Domaine,Explication\n"Qu\'est-ce qu\'un pare-feu ?",question ouverte,Réseau,ok\n');
+    expect(x.questions[0]).toMatchObject({ type: "long_text", domain: "Réseau", explanation: "ok" });
+  });
+});
