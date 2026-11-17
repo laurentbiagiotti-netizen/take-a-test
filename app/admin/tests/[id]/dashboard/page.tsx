@@ -18,8 +18,9 @@ function median(xs: number[]) {
  * résultats), répartition des notes sur 20, moyennes par domaine et anomalies.
  * Les copies d'aperçu des admins ne sont pas comptées.
  */
-export default async function Dashboard({ params }: { params: Promise<{ id: string }> }) {
+export default async function Dashboard({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ apercu?: string }> }) {
   const { id } = await params;
+  const { apercu } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -33,13 +34,17 @@ export default async function Dashboard({ params }: { params: Promise<{ id: stri
     supabase.rpc("test_results", { p_test: id }),
   ]);
   const previews = new Set((invites || []).filter((i: any) => i.preview).map((i: any) => i.email));
-  const real = (attempts || []).filter((a: any) => !previews.has(a.candidate?.email));
+  const realOnly = (attempts || []).filter((a: any) => !previews.has(a.candidate?.email));
+  const nPreview = (attempts || []).length - realOnly.length;
+  // Sans copie réelle, on montre les copies d'essai plutôt qu'un tableau vide.
+  const withPreview = apercu === "1" || (apercu !== "0" && realOnly.length === 0 && nPreview > 0);
+  const real = withPreview ? (attempts || []) : realOnly;
   const ids = real.map((a: any) => a.id);
   const { data: events } = ids.length
     ? await supabase.from("proctor_events").select("attempt_id, kind").in("attempt_id", ids).in("kind", [...CAMERA, "phone_detected", "fast_answers"])
     : { data: [] as any[] };
 
-  const invited = (invites || []).filter((i: any) => !i.preview).length;
+  const invited = (invites || []).filter((i: any) => withPreview || !i.preview).length;
   const started = real.filter((a: any) => a.status !== "pending").length;
   const done = real.filter((a: any) => ["submitted", "expired", "terminated"].includes(a.status));
   const rep = (a: any) => (reports as any)?.[a.id] || null;
@@ -84,7 +89,16 @@ export default async function Dashboard({ params }: { params: Promise<{ id: stri
       <div>
         <a href={`/admin/tests/${id}/attempts`} className="text-sm text-muted">← Tentatives</a>
         <h1 className="h1 mt-2">Tableau de bord · {test?.title}</h1>
-        <p className="text-sm text-muted mt-1">Copies d&apos;aperçu des admins non comptées. Résultat : « Test réussi » dès {fmt(test?.verdict_pass)}/20, « Test échoué » sous {fmt(test?.verdict_fail)}/20.</p>
+        {withPreview && (
+          <p className="mt-3 rounded-md border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
+            {realOnly.length === 0 ? "Aucun candidat n'a encore composé : " : ""}les {nPreview} copie(s) d&apos;essai de l&apos;équipe sont comptées ici.
+            {realOnly.length > 0 && <> <a className="underline" href={`/admin/tests/${id}/dashboard?apercu=0`}>Ne voir que les candidats</a></>}
+          </p>
+        )}
+        {!withPreview && nPreview > 0 && (
+          <p className="mt-2 text-xs text-muted"><a className="underline" href={`/admin/tests/${id}/dashboard?apercu=1`}>Inclure les {nPreview} copie(s) d&apos;essai de l&apos;équipe</a></p>
+        )}
+        <p className="text-sm text-muted mt-1">Copies d&apos;essai de l&apos;équipe non comptées par défaut. Résultat : « Test réussi » dès {fmt(test?.verdict_pass)}/20, « Test échoué » sous {fmt(test?.verdict_fail)}/20.</p>
       </div>
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">

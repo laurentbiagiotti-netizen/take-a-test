@@ -24,7 +24,7 @@ const QuestionPrompt = forwardRef<HTMLHeadingElement, { prompt: string; classNam
     <div>
       <h2 ref={ref} tabIndex={-1} className={`outline-none ${className ?? "text-lg font-semibold"}`}>{intro}</h2>
       {block !== null && (
-        <pre className="mt-3 p-3 rounded-md bg-[#05070d] border border-line font-mono text-sm overflow-x-auto whitespace-pre select-none">{block}</pre>
+        <pre className="mt-3 p-3 rounded-md bg-[#05070d] text-[#e6edf3] border border-[#1f2633] font-mono text-sm overflow-x-auto whitespace-pre select-none">{block}</pre>
       )}
       {outro && <p className="mt-3 font-medium">{outro}</p>}
     </div>

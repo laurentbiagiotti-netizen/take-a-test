@@ -12,6 +12,8 @@ import { TOOLS } from "@/lib/external/tools";
 import { checkKey } from "@/lib/external/grade";
 import ExcelTools from "@/components/admin/ExcelTools";
 import ExamFileTools from "@/components/admin/ExamFileTools";
+import ImportFromTests from "@/components/admin/ImportFromTests";
+import { loadDrafts } from "@/lib/admin/load-questions";
 import { writeQuestions } from "@/lib/admin/save-questions";
 import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
 
@@ -64,24 +66,7 @@ export default function EditTest() {
       const { data: previews } = await supabase.from("invites").select("email").eq("test_id", id).eq("preview", true);
       const previewEmails = new Set((previews || []).map((p: any) => p.email));
       setLocked((started || []).some((a: any) => !previewEmails.has(a.candidate?.email)));
-      const { data: qs } = await supabase.from("questions").select("*").eq("test_id", id).order("position");
-      const ids = (qs || []).map((q: any) => q.id);
-      const { data: keys } = ids.length
-        ? await supabase.from("answer_keys").select("question_id, correct").in("question_id", ids)
-        : { data: [] as any[] };
-      const keyMap = new Map((keys || []).map((k: any) => [k.question_id, k.correct]));
-      const { data: terms } = ids.length
-        ? await supabase.from("question_terminals").select("question_id, scenario, flag").in("question_id", ids)
-        : { data: [] as any[] };
-      const termMap = new Map((terms || []).map((t: any) => [t.question_id, { scenario: JSON.stringify(t.scenario, null, 2), flag: t.flag }]));
-      const { data: exts } = ids.length
-        ? await supabase.from("question_externals").select("question_id, tool, scenario, answer_key, time_limit_s, label").in("question_id", ids)
-        : { data: [] as any[] };
-      const extMap = new Map((exts || []).map((x: any) => [x.question_id, {
-        tool: x.tool, label: x.label || "", time_limit_min: x.time_limit_s ? String(Math.round(x.time_limit_s / 60)) : "",
-        scenario: JSON.stringify(x.scenario, null, 2), answer_key: x.answer_key ? JSON.stringify(x.answer_key, null, 2) : "",
-      }]));
-      const withKeys = (qs || []).map((q: any) => ({ ...q, correct: keyMap.get(q.id) || null, terminal: termMap.get(q.id) || null, external: extMap.get(q.id) || null }));
+      const withKeys = await loadDrafts(supabase as any, id);
       setQuestions(withKeys);
       setLink(`${window.location.origin}/test/${id}`);
     })();
@@ -224,6 +209,12 @@ export default function EditTest() {
           ))}
         </div>
         <span className={`ml-auto shrink-0 badge ${test.is_published ? "border-ok/40 text-ok" : "border-line-strong text-muted"}`}>{test.is_published ? "Publiée" : "Brouillon"}</span>
+        {!test.is_published && (
+          <button className="btn !py-1.5 shrink-0" onClick={() => {
+            if (!questions.length) return notify("Ajoutez au moins une question avant de publier.");
+            if (confirm("Publier l'épreuve ? Les candidats inscrits pourront la commencer dans sa fenêtre d'ouverture.")) updateTest({ is_published: true });
+          }}>Publier</button>
+        )}
         <button className="btn !py-1.5 shrink-0" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
       </nav>
       <p className="text-xs text-faint mt-2">Les réglages s&apos;enregistrent tout seuls ; les questions avec le bouton « Enregistrer les questions ».</p>
@@ -450,6 +441,8 @@ export default function EditTest() {
         <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
           onFormation={(f) => updateTest({ formation: f || null })}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
+        <ImportFromTests currentId={id} locked={locked} existing={questions.map((q: any) => q.prompt)}
+          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
         <ExamFileTools test={test} questions={questions as any} locked={locked}
           onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
       </div>

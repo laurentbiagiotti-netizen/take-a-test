@@ -324,9 +324,9 @@ function Hotspot({ q, value, onChange }: { q: PublicQ; value: any; onChange: (r:
       <div className="bg-[#05070d] font-mono text-[13px] overflow-x-auto py-2">
         {(o.segments || []).map((s: any, i: number) => (
           <button type="button" key={s.id} onClick={() => toggle(s.id)}
-            className={`flex w-full text-left px-3 py-0.5 whitespace-pre ${mark(s.id)}`}>
+            className={`flex w-full text-left px-3 py-0.5 whitespace-pre ${sel.includes(s.id) ? "bg-accent/25 shadow-[inset_3px_0_0_#fd7119]" : "hover:bg-white/10"}`}>
             <span className="text-faint select-none w-8 shrink-0 text-right pr-3">{i + 1}</span>
-            <span className={o.layout === "log" ? "text-[#c9d1e3]" : "text-fg"}>{s.text}</span>
+            <span className={o.layout === "log" ? "text-[#c9d1e3]" : "text-[#e6edf3]"}>{s.text}</span>
           </button>
         ))}
       </div>
@@ -373,7 +373,7 @@ function ShortAnswer({ q, value, onChange }: { q: PublicQ; value: any; onChange:
           </div>
         </div>
       )}
-      {d?.kind === "text" && <pre className="rounded-lg border border-line bg-[#05070d] p-3 font-mono text-xs whitespace-pre-wrap max-h-80 overflow-auto text-[#c9d1e3]">{d.text}</pre>}
+      {d?.kind === "text" && <pre className="rounded-lg border border-[#1f2633] bg-[#05070d] p-3 font-mono text-xs whitespace-pre-wrap max-h-80 overflow-auto text-[#c9d1e3]">{d.text}</pre>}
       <label className="block">
         <span className="text-xs uppercase tracking-wider text-muted">Votre réponse</span>
         <input className="input mt-1 font-mono !text-base !py-3 !rounded-xl" maxLength={500} placeholder={q.options?.placeholder || "Votre réponse"} autoComplete="off" spellCheck={false}

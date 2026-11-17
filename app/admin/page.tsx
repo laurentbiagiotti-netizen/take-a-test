@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeleteTestButton from "@/components/DeleteTestButton";
 import PreviewButton from "@/components/admin/PreviewButton";
+import PublishButton from "@/components/admin/PublishButton";
 
 const count = <T,>(rows: T[] | null, key: (r: T) => string) => {
   const m = new Map<string, number>();
@@ -104,7 +105,8 @@ export default async function AdminHome() {
               )}
 
               <div className="flex flex-wrap items-center gap-2 mt-auto pt-3 border-t border-line">
-                {isAdmin && <Link href={`/admin/tests/${t.id}`} className="btn !py-1.5">Modifier</Link>}
+                {isAdmin && !t.is_published && <PublishButton id={t.id} title={t.title} published={false} questions={q} />}
+                {isAdmin && <Link href={`/admin/tests/${t.id}`} className={t.is_published ? "btn !py-1.5" : "btn-secondary !py-1.5"}>Modifier</Link>}
                 {isAdmin && <PreviewButton testId={t.id} className="btn-secondary !py-1.5" />}
                 <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm ml-1" aria-label={`Suivi de ${t.title}`}>
                   {isAdmin && <Link href={`/admin/tests/${t.id}/invites`} className="text-muted hover:text-fg">Candidats</Link>}
@@ -112,7 +114,10 @@ export default async function AdminHome() {
                   <Link href={`/admin/tests/${t.id}/attempts`} className="text-muted hover:text-fg">Tentatives</Link>
                   <Link href={`/admin/tests/${t.id}/dashboard`} className="text-muted hover:text-fg">Tableau de bord</Link>
                 </nav>
-                {isAdmin && <span className="ml-auto"><DeleteTestButton id={t.id} title={t.title} /></span>}
+                {isAdmin && <span className="ml-auto flex items-center gap-3">
+                  {t.is_published && <PublishButton id={t.id} title={t.title} published questions={q} className="text-sm text-muted hover:text-fg" />}
+                  <DeleteTestButton id={t.id} title={t.title} />
+                </span>}
               </div>
             </article>
           );

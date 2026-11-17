@@ -67,19 +67,19 @@ export default function Terminal({ run, initialPrompt, motd, initialObjectives =
 
   return (
     <div className={objectives.length ? "grid lg:grid-cols-[1fr_260px] gap-3" : ""}>
-      <div className="rounded-lg border border-line bg-[#05070d] font-mono text-[13px] leading-relaxed min-w-0" onClick={() => inputRef.current?.focus()}>
-        <div className="flex items-center justify-between px-3 py-2 border-b border-line text-xs text-faint">
+      <div className="rounded-lg border border-[#1f2633] bg-[#05070d] text-[#e6edf3] font-mono text-[13px] leading-relaxed min-w-0" onClick={() => inputRef.current?.focus()}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-[#1f2633] text-xs text-[#8b949e]">
           <span>terminal</span>
-          <span className={busy ? "text-warn" : "text-ok"}>● {busy ? "exécution…" : "connecté"}</span>
+          <span className={busy ? "text-[#d29922]" : "text-[#3fb950]"}>● {busy ? "exécution…" : "connecté"}</span>
         </div>
         <div ref={boxRef} className="px-3 py-2 overflow-y-auto" style={{ height }}>
           {lines.map((l, i) => (
-            <pre key={i} className={`whitespace-pre-wrap break-words ${l.kind === "in" ? "text-fg" : l.kind === "err" ? "text-danger" : "text-[#c9d1e3]"}`}>{l.text}</pre>
+            <pre key={i} className={`whitespace-pre-wrap break-words ${l.kind === "in" ? "text-[#e6edf3]" : l.kind === "err" ? "text-[#ff7b72]" : "text-[#c9d1e3]"}`}>{l.text}</pre>
           ))}
           <div className="flex items-center gap-2">
-            <span className="text-ok shrink-0">{prompt}</span>
+            <span className="text-[#3fb950] shrink-0">{prompt}</span>
             <input ref={inputRef} value={value} onChange={(e) => setValue(e.target.value)} onKeyDown={onKey}
-              className="flex-1 bg-transparent outline-none text-fg caret-accent min-w-0" spellCheck={false}
+              className="flex-1 bg-transparent outline-none text-[#e6edf3] caret-accent min-w-0" spellCheck={false}
               autoComplete="off" autoCorrect="off" autoCapitalize="off" maxLength={500} disabled={busy} aria-label="Commande" />
           </div>
         </div>
