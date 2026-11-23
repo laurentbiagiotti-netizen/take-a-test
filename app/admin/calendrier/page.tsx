@@ -2,12 +2,15 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageTitle, examState, fmtTime } from "@/components/admin/ui";
 import { conflicts, span } from "@/lib/admin/calendar";
+import { eventTitle, slotEnd } from "@/lib/exam/convocation";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendrier" };
 
 type T = { id: string; title: string; formation: string | null; campus: string | null; room: string | null; is_published: boolean;
-  opens_at: string; closes_at: string | null; duration_minutes: number; start: number; end: number };
+  opens_at: string; closes_at: string | null; duration_minutes: number; start: number; end: number;
+  /** Créneau individuel d'un candidat (test d'admission) */
+  slot?: { email: string; href: string } };
 const dayKey = (d: Date | number | string) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
 const addDays = (k: string, n: number) => { const d = new Date(`${k}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const monday = (k: string) => addDays(k, -((new Date(`${k}T12:00:00Z`).getUTCDay() + 6) % 7));
@@ -28,7 +31,17 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
   const first = vue === "mois" ? monday(`${d.slice(0, 7)}-01`) : monday(d);
   const nDays = vue === "mois" ? 42 : 7;
   const days = Array.from({ length: nDays }, (_, i) => addDays(first, i));
-  const onDay = (k: string) => dated.filter((t) => dayKey(t.start) <= k && dayKey(t.end - 1) >= k).sort((a, b) => a.start - b.start);
+  // Créneaux individuels des candidats (tests d'admission), fixés dans l'onglet Inscriptions ou repris de l'agenda
+  const { data: slotRows } = await supabase.from("invites").select("id, test_id, email, full_name, extra_minutes, slot_at").eq("preview", false).not("slot_at", "is", null);
+  const byId = new Map((data || []).map((t: any) => [t.id, t]));
+  const slots: T[] = (slotRows || []).filter((i: any) => byId.has(i.test_id)).map((i: any) => {
+    const t: any = byId.get(i.test_id);
+    const first = (i.full_name || "").trim().split(/\s+/)[0] || i.email.split("@")[0];
+    const start = +new Date(i.slot_at);
+    return { id: `c-${i.id}`, title: eventTitle(t.formation, first), formation: t.title, campus: null, room: "À distance", is_published: t.is_published, opens_at: i.slot_at, closes_at: null,
+      duration_minutes: t.duration_minutes, start, end: +new Date(slotEnd(i.slot_at, t.duration_minutes, i.extra_minutes || 0)), slot: { email: i.email, href: `/admin/tests/${t.id}/invites` } };
+  });
+  const onDay = (k: string) => [...dated, ...slots].filter((t) => dayKey(t.start) <= k && dayKey(t.end - 1) >= k).sort((a, b) => a.start - b.start);
   const prev = vue === "mois" ? addDays(`${d.slice(0, 7)}-01`, -1).slice(0, 7) + "-01" : addDays(d, -7);
   const next = vue === "mois" ? addDays(`${d.slice(0, 7)}-28`, 7).slice(0, 7) + "-01" : addDays(d, 7);
   const title = vue === "mois" ? label(`${d.slice(0, 7)}-01`, { month: "long", year: "numeric" })
@@ -42,11 +55,11 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
     const sameDay = dayKey(t.start) === dayKey(t.end - 1);
     const hours = sameDay ? `${fmtTime(t.opens_at)} à ${fmtTime(new Date(t.end).toISOString())}` : dayKey(t.start) === k ? `dès ${fmtTime(t.opens_at)}` : dayKey(t.end - 1) === k ? `jusqu'à ${fmtTime(new Date(t.end).toISOString())}` : "toute la journée";
     return (
-      <Link href={`/admin/tests/${t.id}`} title={c ? c.join("\n") : t.title}
-        className={`block rounded-lg border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-fg/[0.05] ${c ? "border-[#c23b17] bg-[#c23b17]/[0.07]" : `${BORDER[st.key] || "border-line-strong"} bg-fg/[0.03]`}`}>
+      <Link href={t.slot ? t.slot.href : `/admin/tests/${t.id}`} title={c ? c.join("\n") : t.slot ? `${t.title} · ${t.slot.email}` : t.title}
+        className={`block rounded-lg border-l-[3px] px-2 py-1.5 text-left transition-colors hover:bg-fg/[0.05] ${c ? "border-[#c23b17] bg-[#c23b17]/[0.07]" : t.slot ? "border-accent bg-accent/[0.07]" : `${BORDER[st.key] || "border-line-strong"} bg-fg/[0.03]`}`}>
         <div className="text-[11px] tabular-nums text-muted">{hours}</div>
         <div className={`text-[13px] font-semibold leading-snug text-navy ${full ? "" : "truncate"}`}>{t.title}</div>
-        {(full || c) && <div className="mt-0.5 text-[11px] text-muted">{[t.formation, t.room, t.campus].filter(Boolean).join(" · ") || "Promo et salle non précisées"}</div>}
+        {(full || c) && <div className="mt-0.5 text-[11px] text-muted">{t.slot ? `${t.slot.email} · ${t.formation} · à distance` : [t.formation, t.room, t.campus].filter(Boolean).join(" · ") || "Promo et salle non précisées"}</div>}
         {c && <div className="mt-0.5 text-[11px] font-semibold text-[#b3361a]">Conflit{full ? ` : ${Array.from(new Set(c)).join(" ; ")}` : ""}</div>}
       </Link>
     );
@@ -106,8 +119,13 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
+      <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted">
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded bg-navy" />Épreuve datée</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded bg-accent" />Créneau d&apos;un candidat (test d&apos;admission) : {slots.length} à ce jour</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded bg-[#c23b17]" />Conflit</span>
+      </p>
       {undated.length > 0 && (
-        <p className="mt-4 text-sm text-muted">Sans date d&apos;ouverture : {undated.map((t: any, i: number) => (
+        <p className="mt-3 text-sm text-muted">Sans date d&apos;ouverture (normal pour une épreuve à créneaux individuels) : {undated.map((t: any, i: number) => (
           <span key={t.id}>{i > 0 && ", "}<Link className="text-navy hover:text-accent" href={`/admin/tests/${t.id}/questions?vue=reglages#dates`}>{t.title}</Link></span>
         ))}</p>
       )}
