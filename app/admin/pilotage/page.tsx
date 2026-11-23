@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { loadRoster, type RosterRow } from "@/lib/admin/roster";
 import { PageTitle, Stat, fmt20, fmtDay, tier } from "@/components/admin/ui";
+import MissingButton, { type Missing } from "@/components/admin/MissingButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pilotage" };
@@ -31,7 +32,7 @@ function Bar({ value, tone = "bg-navy" }: { value: number | null; tone?: string 
 }
 const successTone = (v: number | null) => (v == null ? "bg-fg/20" : v >= 70 ? "bg-[#2fa862]" : v >= 50 ? "bg-[#5561c9]" : v >= 30 ? "bg-[#f08a3e]" : "bg-[#c23b17]");
 
-function Table({ title, desc, first, lines }: { title: string; desc?: string; first: string; lines: { key: string; label: React.ReactNode; sub?: string; f: ReturnType<typeof figures> }[] }) {
+function Table({ title, desc, first, lines }: { title: string; desc?: string; first: string; lines: { key: string; label: React.ReactNode; sub?: string; f: ReturnType<typeof figures>; missing?: Missing[]; name?: string }[] }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
       <div className="px-5 pt-5">
@@ -52,7 +53,7 @@ function Table({ title, desc, first, lines }: { title: string; desc?: string; fi
                 <td className="px-5 py-3"><div className="font-medium text-fg">{l.label}</div>{l.sub && <div className="text-xs text-muted">{l.sub}</div>}</td>
                 <td className="px-3 py-3 text-right tabular-nums">{l.f.invited}</td>
                 <td className="px-3 py-3 text-right font-semibold tabular-nums text-navy">{l.f.came}</td>
-                <td className={`px-3 py-3 text-right tabular-nums ${l.f.missing ? "font-semibold text-[#b3361a]" : "text-muted"}`}>{l.f.missing}</td>
+                <td className="px-3 py-3 text-right tabular-nums">{l.missing ? <MissingButton people={l.missing} label={l.name || l.key} /> : l.f.missing}</td>
                 <td className="px-3 py-3"><Bar value={l.f.participation} /></td>
                 <td className="px-3 py-3"><Bar value={l.f.success} tone={successTone(l.f.success)} /></td>
                 <td className={`px-5 py-3 text-right font-bold tabular-nums ${tier(l.f.avg).text}`}>{fmt20(l.f.avg)}</td>
@@ -62,6 +63,48 @@ function Table({ title, desc, first, lines }: { title: string; desc?: string; fi
           </tbody>
         </table>
       </div>
+    </section>
+  );
+}
+
+/** Courbes par mois : moyenne sur 20 (échelle de gauche) et participation en % (échelle de droite). */
+function Evolution({ points }: { points: { k: string; f: ReturnType<typeof figures> }[] }) {
+  const W = 880, H = 240, L = 44, R = 48, T = 16, B = 34;
+  const x = (i: number) => (points.length <= 1 ? (L + W - R) / 2 : L + (i * (W - L - R)) / (points.length - 1));
+  const yA = (v: number) => T + (1 - v / 20) * (H - T - B);
+  const yP = (v: number) => T + (1 - v / 100) * (H - T - B);
+  const line = (vals: (number | null)[], y: (v: number) => number) => vals.map((v, i) => (v == null ? null : `${x(i)},${y(v)}`)).filter(Boolean).join(" ");
+  const month = (k: string) => new Date(`${k}-15T12:00:00Z`).toLocaleDateString("fr-FR", { month: "short", year: "2-digit", timeZone: "UTC" });
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg uppercase text-navy">Évolution par mois</h2>
+        <div className="flex gap-4 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 rounded bg-[#e8600b]" />Moyenne /20</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-5 rounded bg-[#5561c9]" />Participation %</span>
+        </div>
+      </div>
+      {points.length ? (
+        <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label="Moyenne et participation par mois">
+          {[0, 5, 10, 15, 20].map((v) => (
+            <g key={v}>
+              <line x1={L} x2={W - R} y1={yA(v)} y2={yA(v)} stroke="currentColor" className={v === 10 ? "text-fg/25" : "text-fg/10"} strokeDasharray={v === 10 ? "4 4" : undefined} />
+              <text x={L - 8} y={yA(v) + 4} textAnchor="end" className="fill-current text-[11px] text-muted">{v}</text>
+              <text x={W - R + 8} y={yA(v) + 4} className="fill-current text-[11px] text-muted">{v * 5} %</text>
+            </g>
+          ))}
+          <polyline fill="none" stroke="#5561c9" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={line(points.map((p) => p.f.participation), yP)} />
+          <polyline fill="none" stroke="#e8600b" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={line(points.map((p) => p.f.avg), yA)} />
+          {points.map((p, i) => (
+            <g key={p.k}>
+              {p.f.participation != null && <circle cx={x(i)} cy={yP(p.f.participation)} r="4" fill="#5561c9"><title>{`${month(p.k)} : ${p.f.participation} % de participation (${p.f.came} sur ${p.f.invited})`}</title></circle>}
+              {p.f.avg != null && <circle cx={x(i)} cy={yA(p.f.avg)} r="4" fill="#e8600b"><title>{`${month(p.k)} : moyenne ${fmt20(p.f.avg)} /20 sur ${p.f.done} copie(s)`}</title></circle>}
+              {p.f.avg != null && <text x={x(i)} y={yA(p.f.avg) - 9} textAnchor="middle" className="fill-current text-[11px] font-semibold text-fg">{fmt20(p.f.avg)}</text>}
+              <text x={x(i)} y={H - 10} textAnchor="middle" className="fill-current text-[11px] text-muted">{month(p.k)}</text>
+            </g>
+          ))}
+        </svg>
+      ) : <p className="py-8 text-center text-sm text-muted">Pas encore de copie sur cette période.</p>}
     </section>
   );
 }
@@ -85,6 +128,9 @@ export default async function Pilotage({ searchParams }: { searchParams: Promise
     for (const t of scope) { const k = key(t); m.set(k, [...(m.get(k) || []), t]); }
     return [...m.entries()].map(([k, list]) => ({ key: k, list, f: figures(rowsOf(list)) })).filter((g) => g.f.invited > 0).sort((a, b) => a.key.localeCompare(b.key, "fr"));
   };
+  const titleOf = new Map(all.map((t) => [t.id, t.title]));
+  const missingOf = (rows: RosterRow[]): Missing[] => rows.filter((r) => r.absent).map((r) => ({ email: r.email, name: `${r.first} ${r.last}`.trim(), exam: titleOf.get(r.test_id) || "Examen" }))
+    .sort((a, b) => a.name.localeCompare(b.name, "fr"));
   const total = figures(rowsOf(scope));
   const classes = group((t) => t.formation || COMMUNE);
   const campuses = group((t) => t.campus || "Non précisé");
@@ -97,6 +143,11 @@ export default async function Pilotage({ searchParams }: { searchParams: Promise
   const domains = [...dom.entries()].map(([k, v]) => ({ k, ...v, ratio: pct(v.score, v.max) })).sort((a, b) => (a.ratio ?? 0) - (b.ratio ?? 0));
 
   const yearly = [...years].reverse().map((y) => ({ y, f: figures(rowsOf(all.filter((t) => t.year === y))), n: all.filter((t) => t.year === y).length }));
+  const monthly = (() => {
+    const m = new Map<string, typeof all>();
+    for (const t of scope) { const k = new Date(t.opens_at || t.created_at).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" }).slice(0, 7); m.set(k, [...(m.get(k) || []), t]); }
+    return [...m.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([k, list]) => ({ k, f: figures(rowsOf(list)) })).filter((x) => x.f.invited > 0);
+  })();
   const delta = (cur: number | null, prev: number | null, unit = " pts") => cur == null || prev == null ? null : (
     <span className={`ml-2 text-xs font-semibold ${cur - prev >= 0 ? "text-[#1f7a44]" : "text-[#b3361a]"}`}>{cur - prev >= 0 ? "+" : "−"}{(Math.abs(Math.round((cur - prev) * 10)) / 10).toString().replace(".", ",")}{unit}</span>
   );
@@ -118,22 +169,22 @@ export default async function Pilotage({ searchParams }: { searchParams: Promise
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Convocations" value={total.invited} hint={`${scope.length} examen(s)`} />
         <Stat dark label="Ont passé l'examen" value={total.came} hint={`${pctTxt(total.participation)} de participation`} />
-        <Stat label="N'ont pas passé" value={total.missing} tone={total.missing ? "text-[#c23b17]" : undefined} hint={`${pctTxt(pct(total.missing, total.invited))} des convoqués`} />
+        <Stat label="N'ont pas passé" value={<MissingButton people={missingOf(rowsOf(scope))} label={year === "toutes" ? "Toutes les années" : year} />} tone={total.missing ? "text-[#c23b17]" : undefined} hint={`${pctTxt(pct(total.missing, total.invited))} des convoqués`} />
         <Stat label="Taux de réussite" value={total.success ?? "—"} unit={total.success != null ? "%" : undefined} hint={`${total.pass} réussite(s) sur ${total.done} copie(s)`} />
         <Stat label="Moyenne" value={fmt20(total.avg)} unit="/20" tone={tier(total.avg).text} />
       </div>
 
       <div className="mt-6 space-y-6">
         <Table title="Par classe" first="Classe" desc="Une convocation = un étudiant inscrit à un examen. « Pas passé » : inscrit mais jamais entré dans l'épreuve."
-          lines={classes.map((c) => ({ key: c.key, f: c.f, sub: `${c.list.length} examen(s)`,
+          lines={classes.map((c) => ({ key: c.key, f: c.f, missing: missingOf(rowsOf(c.list)), sub: `${c.list.length} examen(s)`,
             label: c.key === COMMUNE ? c.key : <Link className="hover:text-accent" href={`/admin/classes?classe=${encodeURIComponent(c.key)}`}>{c.key}</Link> }))} />
 
         <Table title="Par examen" first="Examen"
-          lines={exams.map(({ t, f }) => ({ key: t.id, f, sub: `${t.formation || COMMUNE}${t.opens_at ? ` · ${fmtDay(t.opens_at)}` : ""}`,
+          lines={exams.map(({ t, f }) => ({ key: t.id, f, name: t.title, missing: missingOf(byTest.get(t.id) || []), sub: `${t.formation || COMMUNE}${t.opens_at ? ` · ${fmtDay(t.opens_at)}` : ""}`,
             label: <Link className="hover:text-accent" href={`/admin/tests/${t.id}`}>{t.title}</Link> }))} />
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <Table title="Par campus" first="Campus" lines={campuses.map((c) => ({ key: c.key, label: c.key, f: c.f, sub: `${c.list.length} examen(s)` }))} />
+          <Table title="Par campus" first="Campus" lines={campuses.map((c) => ({ key: c.key, label: c.key, f: c.f, missing: missingOf(rowsOf(c.list)), sub: `${c.list.length} examen(s)` }))} />
           <section className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
             <h2 className="font-display text-lg uppercase text-navy">Par domaine</h2>
             <p className="mt-1 text-sm text-muted">Part des points obtenus, du domaine le plus fragile au plus solide.</p>
@@ -150,6 +201,8 @@ export default async function Pilotage({ searchParams }: { searchParams: Promise
             </div>
           </section>
         </div>
+
+        <Evolution points={monthly} />
 
         <section className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
           <h2 className="font-display text-lg uppercase text-navy">D&apos;une année sur l&apos;autre</h2>

@@ -44,6 +44,8 @@ export default function BankPage() {
   const [panel, setPanel] = useState(false);
   const [edit, setEdit] = useState<EditTarget | null>(null);
   const [flag, setFlag] = useState("");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkCopy, setBulkCopy] = useState(false);
 
   const load = useCallback(async () => {
     const [{ data: tests }, { data: qs }, { data: bank }, { data: prev }, { data: atts }] = await Promise.all([
@@ -121,17 +123,18 @@ export default function BankPage() {
 
   const toggle = (k: string) => setOpen((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
 
-  const copyTo = async (it: Item, target: string) => {
+  const copyTo = async (it: Item, target: string, quiet = false) => {
     if (target === "__bank") {
       const d = bankToDraft({ level: it.level, domain: it.domain, type: it.type, prompt: it.prompt, options: it.options, correct: it.correct, points: it.points,
         explanation: it.explanation, image_url: null, time_limit_s: null, terminal: it.terminal, external: it.external, source: null });
       const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("question_bank").insert({ ...draftToBank(d, it.level, examMap.get(it.test_id || "")?.title || null), created_by: user?.id });
       if (error) return notify(error.message);
+      if (quiet) return;
       notify("Question ajoutée à la banque libre.", "ok"); setCopyFor(null); return load();
     }
     const t = examMap.get(target);
-    if (t?.locked) return notify("Des étudiants ont déjà composé cet examen : ses questions sont figées. Dupliquez-le.");
+    if (t?.locked) { if (!quiet) notify("Des étudiants ont déjà composé cet examen : ses questions sont figées. Dupliquez-le."); return; }
     const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("test_id", target);
     const { data: row, error } = await supabase.from("questions").insert({
       test_id: target, position: count ?? 0, type: it.type, prompt: it.prompt, options: it.options, points: it.points,
@@ -141,7 +144,30 @@ export default function BankPage() {
     if (it.correct != null && !["long_text", "terminal", "external"].includes(it.type)) await supabase.from("answer_keys").upsert({ question_id: row.id, correct: it.correct });
     if (it.type === "terminal" && it.terminal) await supabase.from("question_terminals").upsert({ question_id: row.id, scenario: it.terminal.scenario, flag: it.terminal.flag || null });
     if (it.type === "external" && it.external) await supabase.from("question_externals").upsert({ question_id: row.id, tool: it.external.tool, label: it.external.label || null, time_limit_s: it.external.time_limit_s || null, scenario: it.external.scenario || {}, answer_key: it.external.answer_key ?? null });
+    if (quiet) return;
     notify(`Question copiée dans « ${t?.title} ».`, "ok"); setCopyFor(null); load();
+  };
+
+  const picked = (items || []).filter((i) => sel.has(i.key));
+  const bulkDomain = async () => {
+    const d = prompt(`Nouveau domaine pour ${picked.length} question(s) :`, picked[0]?.domain || "");
+    if (d == null) return;
+    const v = d.trim().slice(0, 100) || null;
+    for (const [table, src] of [["questions", "exam"], ["question_bank", "bank"]] as const) {
+      const ids = picked.filter((i) => i.source === src).map((i) => i.id);
+      if (!ids.length) continue;
+      const { error } = await supabase.from(table).update({ domain: v }).in("id", ids);
+      if (error) return notify(error.message);
+    }
+    notify(`Domaine changé pour ${picked.length} question(s).`, "ok"); setSel(new Set()); load();
+  };
+  const bulkCopyTo = async (target: string) => {
+    if (target !== "__bank" && examMap.get(target)?.locked) return notify("Des étudiants ont déjà composé cet examen : ses questions sont figées.");
+    const list = picked.filter((i) => (target === "__bank" ? i.source === "exam" : i.test_id !== target));
+    setBulkCopy(false);
+    for (const it of list) await copyTo(it, target, true);
+    notify(`${list.length} question(s) copiée(s) vers ${target === "__bank" ? "la banque libre" : `« ${examMap.get(target)?.title} »`}.`, "ok");
+    setSel(new Set()); load();
   };
 
   const remove = async (it: Item) => {
@@ -196,7 +222,20 @@ export default function BankPage() {
           </select>
         </div>
       </section>
-      {items && <p className="mt-3 px-1 text-sm text-muted">{shown.length} question(s) sur {items.length}</p>}
+      {items && (
+        <div className="mt-3 flex flex-wrap items-center gap-3 px-1 text-sm text-muted">
+          <span>{shown.length} question(s) sur {items.length}</span>
+          {shown.length > 0 && <button className="underline-offset-2 hover:text-fg hover:underline" onClick={() => setSel(shown.every((i) => sel.has(i.key)) ? new Set() : new Set(shown.map((i) => i.key)))}>{shown.every((i) => sel.has(i.key)) ? "Tout décocher" : "Tout cocher"}</button>}
+        </div>
+      )}
+      {picked.length > 0 && (
+        <div className="sticky top-3 z-30 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-navy px-5 py-3 text-sm text-white shadow-[0_18px_40px_-18px_rgba(10,16,71,0.8)]">
+          <span className="font-semibold">{picked.length} question(s) sélectionnée(s)</span>
+          <button className="ml-auto rounded-lg bg-white/15 px-3 py-1.5 font-medium hover:bg-white/25" onClick={() => setBulkCopy(true)}>Copier vers…</button>
+          <button className="rounded-lg bg-white/15 px-3 py-1.5 font-medium hover:bg-white/25" onClick={bulkDomain}>Changer le domaine</button>
+          <button className="px-2 text-white/75 hover:text-white" onClick={() => setSel(new Set())}>Annuler</button>
+        </div>
+      )}
 
       {groups.map((g) => (
         <section key={g.key} className="mt-6">
@@ -218,6 +257,8 @@ export default function BankPage() {
               return (
                 <article key={it.key} className="group rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(15,22,64,0.04)] transition-shadow hover:shadow-[0_14px_34px_-24px_rgba(15,22,64,0.4)]">
                   <div className="flex flex-wrap items-center gap-2">
+                    <input type="checkbox" className="h-4 w-4 accent-[#e8600b]" aria-label="Sélectionner la question" checked={sel.has(it.key)}
+                      onChange={() => setSel((x) => { const n = new Set(x); if (n.has(it.key)) n.delete(it.key); else n.add(it.key); return n; })} />
                     {it.domain && <span className="rounded-md bg-fg/[0.06] px-2 py-0.5 text-xs text-fg/75">{it.domain}</span>}
                     {it.source === "bank" && <span className="rounded-md bg-navy/[0.08] px-2 py-0.5 text-xs font-semibold text-navy">{it.level === "Tous" ? "Tous niveaux" : it.level}</span>}
                     {!isQcm && <span className="text-xs text-muted">{labelOf(it.type)}</span>}
@@ -271,8 +312,30 @@ export default function BankPage() {
           </div>
         </section>
       ))}
-      {items && !shown.length && <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center text-muted">Aucune question ne correspond.</div>}
+      {items && !shown.length && (
+        <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
+          <p className="font-display text-lg uppercase text-navy">{items.length ? "Aucune question ne correspond" : "La banque est vide"}</p>
+          <p className="mt-1 text-sm text-muted">{items.length ? "Élargissez la recherche ou retirez un filtre." : "Importez un fichier de questions, ou créez un examen : ses questions apparaîtront ici."}</p>
+          {!items.length && <div className="mt-4 flex justify-center gap-2"><button className="btn" onClick={() => setPanel(true)}>Importer des questions</button><Link href="/admin/new" className="btn-secondary">Créer un examen</Link></div>}
+        </div>
+      )}
 
+      {bulkCopy && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal aria-label="Copier les questions" onClick={() => setBulkCopy(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg uppercase text-navy">Copier {picked.length} question(s) vers…</h3>
+            <div className="mt-4 max-h-[50vh] space-y-1.5 overflow-y-auto">
+              <button onClick={() => bulkCopyTo("__bank")} className="flex w-full items-center justify-between rounded-xl border border-line px-3.5 py-2.5 text-left text-sm hover:border-accent"><span className="font-medium">Banque libre</span></button>
+              {exams.map((e) => (
+                <button key={e.id} disabled={e.locked} onClick={() => bulkCopyTo(e.id)} className="flex w-full items-center justify-between gap-3 rounded-xl border border-line px-3.5 py-2.5 text-left text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-45">
+                  <span className="truncate font-medium">{e.title}</span><span className="shrink-0 text-xs text-muted">{e.locked ? "figé" : e.formation || ""}</span>
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 text-right"><button className="btn-secondary" onClick={() => setBulkCopy(false)}>Annuler</button></div>
+          </div>
+        </div>
+      )}
       {edit && <QuestionEditor target={edit} domains={domains} onClose={() => setEdit(null)} onSaved={load} />}
       {copyFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal aria-label="Copier la question" onClick={() => setCopyFor(null)}>

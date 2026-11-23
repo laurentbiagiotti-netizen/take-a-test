@@ -37,7 +37,13 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
           </div>
           <AddClass />
         </div>
-        {!names.length && <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-16 text-center text-muted">Aucun examen pour l&apos;instant.</div>}
+        {!names.length && (
+          <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-16 text-center">
+            <p className="font-display text-lg uppercase text-navy">Aucune classe pour l&apos;instant</p>
+            <p className="mt-1 text-sm text-muted">Créez une classe avec « + Classe », ou publiez un examen pour une promo : elle apparaîtra ici.</p>
+            <Link href="/admin/new" className="btn mt-4">Créer un examen</Link>
+          </div>
+        )}
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {names.map((c) => {
             const r = rowsOf(c), s = summarize(r);
@@ -99,7 +105,19 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
         <Stat label="Examens passés" value={passed} unit={`/${cTests.length}`} hint={next ? `prochain ${fmtDay(next.opens_at)}` : "aucun examen à venir"} />
         <Stat label="Copies manquantes" value={missing} hint="copies attendues non rendues" tone={missing ? "text-[#c23b17]" : undefined} />
       </section>
-      <div className="mt-5"><ClassMatrix exams={exams} students={list} className={classe} /></div>
+      {!cTests.length ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
+          <p className="font-display text-lg uppercase text-navy">Aucun examen pour cette classe</p>
+          <p className="mt-1 text-sm text-muted">Créez un examen puis publiez-le pour « {classe} » : les étudiants et leurs notes s&apos;afficheront ici.</p>
+          <Link href="/admin/new" className="btn mt-4">Créer un examen</Link>
+        </div>
+      ) : !list.length ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
+          <p className="font-display text-lg uppercase text-navy">Aucun étudiant inscrit</p>
+          <p className="mt-1 text-sm text-muted">Inscrivez les étudiants à un examen de la classe pour les voir ici.</p>
+          <Link href={`/admin/tests/${cTests[0].id}/invites`} className="btn mt-4">Inscrire des étudiants</Link>
+        </div>
+      ) : <div className="mt-5"><ClassMatrix exams={exams} students={list} className={classe} /></div>}
       <div className="mt-6"><Accommodations students={list.map((x) => ({ email: x.email, name: `${x.first} ${x.last}`.trim() }))} /></div>
     </main>
   );

@@ -1,5 +1,8 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { notify } from "@/components/Toaster";
 import { useRouter } from "next/navigation";
 import type { RosterRow } from "@/lib/admin/roster";
 import { Avatar, NoteBar, VerdictPill, fmtDuration } from "@/components/admin/ui";
@@ -14,21 +17,37 @@ const STRIPES = "bg-[repeating-linear-gradient(135deg,transparent_0,transparent_
  * Candidats d'une épreuve (ou d'une promo) : prénom, nom, score, note sur 20, durée,
  * surveillance et décision. Recherche, tri par colonne, absents, filtre par décision, export CSV.
  */
-export default function RosterTable({ rows, tests, showTest = false, emptyText }: {
+export default function RosterTable({ rows, tests, showTest = false, emptyText, emptyAction }: {
   rows: RosterRow[];
   tests?: Record<string, { title: string }>;
   thresholds?: { pass?: number | null; fail?: number | null };
-  showTest?: boolean; compact?: boolean; emptyText?: string;
+  showTest?: boolean; compact?: boolean; emptyText?: string; emptyAction?: { href: string; label: string };
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<{ col: Col; dir: 1 | -1 }>({ col: "last", dir: 1 });
   const [only, setOnly] = useState("");
+  const [watch, setWatch] = useState("");
+  const [range, setRange] = useState("");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  // Filtres et tri gardés d'une visite à l'autre, page par page
+  const storeKey = `cx-roster:${usePathname() || ""}`;
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(storeKey) || "null");
+      if (v) { setOnly(v.only || ""); setWatch(v.watch || ""); setRange(v.range || ""); if (v.sort?.col) setSort(v.sort); if (typeof v.absents === "boolean") setAbsents(v.absents); }
+    } catch {}
+    setReady(true);
+  }, [storeKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const nAbsent = rows.filter((r) => r.absent).length;
   const nPreview = rows.filter((r) => r.preview).length;
   const nReal = rows.filter((r) => !r.preview && !r.absent).length;
   const [absents, setAbsents] = useState(true);
   const [withPreview, setWithPreview] = useState(nReal === 0 && nPreview > 0);
+
+  useEffect(() => { if (ready) try { localStorage.setItem(storeKey, JSON.stringify({ only, watch, range, sort, absents })); } catch {} }, [ready, storeKey, only, watch, range, sort, absents]);
+  const active = [only, watch, range].filter(Boolean).length;
 
   const base = rows.filter((r) => (withPreview || !r.preview) && (absents || !r.absent));
   const counts = { pass: base.filter((r) => r.verdict === "pass").length, review: base.filter((r) => r.verdict === "review").length, fail: base.filter((r) => r.verdict === "fail").length };
@@ -36,6 +55,8 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
   const shown = useMemo(() => {
     const f = norm(q.trim());
     const list = base.filter((r) => (!only || r.verdict === only)
+      && (!watch || (!r.absent && (watch === "ras" ? !r.violations && !r.suspicion : watch === "infr" ? r.violations > 0 : r.suspicion)))
+      && (!range || (r.score20 != null && (range === "lt10" ? r.score20 < 10 : range === "lt8" ? r.score20 < 8 : r.score20 >= 10)))
       && (!f || norm(`${r.first} ${r.last} ${r.email} ${tests?.[r.test_id]?.title || ""}`).includes(f)));
     const val = (r: RosterRow): string | number => {
       switch (sort.col) {
@@ -54,7 +75,7 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
       const x = val(a), y = val(b);
       return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || norm(a.last).localeCompare(norm(b.last));
     });
-  }, [base, q, sort, only, tests]);
+  }, [base, q, sort, only, watch, range, tests]);
 
   const th = (col: Col, label: string, cls = "") => (
     <th className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-fg/60 ${cls}`}>
@@ -74,6 +95,16 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
     const url = URL.createObjectURL(new Blob([toCsv(data)], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "candidats.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+
+  const picked = shown.filter((r) => sel.has(r.attempt_id));
+  const selectable = shown.filter((r) => !r.absent);
+  const allSel = selectable.length > 0 && selectable.every((r) => sel.has(r.attempt_id));
+  const toggleSel = (id: string) => setSel((x) => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const copyMails = async (list: RosterRow[]) => {
+    const mails = Array.from(new Set(list.map((r) => r.email.toLowerCase()).filter(Boolean)));
+    try { await navigator.clipboard.writeText(mails.join("; ")); notify(`${mails.length} adresse(s) copiée(s).`, "ok"); } catch { notify("Copie impossible."); }
+  };
+  const fsel = "rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-accent";
 
   const chip = (k: string, label: string, n: number, dot: string) => (
     <button onClick={() => setOnly((o) => (o === k ? "" : k))} aria-pressed={only === k}
@@ -100,6 +131,13 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
           </label>
         )}
         <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+          <select className={fsel} value={watch} onChange={(e) => setWatch(e.target.value)} aria-label="Filtrer par surveillance">
+            <option value="">Surveillance : tout</option><option value="ras">RAS</option><option value="infr">Avec infractions</option><option value="susp">Suspicion</option>
+          </select>
+          <select className={fsel} value={range} onChange={(e) => setRange(e.target.value)} aria-label="Filtrer par note">
+            <option value="">Note : toutes</option><option value="lt10">Sous 10</option><option value="lt8">Sous 8</option><option value="gte10">10 et plus</option>
+          </select>
+          {active > 0 && <button className="px-1 text-xs text-muted underline-offset-2 hover:text-fg hover:underline" onClick={() => { setOnly(""); setWatch(""); setRange(""); }}>Effacer les filtres</button>}
           {chip("pass", "Réussis", counts.pass, "bg-[#2fa862]")}
           {chip("review", "À statuer", counts.review, "bg-[#f08a3e]")}
           {chip("fail", "Échoués", counts.fail, "bg-[#c23b17]")}
@@ -109,10 +147,20 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
           </button>
         </div>
       </div>
+      {picked.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line bg-navy/[0.05] px-4 py-2.5 text-sm">
+          <span className="font-semibold text-navy">{picked.length} étudiant(s) sélectionné(s)</span>
+          <a className="btn-secondary ml-auto !py-1.5" href={`/admin/fiches?ids=${picked.slice(0, 80).map((r) => r.attempt_id).join(",")}`}>Fiches jury en un seul PDF</a>
+          <button className="btn-secondary !py-1.5" onClick={() => copyMails(picked)}>Copier les adresses</button>
+          <button className="px-2 text-muted hover:text-fg" onClick={() => setSel(new Set())}>Tout décocher</button>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-y border-line bg-surface-2/60 text-left">
             <tr>
+              <th className="w-10 pl-4"><input type="checkbox" className="h-4 w-4 accent-[#e8600b]" aria-label="Tout sélectionner" checked={allSel} disabled={!selectable.length}
+                onChange={() => setSel(allSel ? new Set() : new Set(selectable.map((r) => r.attempt_id)))} /></th>
               {th("first", "Prénom")}
               {th("last", "Nom")}
               {showTest && th("test", "Épreuve")}
@@ -129,6 +177,9 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
               const go = () => !r.absent && router.push(`/admin/attempts/${r.attempt_id}`);
               return (
                 <tr key={r.attempt_id} onClick={go} className={`group ${r.absent ? `${STRIPES} text-muted` : "cursor-pointer hover:bg-accent/[0.035]"}`}>
+                  <td className="pl-4" onClick={(e) => e.stopPropagation()}>
+                    {!r.absent && <input type="checkbox" className="h-4 w-4 accent-[#e8600b]" aria-label={`Sélectionner ${r.first} ${r.last}`} checked={sel.has(r.attempt_id)} onChange={() => toggleSel(r.attempt_id)} />}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-3">
                       <Avatar first={r.first} last={r.last} note={r.absent ? null : r.score20} />
@@ -139,7 +190,9 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
                     <span className={`font-bold uppercase tracking-wide ${r.absent ? "text-fg/60" : "text-navy"}`}>{r.last}</span>
                     {!r.named && !r.absent && <span title={r.email} className="ml-2 text-[10px] uppercase tracking-wide text-faint">d&apos;après l&apos;e-mail</span>}
                     {r.preview && <span className="ml-2 rounded bg-fg/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">essai</span>}
-                    <div className="mt-0.5 text-xs font-normal normal-case tracking-normal text-muted">{r.email}</div>
+                    <div className="mt-0.5 text-xs font-normal normal-case tracking-normal text-muted">
+                      <Link href={`/admin/etudiants/${encodeURIComponent(r.email.toLowerCase())}`} onClick={(e) => e.stopPropagation()} className="hover:text-accent hover:underline" title="Ouvrir la fiche étudiant">{r.email}</Link>
+                    </div>
                   </td>
                   {showTest && <td className="max-w-[16rem] truncate px-4 py-3 text-muted">{tests?.[r.test_id]?.title}</td>}
                   <td className="px-4 py-3 text-right tabular-nums">
@@ -165,7 +218,9 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
           <div className="px-6 py-12 text-center text-sm text-muted">
             {nPreview && !withPreview && nReal === 0
               ? <>Seules des copies d&apos;essai de l&apos;équipe existent. <button className="underline" onClick={() => setWithPreview(true)}>Les afficher</button></>
-              : q || only ? "Aucun étudiant ne correspond." : emptyText || "Aucun candidat pour l'instant."}
+              : q || active ? <>Aucun étudiant ne correspond. {active > 0 && <button className="underline" onClick={() => { setOnly(""); setWatch(""); setRange(""); }}>Effacer les filtres</button>}</>
+                : <><span className="block font-display text-lg uppercase text-navy">{emptyText || "Aucun candidat pour l'instant"}</span>
+                  {emptyAction && <Link href={emptyAction.href} className="btn mt-4">{emptyAction.label}</Link>}</>}
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ const I = {
   classes: <path d="M16 19v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1M10 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm10 8v-1a3 3 0 0 0-2.2-2.9M15 5.1a3 3 0 0 1 0 5.8" />,
   bank: <path d="M7 4h10a2 2 0 0 1 2 2v13a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5h6M9 13h6M9 17h3" />,
   journal: <path d="M5 21V4m0 0h11l-2 4 2 4H5" />,
+  today: <path d="M12 3v2m0 14v2M5.6 5.6 7 7m10 10 1.4 1.4M3 12h2m14 0h2M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />,
   calendar: <path d="M7 3v3m10-3v3M4.5 9h15M6 5h12a1.5 1.5 0 0 1 1.5 1.5v12A1.5 1.5 0 0 1 18 20H6a1.5 1.5 0 0 1-1.5-1.5v-12A1.5 1.5 0 0 1 6 5Zm2.5 8h2m3 0h2m-7 3.5h2" />,
   chart: <path d="M4 20V10m5.5 10V4M15 20v-7m5.5 7V8" />,
   api: <path d="m8 9-4 3 4 3m8-6 4 3-4 3m-3-9-2 12" />,
@@ -19,8 +20,9 @@ const Icon = ({ d }: { d: React.ReactNode }) => (
 export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
   const path = usePathname() || "";
   const main = [
-    { href: "/admin", label: "Examens", icon: I.exams, on: path === "/admin" || path.startsWith("/admin/tests") || path.startsWith("/admin/attempts") || path.startsWith("/admin/pv") || path === "/admin/new" },
-    { href: "/admin/classes", label: "Classes", icon: I.classes, on: path.startsWith("/admin/classes") },
+    { href: "/admin/aujourdhui", label: "Aujourd'hui", icon: I.today, on: path.startsWith("/admin/aujourdhui") },
+    { href: "/admin", label: "Examens", icon: I.exams, on: path === "/admin" || path.startsWith("/admin/tests") || path.startsWith("/admin/attempts") || path.startsWith("/admin/pv") || path.startsWith("/admin/fiches") || path === "/admin/new" },
+    { href: "/admin/classes", label: "Classes", icon: I.classes, on: path.startsWith("/admin/classes") || path.startsWith("/admin/etudiants") },
     { href: "/admin/banque", label: "Banque de questions", icon: I.bank, on: path.startsWith("/admin/banque") },
     { href: "/admin/calendrier", label: "Calendrier", icon: I.calendar, on: path.startsWith("/admin/calendrier") },
     { href: "/admin/pilotage", label: "Pilotage", icon: I.chart, on: path.startsWith("/admin/pilotage") },

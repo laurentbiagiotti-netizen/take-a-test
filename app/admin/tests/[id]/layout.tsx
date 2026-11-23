@@ -4,6 +4,7 @@ import { staffPageGuard } from "@/lib/auth/staff";
 import ExamTabs from "@/components/admin/ExamTabs";
 import PublishButton from "@/components/admin/PublishButton";
 import PreviewButton from "@/components/admin/PreviewButton";
+import DuplicateButton from "@/components/admin/DuplicateButton";
 import { Breadcrumb, PageTitle, Pill, examState, fmtDay, fmtTime } from "@/components/admin/ui";
 
 /** En-tête commun aux pages d'une épreuve : fil d'Ariane, statut, titre, publication et onglets. */
@@ -39,6 +40,7 @@ export default async function ExamLayout({ children, params }: { children: React
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
+            <DuplicateButton id={id} title={t.title} className="btn-secondary" />
             <PreviewButton testId={id} className="btn-secondary" />
             <PublishButton variant="switch" id={id} title={t.title} published={t.is_published} questions={nq ?? 0} formation={t.formation} />
           </div>

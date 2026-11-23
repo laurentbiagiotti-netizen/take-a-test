@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PageTitle, examState, fmtTime } from "@/components/admin/ui";
+import { conflicts, span } from "@/lib/admin/calendar";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Calendrier" };
@@ -12,20 +13,6 @@ const addDays = (k: string, n: number) => { const d = new Date(`${k}T12:00:00Z`)
 const monday = (k: string) => addDays(k, -((new Date(`${k}T12:00:00Z`).getUTCDay() + 6) % 7));
 const label = (k: string, o: Intl.DateTimeFormatOptions) => new Date(`${k}T12:00:00Z`).toLocaleDateString("fr-FR", { ...o, timeZone: "UTC" });
 const BORDER: Record<string, string> = { live: "border-[#2fa862]", open: "border-[#2fa862]", soon: "border-navy", done: "border-fg/30", draft: "border-dashed border-line-strong" };
-const norm = (s?: string | null) => (s || "").trim().toLowerCase();
-
-/** Conflits : deux épreuves qui se chevauchent pour la même promo, ou dans la même salle du même campus. */
-function conflicts(list: T[]) {
-  const out = new Map<string, string[]>();
-  const add = (a: T, msg: string) => out.set(a.id, [...(out.get(a.id) || []), msg]);
-  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-    const a = list[i], b = list[j];
-    if (a.start >= b.end || b.start >= a.end) continue;
-    if (a.formation && norm(a.formation) === norm(b.formation)) { add(a, `Même promo que « ${b.title} »`); add(b, `Même promo que « ${a.title} »`); }
-    if (a.room && norm(a.room) === norm(b.room) && norm(a.campus) === norm(b.campus)) { add(a, `Même salle que « ${b.title} »`); add(b, `Même salle que « ${a.title} »`); }
-  }
-  return out;
-}
 
 export default async function Calendrier({ searchParams }: { searchParams: Promise<{ vue?: string; d?: string }> }) {
   const sp = await searchParams;
@@ -34,10 +21,7 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
   const d = /^\d{4}-\d{2}-\d{2}$/.test(sp.d || "") ? (sp.d as string) : today;
   const supabase = await createClient();
   const { data } = await supabase.from("tests").select("id, title, formation, campus, room, is_published, opens_at, closes_at, duration_minutes").order("opens_at");
-  const dated: T[] = (data || []).filter((t: any) => t.opens_at).map((t: any) => {
-    const start = +new Date(t.opens_at);
-    return { ...t, start, end: t.closes_at ? +new Date(t.closes_at) : start + (t.duration_minutes || 60) * 60000 };
-  });
+  const dated: T[] = (data || []).filter((t: any) => t.opens_at).map((t: any) => ({ ...t, ...span(t) }));
   const undated = (data || []).filter((t: any) => !t.opens_at);
   const clash = conflicts(dated);
 

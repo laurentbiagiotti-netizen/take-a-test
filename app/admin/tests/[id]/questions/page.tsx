@@ -1,6 +1,6 @@
 "use client";
 import { notify } from "@/components/Toaster";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { Field, Num, Section, Toggle, inputCls } from "@/components/admin/form";
 import { useClasses } from "@/lib/admin/classes";
@@ -47,6 +47,11 @@ export default function EditTest() {
   const [msg, setMsg] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [saving, setSaving] = useState(false);
+  const [auto, setAuto] = useState<{ state: "idle" | "dirty" | "saving" | "saved" | "invalid"; at?: number; msg?: string }>({ state: "idle" });
+  const [now, setNow] = useState(Date.now());
+  const [tick, setTick] = useState(0);
+  const [drag, setDrag] = useState<number | null>(null);
+  const savedRef = useRef(""); const loadedRef = useRef(false); const busyRef = useRef(false); const againRef = useRef(false);
   const [openQ, setOpenQ] = useState<Set<number>>(new Set());
   const [qFilter, setQFilter] = useState("");
   const [qType, setQType] = useState("");
@@ -76,6 +81,7 @@ export default function EditTest() {
       const previewEmails = new Set((previews || []).map((p: any) => p.email));
       setLocked((started || []).some((a: any) => !previewEmails.has(a.candidate?.email)));
       const withKeys = await loadDrafts(supabase as any, id);
+      savedRef.current = JSON.stringify(withKeys); loadedRef.current = true;
       setQuestions(withKeys);
       setLink(`${window.location.origin}/test/${id}`);
     })();
@@ -159,27 +165,54 @@ export default function EditTest() {
     notify(`${bq.length} questions ajoutées. Allongez la durée si besoin, puis cliquez sur « Enregistrer ».`);
   };
 
-  const saveAll = async () => {
-    if (locked) { notify("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
+  /** Première erreur qui empêche d'enregistrer, ou null. */
+  const firstError = (): string | null => {
     for (const [i, q] of questions.entries()) {
       if (FUN_TYPES.includes(q.type)) {
         const err = validateQuestion(q.type as any, q.options, q.correct);
-        if (err) { notify(`Question ${i + 1} : ${err}`); return; }
+        if (err) return `Question ${i + 1} : ${err}`;
       }
       if (q.type === "external") {
         const err = externalError(q.external);
-        if (err) { notify(`Question ${i + 1} : ${err}`); return; }
+        if (err) return `Question ${i + 1} : ${err}`;
         continue;
       }
       if (q.type !== "terminal") continue;
       try { const x = JSON.parse(q.terminal?.scenario || ""); if (!x.files) throw new Error(); if (!q.terminal?.flag?.trim() && !(x.objectives || []).length) throw new Error("vide"); }
-      catch (e: any) { notify(`Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`); return; }
+      catch (e: any) { return `Question ${i + 1} : ${e?.message === "vide" ? "il faut au moins une mission ou un flag" : "scénario JSON invalide (la clé « files » est obligatoire)"}.`; }
     }
-    setSaving(true);
-    const err = await writeQuestions(supabase as any, id, questions as any);
-    if (err) notify(err);
-    setSaving(false);
+    return null;
   };
+  const persist = async (silent: boolean) => {
+    if (locked) { if (!silent) notify("Des candidats ont déjà composé : les questions sont verrouillées. Dupliquez le test pour le modifier."); return; }
+    const bad = firstError();
+    if (bad) { setAuto({ state: "invalid", msg: bad }); if (!silent) notify(bad); return; }
+    if (busyRef.current) { againRef.current = true; return; }
+    busyRef.current = true; setSaving(true); setAuto({ state: "saving" });
+    const snapshot = JSON.stringify(questions);
+    const err = await writeQuestions(supabase as any, id, JSON.parse(snapshot));
+    busyRef.current = false; setSaving(false);
+    if (err) { setAuto({ state: "invalid", msg: err }); if (!silent) notify(err); }
+    else { savedRef.current = snapshot; setAuto({ state: "saved", at: Date.now() }); }
+    if (againRef.current) { againRef.current = false; setTick((t) => t + 1); }
+  };
+  const saveAll = () => persist(false);
+
+  // Enregistrement automatique : deux secondes après la dernière modification
+  useEffect(() => {
+    if (!loadedRef.current || locked) return;
+    if (questions.some((q: any) => !q.id)) { setQuestions((qs) => qs.map((q: any) => (q.id ? q : { ...q, id: crypto.randomUUID() }))); return; }
+    if (JSON.stringify(questions) === savedRef.current) return;
+    setAuto((a) => (a.state === "saving" ? a : { state: "dirty" }));
+    const h = setTimeout(() => persist(true), 2000);
+    return () => clearTimeout(h);
+  }, [questions, locked, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const h = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(h); }, []);
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => { if (auto.state === "dirty" || auto.state === "saving") e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [auto.state]);
 
   if (!test) return <main className="px-8 py-10 text-muted">Chargement…</main>;
 
@@ -207,12 +240,34 @@ export default function EditTest() {
     updateTest({ draw_rules: next.length || balance ? { domains: next, balance } : null });
   const visible = questions.map((q, i) => ({ q, i })).filter(({ q }) => (!qType || q.type === qType)
     && (!qFilter.trim() || `${q.prompt || ""} ${q.domain || ""}`.toLowerCase().includes(qFilter.trim().toLowerCase())));
+  const ago = (at?: number) => { const sec = Math.max(0, Math.round((now - (at || now)) / 1000)); return sec < 8 ? "à l'instant" : sec < 60 ? `il y a ${Math.round(sec / 5) * 5} s` : `il y a ${Math.round(sec / 60)} min`; };
+  const sumMin = rules.reduce((a, r) => a + r.min, 0);
+  const checks: string[] = [
+    !questions.length ? "Aucune question dans l'épreuve." : "",
+    questions.filter((q) => !q.domain?.trim()).length ? `${questions.filter((q) => !q.domain?.trim()).length} question(s) sans domaine : pas de résultat par domaine ni de plancher pour elles.` : "",
+    questions.filter((q) => !q.prompt?.trim() || validateQuestion(q.type as any, q.options, q.correct)).length ? `${questions.filter((q) => !q.prompt?.trim() || validateQuestion(q.type as any, q.options, q.correct)).length} question(s) à compléter (énoncé ou corrigé manquant).` : "",
+    ...rules.map((r) => { const n = questions.filter((q) => (q.domain || "").toLowerCase() === r.domain.toLowerCase()).length; return n < r.min ? `Tirage impossible : ${r.min} question(s) demandée(s) en ${r.domain}, ${n} disponible(s).` : ""; }),
+    test.draw_count && sumMin > test.draw_count ? `Tirage impossible : les règles par domaine demandent ${sumMin} questions, pour ${test.draw_count} tirées.` : "",
+    test.draw_count && test.draw_count > questions.length ? `Tirage : ${test.draw_count} questions demandées par étudiant, ${questions.length} dans l'épreuve.` : "",
+    test.draw_rules?.balance && questions.some((q) => !q.difficulty) ? `Difficulté équilibrée : ${questions.filter((q) => !q.difficulty).length} question(s) sans difficulté.` : "",
+    !test.opens_at ? "Pas de date d'ouverture : l'épreuve n'apparaîtra pas dans le calendrier." : "",
+    test.opens_at && test.closes_at && +new Date(test.closes_at) <= +new Date(test.opens_at) ? "La fermeture est avant l'ouverture." : "",
+    test.opens_at && test.closes_at && (+new Date(test.closes_at) - +new Date(test.opens_at)) / 60000 < test.duration_minutes ? "La fenêtre d'ouverture est plus courte que la durée de l'épreuve." : "",
+  ].filter(Boolean);
+  const move = (from: number, to: number) => { if (from === to) return; setQuestions((qs) => { const n = [...qs]; const [x] = n.splice(from, 1); n.splice(to, 0, x); return n; }); setOpenQ(new Set()); };
+  const canDrag = !locked && !qFilter.trim() && !qType;
   const totalPts = questions.reduce((s, q) => s + (Number(q.points) || 0), 0);
   const DIFF: Record<string, string> = { facile: "bg-[#2fa862]/[0.12] text-[#1f7a44]", moyen: "bg-[#5561c9]/[0.12] text-navy", difficile: "bg-[#c23b17]/10 text-[#b3361a]" };
 
   return (
     <main className="px-4 sm:px-8 py-6">
       {msg && <p className="mb-4 rounded-xl bg-[#c23b17]/10 px-4 py-2.5 text-sm text-[#b3361a]">{msg}</p>}
+      {checks.length > 0 && (
+        <details className="mb-5 rounded-2xl border border-[#f08a3e]/40 bg-[#f08a3e]/[0.08] px-5 py-3.5" open={!test.is_published}>
+          <summary className="cursor-pointer text-sm font-semibold text-[#a64a12]">{test.is_published ? "Épreuve publiée" : "Avant de publier"} : {checks.length} point(s) à vérifier</summary>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-fg/85">{checks.map((c) => <li key={c}>{c}</li>)}</ul>
+        </details>
+      )}
 
       {vue === "reglages" ? (
         <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
@@ -408,11 +463,17 @@ export default function EditTest() {
               {test.draw_count ? <> · {test.draw_count} tirée(s) par étudiant</> : null}
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-2">
+              {!locked && (
+                <span className={`mr-1 text-sm ${auto.state === "invalid" ? "font-medium text-[#b3361a]" : "text-muted"}`} title={auto.msg} aria-live="polite">
+                  {auto.state === "saving" ? "Enregistrement…" : auto.state === "dirty" ? "Modifications en attente…" : auto.state === "saved" ? `Enregistré ${ago(auto.at)}`
+                    : auto.state === "invalid" ? "Non enregistré : une question est à compléter" : "Enregistrement automatique"}
+                </span>
+              )}
               <div className="relative">
                 <button className="btn-secondary" disabled={locked} onClick={() => setPanel((p) => (p === "import" ? null : "import"))} aria-expanded={panel === "import"}>Importer ▾</button>
               </div>
               <button className="btn-secondary" disabled={locked} onClick={() => setPanel((p) => (p === "add" ? null : "add"))} aria-expanded={panel === "add"}>+ Ajouter une question</button>
-              <button className="btn" onClick={saveAll} disabled={saving || locked}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
+              <button className="btn-secondary" onClick={saveAll} disabled={saving || locked}>Enregistrer maintenant</button>
             </div>
           </div>
 
@@ -471,7 +532,8 @@ export default function EditTest() {
           <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
             {!questions.length && (
               <div className="px-6 py-14 text-center">
-                <p className="text-muted">Aucune question pour l&apos;instant.</p>
+                <p className="font-display text-lg uppercase text-navy">Aucune question pour l&apos;instant</p>
+                <p className="mt-1 text-sm text-muted">Écrivez une question, ou reprenez celles de la banque, d&apos;un autre examen ou d&apos;un fichier.</p>
                 <div className="mt-4 flex justify-center gap-2">
                   <button className="btn" disabled={locked} onClick={() => setPanel("add")}>+ Ajouter une question</button>
                   <button className="btn-secondary" disabled={locked} onClick={() => setPanel("import")}>Importer</button>
@@ -482,8 +544,11 @@ export default function EditTest() {
               const err = validateQuestion(q.type as any, q.options, q.correct);
               const isOpen = openQ.has(i);
               return (
-                <div key={i} id={`q-${i}`} className={`scroll-mt-6 border-b border-line last:border-b-0 ${isOpen ? "bg-surface-2/40" : ""}`}>
+                <div key={(q as any).id || i} id={`q-${i}`} className={`scroll-mt-6 border-b border-line last:border-b-0 ${isOpen ? "bg-surface-2/40" : ""} ${drag === i ? "opacity-40" : ""}`}
+                  onDragOver={(e) => { if (drag != null) e.preventDefault(); }} onDrop={(e) => { e.preventDefault(); if (drag != null) move(drag, i); setDrag(null); }}>
                   <div className="flex items-center gap-3 px-4 py-3">
+                    {canDrag && <span draggable onDragStart={(e) => { setDrag(i); e.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDrag(null)}
+                      className="-ml-1 cursor-grab select-none px-1 text-faint hover:text-fg active:cursor-grabbing" title="Glisser pour déplacer" aria-hidden>⋮⋮</span>}
                     <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => toggleQ(i)} aria-expanded={isOpen}>
                       <span className="w-8 shrink-0 text-right font-mono text-xs text-faint">{i + 1}</span>
                       <span className="shrink-0 rounded-md bg-navy/[0.07] px-2 py-0.5 text-[11px] font-semibold text-navy">{KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</span>
@@ -631,11 +696,6 @@ export default function EditTest() {
             })}
           </div>
 
-          {questions.length > 0 && (
-            <div className="flex justify-end">
-              <button className="btn" onClick={saveAll} disabled={saving || locked}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
-            </div>
-          )}
         </div>
       )}
       {preview && <StudentPreview q={preview} onClose={() => setPreview(null)} />}

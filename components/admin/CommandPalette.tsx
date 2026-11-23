@@ -7,11 +7,11 @@ import { splitName } from "@/lib/admin/roster";
 type Hit = { group: string; label: string; sub?: string; href: string; text: string };
 const norm = (s: string) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const PAGES: Hit[] = [
-  ["Examens", "/admin", "g e"], ["Classes", "/admin/classes", "g c"], ["Banque de questions", "/admin/banque", "g b"],
+  ["Aujourd'hui", "/admin/aujourdhui", "g a"], ["Examens", "/admin", "g e"], ["Classes", "/admin/classes", "g c"], ["Banque de questions", "/admin/banque", "g b"],
   ["Calendrier", "/admin/calendrier", "g k"], ["Pilotage", "/admin/pilotage", "g p"], ["Nouvelle épreuve", "/admin/new", "n"],
 ].map(([label, href, k]) => ({ group: "Aller à", label, sub: k, href, text: norm(label) }));
-const GO: Record<string, string> = { e: "/admin", c: "/admin/classes", b: "/admin/banque", k: "/admin/calendrier", p: "/admin/pilotage" };
-const SHORTCUTS: [string, string][] = [["Cmd K ou Ctrl K", "Recherche globale"], ["/", "Recherche globale"], ["g puis e", "Examens"], ["g puis c", "Classes"], ["g puis b", "Banque de questions"],
+const GO: Record<string, string> = { a: "/admin/aujourdhui", e: "/admin", c: "/admin/classes", b: "/admin/banque", k: "/admin/calendrier", p: "/admin/pilotage" };
+const SHORTCUTS: [string, string][] = [["Cmd K ou Ctrl K", "Recherche globale"], ["/", "Recherche globale"], ["g puis a", "Aujourd'hui"], ["g puis e", "Examens"], ["g puis c", "Classes"], ["g puis b", "Banque de questions"],
   ["g puis k", "Calendrier"], ["g puis p", "Pilotage"], ["n", "Nouvelle épreuve"], ["?", "Afficher cette aide"], ["Échap", "Fermer"]];
 
 /** Recherche globale (Cmd+K) : étudiants, examens, questions ; et raccourcis clavier de l'espace équipe. */
@@ -37,8 +37,9 @@ export default function CommandPalette() {
       const title = new Map((t.data || []).map((x: any) => [x.id, x.title]));
       setData([
         ...(t.data || []).map((x: any) => ({ group: "Examens", label: x.title, sub: x.formation || "Toutes les promos", href: `/admin/tests/${x.id}`, text: norm(`${x.title} ${x.formation || ""}`) })),
-        ...(a.data || []).map((x: any) => { const n = splitName(x.candidate || {}); const name = `${n.first} ${n.last}`.trim() || x.candidate?.email || "Étudiant";
-          return { group: "Étudiants", label: name, sub: `${title.get(x.test_id) || "Examen"} · ${x.candidate?.email || ""}`, href: `/admin/attempts/${x.id}`, text: norm(`${name} ${x.candidate?.email || ""}`) }; }),
+        ...Array.from(new Map((a.data || []).filter((x: any) => x.candidate?.email).map((x: any) => [String(x.candidate.email).toLowerCase(), x])).values()).map((x: any) => {
+          const n = splitName(x.candidate || {}); const name = `${n.first} ${n.last}`.trim() || x.candidate.email;
+          return { group: "Étudiants", label: name, sub: x.candidate.email, href: `/admin/etudiants/${encodeURIComponent(String(x.candidate.email).toLowerCase())}`, text: norm(`${name} ${x.candidate.email}`) }; }),
         ...(qs.data || []).map((x: any) => ({ group: "Questions", label: String(x.prompt).replace(/\s+/g, " ").slice(0, 110), sub: `${title.get(x.test_id) || "Examen"}${x.domain ? ` · ${x.domain}` : ""}`,
           href: `/admin/banque?q=${encodeURIComponent(String(x.prompt).replace(/\s+/g, " ").slice(0, 50))}`, text: norm(x.prompt) })),
         ...(b.data || []).map((x: any) => ({ group: "Questions", label: String(x.prompt).replace(/\s+/g, " ").slice(0, 110), sub: `Banque libre${x.domain ? ` · ${x.domain}` : ""}`,

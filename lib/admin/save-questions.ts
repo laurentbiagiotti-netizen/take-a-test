@@ -34,7 +34,7 @@ export async function writeQuestions(supabase: SupabaseClient, testId: string, q
       if (error) return error.message;
       ids.push(q.id);
     } else {
-      const { data, error } = await supabase.from("questions").insert(row(q, i)).select("id").single();
+      const { data, error } = await supabase.from("questions").insert((q.id ? { id: q.id, ...row(q, i) } : row(q, i)) as any).select("id").single();
       if (error || !data) return error?.message || "Question non créée.";
       ids.push(data.id);
       q.id = data.id;

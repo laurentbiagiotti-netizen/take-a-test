@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { loadRoster, summarize, type RosterRow } from "@/lib/admin/roster";
 import { Donut, PageTitle, Pill, examState, fmt20, fmtDay, fmtTime } from "@/components/admin/ui";
+import DuplicateButton from "@/components/admin/DuplicateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +84,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
       {!cards.length && (
         <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-16 text-center">
-          <p className="text-muted">{all.length ? "Aucun examen ne correspond." : "Aucun examen pour l'instant."}</p>
+          <p className="font-display text-lg uppercase text-navy">{all.length ? "Aucun examen ne correspond" : "Aucun examen pour l'instant"}</p>
+          <p className="mt-1 text-sm text-muted">{all.length ? "Changez la recherche ou le filtre de classe." : "Créez une épreuve, ou importez-en une depuis un fichier JSON ou CSV."}</p>
           {isAdmin && !all.length && <Link href="/admin/new" className="btn mt-4">Créer le premier examen</Link>}
         </div>
       )}
@@ -133,7 +135,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                           <div className="text-xs text-muted">copie{s.done > 1 ? "s" : ""}</div>
                         </div>
                         {s.live > 0 && <span className="text-xs font-semibold text-[#1f7a44]">{s.live} en direct</span>}
-                        <span className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-fg/[0.06] text-fg/60 transition-colors group-hover:bg-navy group-hover:text-white">›</span>
+                        {isAdmin && <DuplicateButton id={t.id} title={t.title} className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted opacity-0 transition-opacity hover:bg-fg/[0.06] hover:text-navy focus:opacity-100 group-hover:opacity-100" />}
+                        <span className={`${isAdmin ? "" : "ml-auto "}flex h-8 w-8 items-center justify-center rounded-full bg-fg/[0.06] text-fg/60 transition-colors group-hover:bg-navy group-hover:text-white`}>›</span>
                       </div>
                     </div>
                   </Link>

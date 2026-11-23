@@ -31,7 +31,7 @@ export default async function ExamResults({ params }: { params: Promise<{ id: st
         <div className="col-span-2 md:col-span-2 xl:col-span-1"><Histogram bins={s.bins} /></div>
       </section>
       <div className="flex justify-end"><a className="btn-secondary" href={`/admin/pv/${id}`}>Procès-verbal de jury (PDF)</a></div>
-      <RosterTable rows={rows} emptyText="Aucun étudiant inscrit ni passé pour l'instant." />
+      <RosterTable rows={rows} emptyText="Aucun étudiant inscrit pour l'instant" emptyAction={{ href: `/admin/tests/${id}/invites`, label: "Inscrire des étudiants" }} />
     </main>
   );
 }
