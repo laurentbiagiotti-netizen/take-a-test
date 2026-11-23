@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { deliverPendingWebhooks } from "@/lib/webhooks";
 import { timingSafeEqual } from "@/lib/security/tokens";
+import { runMailsAndCalendar } from "@/lib/mails";
 
 /**
  * Tâche planifiée (toutes les minutes) :
  *  - clôt les épreuves dont le temps est écoulé (même si le candidat a fermé la page)
  *  - envoie les webhooks en attente
+ *  - envoie les convocations et la relance des absents, met l'agenda à jour (si un compte de l'école est relié)
  *  - purge les photos (webcam, identité) et les vidéos de la pièce au-delà de la durée de conservation (RGPD)
  * Appel : GET avec  Authorization: Bearer <CRON_SECRET>
  */
@@ -32,5 +34,7 @@ export async function GET(req: NextRequest) {
     await admin.rpc("mark_media_purged", { p_attempt: row.attempt_id });
     purged++;
   }
-  return NextResponse.json({ expired, webhooks, purged });
+  let mails: unknown = null;
+  try { mails = await runMailsAndCalendar(admin); } catch (e: any) { console.error("mails", e?.message); }
+  return NextResponse.json({ expired, webhooks, purged, mails });
 }

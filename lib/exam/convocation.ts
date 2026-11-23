@@ -1,6 +1,7 @@
 /**
- * Convocation à une épreuve d'admission. Le texte est préparé ici et relu par
- * l'équipe avant envoi : la plateforme ne l'envoie jamais toute seule.
+ * Convocation à une épreuve et relance des absents. Le texte est préparé ici.
+ * Sans compte de l'école relié (page « Mails et agenda »), l'équipe l'envoie elle-même ;
+ * avec, la plateforme envoie la convocation à l'inscription et une seule relance après l'épreuve.
  */
 export type ConvocationInput = {
   email: string; fullName?: string | null; code: string; extraMinutes?: number;
@@ -102,4 +103,23 @@ export function importCandidates(text: string): { rows: ImportedCandidate[]; ski
     });
   }
   return { rows, skipped };
+}
+
+/** Relance unique, envoyée deux heures après la fin de l'épreuve aux inscrits qui ne l'ont pas passée. */
+export function relance(i: { email: string; fullName?: string | null; testTitle: string; endedAt: string }): { to: string; subject: string; body: string } {
+  const first = (i.fullName || "").trim().split(/\s+/)[0];
+  return {
+    to: i.email,
+    subject: `Épreuve « ${i.testTitle} » : nous n'avons pas reçu votre copie`,
+    body: [
+      `Bonjour${first ? " " + first : ""},`,
+      "",
+      `Vous étiez convoqué(e) à l'épreuve « ${i.testTitle} », qui s'est terminée le ${fmt(i.endedAt)}, et nous n'avons pas reçu votre copie.`,
+      "",
+      "Merci de répondre à ce message pour nous indiquer ce qui s'est passé (empêchement, problème technique, autre), afin que nous puissions convenir d'une solution.",
+      "",
+      "Cordialement,",
+      "L'équipe pédagogique de Cybersup",
+    ].join("\n"),
+  };
 }

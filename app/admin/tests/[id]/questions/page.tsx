@@ -234,7 +234,7 @@ export default function EditTest() {
     ]],
   ];
   const settingsNav: [string, string][] = [["general", "Général"], ["dates", "Dates et lieu"], ["tirage", "Tirage"], ["admission", "Notation et admission"],
-    ["chrono", "Chronomètre"], ["surveillance", "Surveillance"], ["acces", "Accès et Safe Exam Browser"], ["danger", "Zone sensible"]];
+    ["chrono", "Chronomètre"], ["surveillance", "Surveillance"], ["mails", "Mails et agenda"], ["acces", "Accès et Safe Exam Browser"], ["danger", "Zone sensible"]];
   const rules: { domain: string; min: number }[] = test.draw_rules?.domains || [];
   const setRules = (next: { domain: string; min: number }[], balance = !!test.draw_rules?.balance) =>
     updateTest({ draw_rules: next.length || balance ? { domains: next, balance } : null });
@@ -401,6 +401,14 @@ export default function EditTest() {
                 <Field label="Seuil d'alerte" hint="Au-delà, le surveillant est prévenu. L'épreuve n'est jamais arrêtée automatiquement."><Num value={test.max_violations} min={1} max={50} suffix="infr." onChange={(v) => updateTest({ max_violations: Math.max(1, v || 1) })} /></Field>
                 <Field label="Conservation des photos et vidéos"><Num value={test.retention_days} min={1} max={3650} suffix="jours" onChange={(v) => updateTest({ retention_days: Math.max(1, v || 90) })} /></Field>
               </div>
+            </Section>
+
+            <Section id="mails" title="Mails et agenda" desc="Actifs seulement si un compte de l'école est relié (menu « Mails et agenda »). Rien n'est rétroactif.">
+              <Toggle checked={test.mail_convocation !== false} onChange={(v) => updateTest({ mail_convocation: v })} label="Envoyer la convocation à l'inscription"
+                hint="Chaque étudiant inscrit reçoit son lien et son code personnels, dès que l'épreuve est publiée." />
+              <Toggle checked={test.mail_relance !== false} onChange={(v) => updateTest({ mail_relance: v })} label="Relancer une fois ceux qui ne l'ont pas passée"
+                hint="Deux heures après la fin de l'épreuve, un seul mail aux inscrits qui ne l'ont pas commencée." />
+              <p className="text-xs text-muted">L&apos;épreuve publiée et datée est aussi portée dans l&apos;agenda du compte, avec sa salle et son campus.</p>
             </Section>
 
             <Section id="acces" title="Accès et Safe Exam Browser">
