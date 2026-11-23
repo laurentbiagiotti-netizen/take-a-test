@@ -107,7 +107,7 @@ describe("mails automatiques", () => {
 
   it("rappels : la veille avec le lien, puis dix minutes avant, une seule fois chacun", async () => {
     const t = test({ slots: true, opens_at: null, closes_at: null });
-    const log = [{ test_id: "t1", email: "a@cybersup.ai", kind: "convocation", status: "sent", tries: 1 }];
+    const log = [{ test_id: "t1", email: "a@cybersup.ai", kind: "convocation", status: "sent", tries: 1, updated_at: h(-30) }];
     const db: any = { tests: [t], invites: [invite("a@cybersup.ai", h(-30), { slot_at: h(20) })], mail_log: [...log], attempts: [], student_accommodations: [], mail_account: [{ id: true }] };
     await runMailsAndCalendar(fake(db));
     await runMailsAndCalendar(fake(db));
@@ -172,6 +172,15 @@ describe("mails automatiques", () => {
     expect(db.mail_log.some((l: any) => l.kind === "rappel_veille")).toBe(false);
     await runMailsAndCalendar(fake(db));
     expect(sent).toHaveLength(1);
+  });
+
+  it("pas de rappel de la veille juste après un avis de nouvelle date", async () => {
+    const t = test({ slots: true, opens_at: null, closes_at: null });
+    const log = [{ test_id: "t1", email: "a@cybersup.ai", kind: "convocation", status: "sent", tries: 1, updated_at: h(-40) }];
+    const db: any = { tests: [t], invites: [invite("a@cybersup.ai", h(-50), { slot_at: h(19), slot_notified: h(48), calendar_hash: "externe" })], mail_log: [...log], attempts: [], student_accommodations: [], mail_account: [{ id: true }] };
+    await runMailsAndCalendar(fake(db));
+    await runMailsAndCalendar(fake(db));
+    expect(sent.map((s) => s.subject)).toEqual(["Nouvelle date pour votre test « Réseau »"]);
   });
 
   it("titre de l'événement : la classe en abrégé puis le prénom", () => {

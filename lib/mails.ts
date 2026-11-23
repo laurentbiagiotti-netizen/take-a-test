@@ -12,7 +12,7 @@ const RELANCE_AFTER = 2 * H;   // deux heures après la fin de l'épreuve ou du 
 const RELANCE_UNTIL = 48 * H;  // plus de relance au-delà de deux jours
 
 type Kind = "convocation" | "relance" | "rappel_veille" | "rappel_10min" | "report";
-type Log = { test_id: string; email: string; kind: string; status: string; tries: number };
+type Log = { test_id: string; email: string; kind: string; status: string; tries: number; updated_at?: string };
 type Out = { convocations: number; rappels: number; relances: number; reports: number; events: number; moved: number; failed: number };
 
 /**
@@ -52,7 +52,7 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
   if (!ids.length || broken) return out;
   const [{ data: invites, error: eInv }, { data: logs }, { data: accs }] = await Promise.all([
     admin.from("invites").select("id, test_id, email, code, full_name, extra_minutes, created_at, slot_at, slot_notified, calendar_event_id, calendar_hash").in("test_id", ids).eq("preview", false),
-    admin.from("mail_log").select("test_id, email, kind, status, tries").in("test_id", ids),
+    admin.from("mail_log").select("test_id, email, kind, status, tries, updated_at").in("test_id", ids),
     admin.from("student_accommodations").select("email, extra_minutes"),
   ]);
   if (eInv) throw new Error(`Lecture des inscriptions : ${eInv.message}`);
@@ -69,6 +69,7 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
     let error: string | null = null;
     try { await sendMail(acc, email, m.subject, m.body); } catch (e: any) { error = String(e?.message || e).slice(0, 500); }
     await admin.from("mail_log").upsert({ test_id: t.id, email, kind, status: error ? "failed" : "sent", error, tries: (prev?.tries || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: "test_id,email,kind" });
+    logOf.set(`${t.id}|${email}|${kind}`, { test_id: t.id, email, kind, status: error ? "failed" : "sent", tries: (prev?.tries || 0) + 1, updated_at: new Date().toISOString() });
     budget--;
     if (error) { out.failed++; if (/invalid_grant|Invalid Credentials|unauthorized|insufficient/i.test(error)) { broken = true; await flag(admin, error); } }
     else if (kind === "convocation") out.convocations++; else if (kind === "relance") out.relances++; else if (kind === "report") out.reports++; else out.rappels++;
@@ -119,7 +120,9 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
   for (const t of live) for (const i of all.filter((x: any) => x.test_id === t.id && x.slot_at)) {
     if (stop()) break;
     const s = +new Date(i.slot_at);
-    if (now >= s - 24 * H && now <= s - 12 * H && s >= since && todo(t.id, i.email, "rappel_veille"))
+    // Pas de rappel si le candidat vient de recevoir la date (convocation ou avis de nouvelle date depuis moins de douze heures)
+    const fresh = ["convocation", "report"].some((k) => { const l = logOf.get(`${t.id}|${i.email}|${k}`); return l?.status === "sent" && l.updated_at && now - +new Date(l.updated_at) < 12 * H; });
+    if (!fresh && now >= s - 24 * H && now <= s - 12 * H && s >= since && todo(t.id, i.email, "rappel_veille"))
       await deliver(t, i.email, "rappel_veille", rappel("veille", { email: i.email, fullName: i.full_name, code: i.code, testTitle: t.title, slotAt: i.slot_at, durationMinutes: t.duration_minutes, extraMinutes: i.extra, origin: appUrl() }));
   }
 
