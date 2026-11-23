@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { convocation, eventDescription, eventTitle, rappel, relance, slotEnd } from "@/lib/exam/convocation";
+import { convocation, eventDescription, eventTitle, rappel, relance, report, slotEnd } from "@/lib/exam/convocation";
 import { appUrl } from "@/lib/security/env";
 import { changedEvents, deleteEvent, googleConfigured, loadAccount, sendMail, upsertEvent, type MailAccount } from "@/lib/google";
 import { span } from "@/lib/admin/calendar";
@@ -11,9 +11,9 @@ const H = 3600 * 1000;
 const RELANCE_AFTER = 2 * H;   // deux heures après la fin de l'épreuve ou du créneau
 const RELANCE_UNTIL = 48 * H;  // plus de relance au-delà de deux jours
 
-type Kind = "convocation" | "relance" | "rappel_veille" | "rappel_10min";
+type Kind = "convocation" | "relance" | "rappel_veille" | "rappel_10min" | "report";
 type Log = { test_id: string; email: string; kind: string; status: string; tries: number };
-type Out = { convocations: number; rappels: number; relances: number; events: number; moved: number; failed: number };
+type Out = { convocations: number; rappels: number; relances: number; reports: number; events: number; moved: number; failed: number };
 
 /**
  * Passage de la tâche planifiée : convocations, rappels (la veille et dix minutes avant le créneau),
@@ -35,24 +35,27 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
   if (!googleConfigured()) return null;
   const acc = await loadAccount();
   if (!acc) return null;
-  const out: Out = { convocations: 0, rappels: 0, relances: 0, events: 0, moved: 0, failed: 0 };
+  const out: Out = { convocations: 0, rappels: 0, relances: 0, reports: 0, events: 0, moved: 0, failed: 0 };
   const now = Date.now(), since = +new Date(acc.connected_at);
 
   // 0. Agenda vers plateforme : un événement de candidat déplacé ou supprimé à la main met à jour son créneau
   let broken = false;
   try { out.moved = await syncFromCalendar(admin, acc); } catch (e: any) { out.failed++; await flag(admin, `Agenda : ${String(e?.message || e)}`); broken = /invalid_grant|Invalid Credentials|unauthorized|insufficient/i.test(String(e?.message)); }
 
-  const { data: tests } = await admin.from("tests")
+  const { data: tests, error: eTests } = await admin.from("tests")
     .select("id, title, formation, campus, room, duration_minutes, opens_at, closes_at, is_published, slots, agenda_keyword, mail_convocation, mail_relance, calendar_event_id, calendar_hash")
     .eq("is_published", true);
+  // Une colonne absente (migration oubliée) doit se voir, pas passer pour « rien à faire »
+  if (eTests) throw new Error(`Lecture des épreuves : ${eTests.message}`);
   const live = (tests || []).map((t: any) => ({ ...t, slots: t.slots || !!(t.agenda_keyword || "").trim(), end: t.opens_at ? span(t).end : t.closes_at ? +new Date(t.closes_at) : null }));
   const ids = live.map((t: any) => t.id);
   if (!ids.length || broken) return out;
-  const [{ data: invites }, { data: logs }, { data: accs }] = await Promise.all([
-    admin.from("invites").select("id, test_id, email, code, full_name, extra_minutes, created_at, slot_at, calendar_event_id, calendar_hash").in("test_id", ids).eq("preview", false),
+  const [{ data: invites, error: eInv }, { data: logs }, { data: accs }] = await Promise.all([
+    admin.from("invites").select("id, test_id, email, code, full_name, extra_minutes, created_at, slot_at, slot_notified, calendar_event_id, calendar_hash").in("test_id", ids).eq("preview", false),
     admin.from("mail_log").select("test_id, email, kind, status, tries").in("test_id", ids),
     admin.from("student_accommodations").select("email, extra_minutes"),
   ]);
+  if (eInv) throw new Error(`Lecture des inscriptions : ${eInv.message}`);
   const extraOf = new Map<string, number>((accs || []).map((a: any) => [a.email, a.extra_minutes]));
   const all = (invites || []).map((i: any) => {
     const extra = Math.max(i.extra_minutes || 0, extraOf.get(i.email) || 0);
@@ -61,14 +64,15 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
   const logOf = new Map<string, Log>((logs || []).map((l: any) => [`${l.test_id}|${l.email}|${l.kind}`, l]));
   const todo = (testId: string, email: string, kind: Kind) => { const l = logOf.get(`${testId}|${email}|${kind}`); return !l || (l.status === "failed" && l.tries < MAX_TRIES); };
   let budget = BATCH;
-  const deliver = async (t: any, email: string, kind: Kind, m: { subject: string; body: string }) => {
+  const deliver = async (t: any, email: string, kind: Kind, m: { subject: string; body: string }): Promise<boolean> => {
     const prev = logOf.get(`${t.id}|${email}|${kind}`);
     let error: string | null = null;
     try { await sendMail(acc, email, m.subject, m.body); } catch (e: any) { error = String(e?.message || e).slice(0, 500); }
     await admin.from("mail_log").upsert({ test_id: t.id, email, kind, status: error ? "failed" : "sent", error, tries: (prev?.tries || 0) + 1, updated_at: new Date().toISOString() }, { onConflict: "test_id,email,kind" });
     budget--;
     if (error) { out.failed++; if (/invalid_grant|Invalid Credentials|unauthorized|insufficient/i.test(error)) { broken = true; await flag(admin, error); } }
-    else if (kind === "convocation") out.convocations++; else if (kind === "relance") out.relances++; else out.rappels++;
+    else if (kind === "convocation") out.convocations++; else if (kind === "relance") out.relances++; else if (kind === "report") out.reports++; else out.rappels++;
+    return !error;
   };
   const stop = () => budget <= 0 || broken;
 
@@ -89,8 +93,25 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
       if (t.slots && !i.slot_at) continue;
       const end = i.slotEndAt ? +new Date(i.slotEndAt) : t.end;
       if ((end && end < now) || !todo(t.id, i.email, "convocation")) continue;
-      await deliver(t, i.email, "convocation", convocation({ email: i.email, fullName: i.full_name, code: i.code, extraMinutes: i.extra, testTitle: t.title, durationMinutes: t.duration_minutes,
+      const ok = await deliver(t, i.email, "convocation", convocation({ email: i.email, fullName: i.full_name, code: i.code, extraMinutes: i.extra, testTitle: t.title, durationMinutes: t.duration_minutes,
         opensAt: i.slot_at || t.opens_at, closesAt: i.slotEndAt || t.closes_at, origin: appUrl(), testId: t.id }));
+      if (ok && i.slot_at) { await admin.from("invites").update({ slot_notified: i.slot_at }).eq("id", i.id); i.slot_notified = i.slot_at; }
+    }
+  }
+
+  // 2 bis. Avis de report : le créneau a changé depuis ce que le candidat a reçu (déplacé dans l'agenda ou dans l'onglet Inscriptions)
+  for (const t of live) for (const i of all.filter((x: any) => x.test_id === t.id && x.slot_at)) {
+    if (stop()) break;
+    if (logOf.get(`${t.id}|${i.email}|convocation`)?.status !== "sent") continue;
+    if (!i.slot_notified) { await admin.from("invites").update({ slot_notified: i.slot_at }).eq("id", i.id); continue; }
+    if (+new Date(i.slot_notified) === +new Date(i.slot_at) || +new Date(i.slotEndAt) < now) continue;
+    const prev = logOf.get(`${t.id}|${i.email}|report`);
+    if (prev?.status === "sent") logOf.delete(`${t.id}|${i.email}|report`); // un nouveau report repart de zéro
+    const ok = await deliver(t, i.email, "report", report({ email: i.email, fullName: i.full_name, code: i.code, testTitle: t.title, slotAt: i.slot_at, durationMinutes: t.duration_minutes, extraMinutes: i.extra, origin: appUrl() }));
+    const tries = (prev?.status === "failed" ? prev.tries : 0) + 1;
+    if (ok || tries >= MAX_TRIES) {
+      await admin.from("invites").update({ slot_notified: i.slot_at }).eq("id", i.id);
+      for (const kind of ["rappel_veille", "rappel_10min", "relance"]) { await admin.from("mail_log").delete().eq("test_id", t.id).eq("email", i.email).eq("kind", kind); logOf.delete(`${t.id}|${i.email}|${kind}`); }
     }
   }
 

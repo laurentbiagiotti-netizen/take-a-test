@@ -2,7 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { loadRoster } from "@/lib/admin/roster";
 import { conflicts, span } from "@/lib/admin/calendar";
-import { PageTitle, Stat, fmtDay, fmtTime } from "@/components/admin/ui";
+import { PageTitle, Stat, fmtDate, fmtDay, fmtTime } from "@/components/admin/ui";
+import AttachButton from "@/components/admin/AttachButton";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Aujourd'hui" };
@@ -36,6 +37,12 @@ export default async function Aujourdhui() {
   const supabase = await createClient();
   const { data: tests } = await supabase.from("tests").select("id, title, formation, campus, room, is_published, opens_at, closes_at, duration_minutes, created_at").order("opens_at");
   const all = tests || [];
+  const [{ data: inbox }, { data: health }] = await Promise.all([
+    supabase.from("agenda_inbox").select("event_id, title, start_at, email, reason").order("start_at"),
+    supabase.from("job_health").select("last_ok_at, last_error").eq("job", "mails").maybeSingle(),
+  ]);
+  const orphans = (inbox || []).filter((x: any) => !x.start_at || +new Date(x.start_at) > Date.now());
+  const stale = !!health && (!(health as any).last_ok_at || Date.now() - +new Date((health as any).last_ok_at) > 5 * 60000);
   const [roster, { data: qs }] = await Promise.all([
     loadRoster(supabase as any, all.map((t: any) => t.id)).then((r) => r.filter((x) => !x.preview)),
     supabase.from("questions").select("test_id"),
@@ -63,7 +70,7 @@ export default async function Aujourdhui() {
       href: !(nQ.get(t.id) || 0) ? `/admin/tests/${t.id}/questions` : !by(t.id).length ? `/admin/tests/${t.id}/invites` : `/admin/tests/${t.id}/questions`, cta: "Préparer" }] : [];
   });
   const soon = dated.filter((t: any) => t.start > now && t.start < week);
-  const total = live.length + grade.length + decide.length + conflict.length + prepare.length;
+  const total = live.length + grade.length + decide.length + conflict.length + prepare.length + orphans.length + (stale ? 1 : 0);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
@@ -83,6 +90,25 @@ export default async function Aujourdhui() {
         </div>
       ) : (
         <div className="mt-6 space-y-5">
+          {stale && (
+            <Link href="/admin/mails" className="block rounded-2xl border border-[#c23b17]/40 bg-[#c23b17]/10 px-5 py-4 text-sm text-[#b3361a]">
+              <b>Les mails automatiques et la relecture de l&apos;agenda sont à l&apos;arrêt.</b> {(health as any)?.last_error ? `Dernière erreur : ${(health as any).last_error}` : "Aucun passage réussi depuis plus de cinq minutes."} Voir « Mails et agenda » ›
+            </Link>
+          )}
+          {orphans.length > 0 && (
+            <section className="overflow-hidden rounded-2xl border border-[#c23b17]/40 bg-surface shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
+              <h2 className="flex items-center gap-2.5 border-b border-line px-5 py-3.5 text-xs font-bold uppercase tracking-[0.14em] text-[#b3361a]"><span className="h-2 w-2 rounded-full bg-[#c23b17]" />Rendez-vous d&apos;agenda sans épreuve<span className="opacity-60">{orphans.length}</span></h2>
+              <p className="px-5 pt-3 text-sm text-muted">Ces candidats ont un rendez-vous « Test technique » mais ne sont inscrits à aucune épreuve : ils ne recevront ni lien ni convocation.</p>
+              <ul className="mt-2 divide-y divide-line">
+                {orphans.map((x: any) => (
+                  <li key={x.event_id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3">
+                    <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-navy">{x.title}</span><span className="block truncate text-sm text-muted">{fmtDate(x.start_at, true)}{x.email ? ` · ${x.email}` : ""} · {x.reason}</span></span>
+                    <AttachButton eventId={x.event_id} title={x.title} email={x.email} tests={all.map((t: any) => ({ id: t.id, title: t.title, published: t.is_published }))} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           <Block title="En cours" tone="bg-[#2fa862] animate-pulse" empty="Aucun étudiant ne compose en ce moment." items={live} />
           <Block title="Copies à corriger à la main" tone="bg-[#f08a3e]" empty="Aucune réponse rédigée en attente de correction." items={grade} />
           <Block title="Décisions à statuer" tone="bg-[#f08a3e]" empty="Aucune décision en attente du jury." items={decide} />

@@ -5,6 +5,8 @@ import { adminClient } from "@/lib/supabase/admin";
 import { googleConfigured, mailDomain, redirectUri } from "@/lib/google";
 import { PageTitle, Stat, fmtDate } from "@/components/admin/ui";
 import MailAccountActions from "@/components/admin/MailAccountActions";
+import AttachButton from "@/components/admin/AttachButton";
+import { EXPECTED_MIGRATIONS } from "@/lib/migrations";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Mails et agenda" };
@@ -17,7 +19,8 @@ const ERR: Record<string, string> = {
   domaine: `Ce compte n'est pas un compte @${mailDomain()}.`,
   base: "Le compte n'a pas pu être enregistré.", google: "Google a refusé la connexion. Réessayez.",
 };
-const KIND: Record<string, string> = { convocation: "Convocation", relance: "Relance", rappel_veille: "Rappel de la veille", rappel_10min: "Rappel 10 min avant" };
+const KIND: Record<string, string> = { convocation: "Convocation", relance: "Relance", rappel_veille: "Rappel de la veille", rappel_10min: "Rappel 10 min avant", report: "Nouvelle date" };
+const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
 /** Mails et agenda : le compte de l'école qui envoie les convocations et la relance, et le journal des envois. */
 export default async function Mails({ searchParams }: { searchParams: Promise<{ ok?: string; erreur?: string }> }) {
@@ -26,12 +29,22 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
   if (g.role !== "admin") redirect("/admin");
   const sp = await searchParams;
   const admin = adminClient();
-  const [{ data: acc }, { data: logs }, { data: tests }, { data: inbox }] = await Promise.all([
+  const [{ data: acc }, { data: logs }, { data: tests }, { data: inbox }, { data: migs }, { data: health }] = await Promise.all([
     admin.from("mail_account").select("email, connected_at, last_error, last_error_at").maybeSingle(),
     admin.from("mail_log").select("id, test_id, email, kind, status, error, tries, updated_at").order("updated_at", { ascending: false }).limit(200),
     admin.from("tests").select("id, title, agenda_keyword, is_published"),
     admin.from("agenda_inbox").select("event_id, title, start_at, email, reason").order("start_at"),
+    admin.from("schema_migrations").select("name"),
+    admin.from("job_health").select("last_run_at, last_ok_at, last_error, last_error_at, detail").eq("job", "mails").maybeSingle(),
   ]);
+  const applied = new Set((migs || []).map((m: any) => m.name));
+  const missing = EXPECTED_MIGRATIONS.filter((m) => !applied.has(m));
+  const h = health as any;
+  const okAgo = h?.last_ok_at ? Math.round((Date.now() - +new Date(h.last_ok_at)) / 60000) : null;
+  const failing = !!acc && (okAgo == null || okAgo > 5);
+  const dup = new Map<string, string[]>();
+  for (const t of (tests || []).filter((t: any) => t.is_published && (t.agenda_keyword || "").trim())) dup.set(norm((t as any).agenda_keyword), [...(dup.get(norm((t as any).agenda_keyword)) || []), (t as any).title]);
+  const ambiguous = [...dup.entries()].filter(([, l]) => l.length > 1);
   const keyed = (tests || []).filter((t: any) => t.is_published && (t.agenda_keyword || "").trim());
   const pending = (inbox || []).filter((x: any) => !x.start_at || +new Date(x.start_at) > Date.now());
   const title = new Map((tests || []).map((t: any) => [t.id, t.title]));
@@ -44,6 +57,21 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
       <p className="mt-1.5 text-[15px] text-muted">Un compte Google de l&apos;école envoie les convocations et la relance, et porte les examens dans son agenda.</p>
       {sp.ok && <p className="mt-4 rounded-xl bg-[#2fa862]/[0.12] px-4 py-2.5 text-sm text-[#1f7a44]">Compte relié. Les prochains inscrits recevront leur convocation automatiquement.</p>}
       {sp.erreur && <p className="mt-4 rounded-xl bg-[#c23b17]/10 px-4 py-2.5 text-sm text-[#b3361a]">{ERR[sp.erreur] || "Connexion impossible."}</p>}
+
+      {missing.length > 0 && (
+        <div className="mt-4 rounded-xl border border-[#c23b17]/40 bg-[#c23b17]/10 px-4 py-3 text-sm text-[#b3361a]">
+          <b>La base n&apos;est pas à jour : {missing.length} migration(s) manquante(s).</b> Tant qu&apos;elles ne sont pas passées, des réglages ne s&apos;enregistrent pas et les envois peuvent s&apos;arrêter.
+          <div className="mt-1 font-mono text-xs">{missing.join(", ")}</div>
+          <div className="mt-1">À lancer sur le poste qui déploie : <code>./scripts/migrer.sh</code> (le déploiement le fait désormais tout seul).</div>
+        </div>
+      )}
+      {acc && (
+        <div className={`mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl px-4 py-2.5 text-sm ${failing ? "border border-[#c23b17]/40 bg-[#c23b17]/10 text-[#b3361a]" : "bg-[#2fa862]/[0.1] text-[#1f7a44]"}`}>
+          <span className="font-semibold">{failing ? "La tâche planifiée ne passe plus" : "Tâche planifiée en marche"}</span>
+          <span>Dernier passage réussi : {okAgo == null ? "jamais" : okAgo < 1 ? "il y a moins d'une minute" : `il y a ${okAgo} min`}</span>
+          {h?.last_error && (!h.last_ok_at || +new Date(h.last_error_at) > +new Date(h.last_ok_at)) && <span className="w-full">Dernière erreur ({fmtDate(h.last_error_at, true)}) : {h.last_error}</span>}
+        </div>
+      )}
 
       <section className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -88,13 +116,17 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
         {keyed.length ? (
           <ul className="mt-3 flex flex-wrap gap-2 text-sm">{keyed.map((t: any) => <li key={t.id} className="rounded-full bg-[#5561c9]/[0.12] px-3 py-1"><b className="text-navy">{t.agenda_keyword}</b> <span className="text-muted">vers</span> <Link className="hover:text-accent" href={`/admin/tests/${t.id}/invites`}>{t.title}</Link></li>)}</ul>
         ) : <p className="mt-3 rounded-xl bg-[#f08a3e]/[0.12] px-4 py-2.5 text-sm text-[#a64a12]">Aucune épreuve publiée n&apos;a de mot-clé d&apos;agenda : rien ne sera inscrit. À régler dans les Réglages de l&apos;épreuve d&apos;admission, section « Mails et agenda ».</p>}
+        {ambiguous.map(([k, l]) => (
+          <p key={k} className="mt-3 rounded-xl bg-[#c23b17]/10 px-4 py-2.5 text-sm text-[#b3361a]">Le mot-clé « {k} » est porté par {l.length} épreuves publiées ({l.join(", ")}) : les candidats sont inscrits à la plus récente. Gardez-le sur une seule.</p>
+        ))}
         {pending.length > 0 && (
           <div className="mt-4">
             <div className="text-sm font-semibold text-[#b3361a]">{pending.length} rendez-vous non rattaché(s)</div>
             <ul className="mt-2 divide-y divide-line rounded-xl border border-line text-sm">
-              {pending.map((x: any) => <li key={x.event_id} className="flex flex-wrap items-baseline gap-x-3 px-4 py-2"><span className="font-medium">{x.title}</span><span className="text-muted">{fmtDate(x.start_at, true)}{x.email ? ` · ${x.email}` : ""}</span><span className="ml-auto text-xs text-[#b3361a]">{x.reason}</span></li>)}
+              {pending.map((x: any) => <li key={x.event_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2"><span className="font-medium">{x.title}</span><span className="text-muted">{fmtDate(x.start_at, true)}{x.email ? ` · ${x.email}` : ""}</span><span className="ml-auto text-xs text-[#b3361a]">{x.reason}</span>
+                <AttachButton eventId={x.event_id} title={x.title} email={x.email} tests={(tests || []).map((t: any) => ({ id: t.id, title: t.title, published: t.is_published }))} /></li>)}
             </ul>
-            <p className="mt-2 text-xs text-muted">Corrigez le titre dans l&apos;agenda (ajoutez la classe) ou inscrivez le candidat à la main dans l&apos;onglet Inscriptions.</p>
+            <p className="mt-2 text-xs text-muted">Rattachez-les à une épreuve avec le bouton, ou corrigez le titre dans l&apos;agenda (ajoutez la classe) : ils seront repris dans les dix minutes.</p>
           </div>
         )}
       </section>

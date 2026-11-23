@@ -34,7 +34,15 @@ export async function GET(req: NextRequest) {
     await admin.rpc("mark_media_purged", { p_attempt: row.attempt_id });
     purged++;
   }
+  // Mails et agenda : le résultat de chaque passage est noté, pour qu'une panne se voie sur la page « Mails et agenda »
   let mails: unknown = null;
-  try { mails = await runMailsAndCalendar(admin); } catch (e: any) { console.error("mails", e?.message); }
+  const at = new Date().toISOString();
+  try {
+    mails = await runMailsAndCalendar(admin);
+    await admin.from("job_health").upsert({ job: "mails", last_run_at: at, last_ok_at: at, detail: mails as any });
+  } catch (e: any) {
+    console.error("mails", e?.message);
+    await admin.from("job_health").upsert({ job: "mails", last_run_at: at, last_error: String(e?.message || e).slice(0, 500), last_error_at: at });
+  }
   return NextResponse.json({ expired, webhooks, purged, mails });
 }

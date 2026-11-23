@@ -72,6 +72,9 @@ export default async function TakeTest({ params }: { params: Promise<{ id: strin
     return <Panel title="Examen indisponible" />;
   }
 
+  if (st.state === "not_open" && (st.opens_at === "infinity" || Number.isNaN(+new Date(st.opens_at)))) {
+    return <Panel title={st.title}><p>Votre créneau de passage n&apos;est pas encore fixé, ou il a été annulé. Vous recevrez un message avec la date dès qu&apos;il sera confirmé.</p></Panel>;
+  }
   if (st.state === "not_open") {
     return <Panel title={st.title}><p>L&apos;examen ouvre le {new Date(st.opens_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.</p></Panel>;
   }

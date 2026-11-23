@@ -41,12 +41,19 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
     return { id: `c-${i.id}`, title: eventTitle(t.formation, first), formation: t.title, campus: null, room: "À distance", is_published: t.is_published, opens_at: i.slot_at, closes_at: null,
       duration_minutes: t.duration_minutes, start, end: +new Date(slotEnd(i.slot_at, t.duration_minutes, i.extra_minutes || 0)), slot: { email: i.email, href: `/admin/tests/${t.id}/invites` } };
   });
+  // Conflit de créneaux : le même candidat convoqué deux fois sur des horaires qui se chevauchent
+  for (let a = 0; a < slots.length; a++) for (let b = a + 1; b < slots.length; b++) {
+    const x = slots[a], y = slots[b];
+    if (x.slot!.email !== y.slot!.email || x.start >= y.end || y.start >= x.end) continue;
+    clash.set(x.id, [...(clash.get(x.id) || []), `Même candidat que « ${y.formation} »`]);
+    clash.set(y.id, [...(clash.get(y.id) || []), `Même candidat que « ${x.formation} »`]);
+  }
   const onDay = (k: string) => [...dated, ...slots].filter((t) => dayKey(t.start) <= k && dayKey(t.end - 1) >= k).sort((a, b) => a.start - b.start);
   const prev = vue === "mois" ? addDays(`${d.slice(0, 7)}-01`, -1).slice(0, 7) + "-01" : addDays(d, -7);
   const next = vue === "mois" ? addDays(`${d.slice(0, 7)}-28`, 7).slice(0, 7) + "-01" : addDays(d, 7);
   const title = vue === "mois" ? label(`${d.slice(0, 7)}-01`, { month: "long", year: "numeric" })
     : `Semaine du ${label(first, { day: "numeric", month: "long" })} au ${label(addDays(first, 6), { day: "numeric", month: "long", year: "numeric" })}`;
-  const inView = dated.filter((t) => dayKey(t.end - 1) >= days[0] && dayKey(t.start) <= days[nDays - 1] && clash.has(t.id));
+  const inView = [...dated, ...slots].filter((t) => dayKey(t.end - 1) >= days[0] && dayKey(t.start) <= days[nDays - 1] && clash.has(t.id));
   const href = (v: string, k: string) => `/admin/calendrier?vue=${v}&d=${k}`;
 
   const Card = ({ t, k, full }: { t: T; k: string; full?: boolean }) => {
@@ -70,7 +77,7 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <PageTitle>Calendrier</PageTitle>
-          <p className="mt-1.5 text-[15px] capitalize text-muted">{title}</p>
+          <p className="mt-1.5 text-[15px] text-muted first-letter:uppercase">{title}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-1 rounded-xl bg-fg/[0.06] p-1 text-sm">
@@ -89,7 +96,7 @@ export default async function Calendrier({ searchParams }: { searchParams: Promi
           <div className="text-sm font-semibold text-[#b3361a]">{inView.length} épreuve(s) en conflit sur cette période</div>
           <ul className="mt-2 space-y-1 text-sm">
             {inView.map((t) => (
-              <li key={t.id}><Link className="font-medium text-navy hover:text-accent" href={`/admin/tests/${t.id}/questions?vue=reglages#dates`}>{t.title}</Link>
+              <li key={t.id}><Link className="font-medium text-navy hover:text-accent" href={t.slot ? t.slot.href : `/admin/tests/${t.id}/questions?vue=reglages#dates`}>{t.title}</Link>
                 <span className="text-muted"> · {label(dayKey(t.start), { weekday: "short", day: "numeric", month: "short" })} {fmtTime(t.opens_at)} · {Array.from(new Set(clash.get(t.id))).join(" ; ")}</span></li>
             ))}
           </ul>

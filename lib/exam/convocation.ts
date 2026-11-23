@@ -200,3 +200,26 @@ export function shortClass(formation?: string | null): string {
 /** Titre de l'événement d'un candidat : « Test technique B3 Cyber - Prénom » (sans classe : « Test technique - Prénom »). */
 export const eventTitle = (formation: string | null | undefined, firstName: string) =>
   ["Test technique", shortClass(formation)].filter(Boolean).join(" ") + ` - ${firstName}`;
+
+/** Avis de report : le créneau du candidat a changé après sa convocation. */
+export function report(i: { email: string; fullName?: string | null; code: string; testTitle: string; slotAt: string; durationMinutes: number; extraMinutes?: number; origin: string }): { to: string; subject: string; body: string } {
+  const first = (i.fullName || "").trim().split(/\s+/)[0];
+  return {
+    to: i.email,
+    subject: `Nouvelle date pour votre test « ${i.testTitle} »`,
+    body: [
+      `Bonjour${first ? " " + first : ""},`,
+      "",
+      `La date de votre test « ${i.testTitle} » a changé. Il aura lieu ${fmt(i.slotAt)}, à distance. Durée : ${i.durationMinutes + (i.extraMinutes || 0)} minutes.`,
+      "",
+      `Votre lien personnel ne change pas : ${accessLink(i.origin, i.code)}`,
+      `Votre code, si on vous le demande : ${i.code}`,
+      "Le lien s'ouvre dix minutes avant la nouvelle heure. L'ancienne date n'est plus valable.",
+      "",
+      "Si cette date ne vous convient pas, répondez à ce message.",
+      "",
+      "Cordialement,",
+      "L'équipe admissions Cybersup",
+    ].join("\n"),
+  };
+}

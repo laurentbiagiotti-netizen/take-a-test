@@ -21,4 +21,12 @@ begin
   select * into t from tests where id = '00000000-0000-0000-0000-0000000000c9';
   t := _slot_window(t, '00000000-0000-0000-0000-00000000c002');
   if t.opens_at is not null or t.closes_at is not null then raise exception 'sans créneau'; end if;
+  -- épreuve à créneaux : sans créneau, pas d'accès
+  update tests set agenda_keyword = 'B3 Cyber' where id = '00000000-0000-0000-0000-0000000000c9';
+  select * into t from tests where id = '00000000-0000-0000-0000-0000000000c9';
+  t := _slot_window(t, '00000000-0000-0000-0000-00000000c002');
+  if t.opens_at <> 'infinity' then raise exception 'accès ouvert sans créneau'; end if;
+  delete from attempts where test_id = t.id;
+  r := exam_prepare('00000000-0000-0000-0000-00000000c002', '00000000-0000-0000-0000-0000000000c9');
+  if r->>'state' <> 'not_open' then raise exception 'sans créneau : %', r; end if;
 end $$;

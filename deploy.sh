@@ -32,6 +32,13 @@ EXAM_PORT="${EXAM_PORT:-31340}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
+echo "==> Migrations de la base…"
+if [ -f ".env.production" ]; then
+  ./scripts/migrer.sh
+else
+  echo "    .env.production absent : migrations non vérifiées (à lancer avec ./scripts/migrer.sh)."
+fi
+
 echo "==> Archivage des sources…"
 rm -f "${LOCAL_ARCHIVE}"
 # Pas d'exclusion « tests » : le tar de macOS l'appliquerait aussi à app/admin/tests.

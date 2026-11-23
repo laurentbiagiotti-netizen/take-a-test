@@ -112,7 +112,9 @@ describe("mails automatiques", () => {
     await runMailsAndCalendar(fake(db));
     await runMailsAndCalendar(fake(db));
     expect(sent.map((s) => s.subject)).toEqual(["Rappel : votre test « Réseau » demain"]);
+    // le temps passe : même créneau, vu dix minutes avant (pas un report)
     db.invites[0].slot_at = new Date(Date.now() + 5 * 60000).toISOString();
+    db.invites[0].slot_notified = db.invites[0].slot_at;
     await runMailsAndCalendar(fake(db));
     await runMailsAndCalendar(fake(db));
     expect(sent.map((s) => s.subject)).toEqual(["Rappel : votre test « Réseau » demain", "Votre test « Réseau » commence dans 10 minutes"]);
@@ -157,6 +159,19 @@ describe("mails automatiques", () => {
     expect(db.invites).toHaveLength(1);
     expect(+new Date(db.invites[0].slot_at)).toBe(+new Date(next));
     expect(events).toHaveLength(0);
+  });
+
+  it("créneau changé après la convocation : un avis « nouvelle date » part une seule fois, et les rappels repartent", async () => {
+    const t = test({ slots: true, opens_at: null, closes_at: null });
+    const log = [{ test_id: "t1", email: "a@cybersup.ai", kind: "convocation", status: "sent", tries: 1 }, { test_id: "t1", email: "a@cybersup.ai", kind: "rappel_veille", status: "sent", tries: 1 }];
+    const db: any = { tests: [t], invites: [invite("a@cybersup.ai", h(-30), { slot_at: h(72), slot_notified: h(48), calendar_hash: "externe" })], mail_log: [...log], attempts: [], student_accommodations: [], mail_account: [{ id: true }] };
+    const r = await runMailsAndCalendar(fake(db));
+    expect(r?.reports).toBe(1);
+    expect(sent.map((s) => s.subject)).toEqual(["Nouvelle date pour votre test « Réseau »"]);
+    expect(+new Date(db.invites[0].slot_notified)).toBe(+new Date(db.invites[0].slot_at));
+    expect(db.mail_log.some((l: any) => l.kind === "rappel_veille")).toBe(false);
+    await runMailsAndCalendar(fake(db));
+    expect(sent).toHaveLength(1);
   });
 
   it("titre de l'événement : la classe en abrégé puis le prénom", () => {

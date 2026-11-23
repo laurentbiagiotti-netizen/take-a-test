@@ -9,7 +9,7 @@ import { DataTable } from "@/components/admin/DataTable";
 
 type Invite = {
   id: string; test_id: string; email: string; code: string; full_name: string | null;
-  extra_minutes: number; external_ref: string | null; used_at: string | null; created_at: string; slot_at: string | null;
+  extra_minutes: number; external_ref: string | null; used_at: string | null; created_at: string; slot_at: string | null; calendar_hash?: string | null;
 };
 
 /**
@@ -27,12 +27,25 @@ export default function InvitesPage() {
   const [origin, setOrigin] = useState("");
   const [preview, setPreview] = useState<Invite | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [mails, setMails] = useState<Record<string, { kind: string; status: string; updated_at: string; error: string | null }[]>>({});
 
   const load = async () => {
     // Les accès d'aperçu des admins (« Tester l'épreuve ») ne sont pas des candidats
     const { data } = await supabase.from("invites").select("*").eq("test_id", id).eq("preview", false).order("created_at", { ascending: false });
     setInvites((data as any) || []);
+    const { data: logs } = await supabase.from("mail_log").select("email, kind, status, updated_at, error").eq("test_id", id);
+    const m: typeof mails = {};
+    (logs || []).forEach((l: any) => { (m[l.email] ||= []).push(l); });
+    setMails(m);
   };
+  const resend = async (i: Invite) => {
+    if (!confirm(`Renvoyer la convocation à ${i.email} maintenant ?\n\nElle part du compte de l'école relié, avec son lien et son code.`)) return;
+    const r = await fetch(`/api/admin/invites/${i.id}/resend`, { method: "POST" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) return notify(j.error || "Envoi impossible.");
+    notify(`Convocation renvoyée à ${i.email}.`, "ok"); load();
+  };
+  const MAIL: Record<string, string> = { convocation: "Convoqué", rappel_veille: "Rappel veille", rappel_10min: "Rappel 10 min", relance: "Relancé", report: "Nouvelle date" };
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -208,6 +221,22 @@ export default function InvitesPage() {
             ),
           },
           {
+            key: "mails", label: "Mails", title: "Mails envoyés automatiquement à ce candidat",
+            cell: (i) => {
+              const l = (mails[i.email] || []).sort((a, b) => a.updated_at.localeCompare(b.updated_at));
+              return (
+                <div className="flex max-w-[15rem] flex-wrap gap-1">
+                  {i.calendar_hash === "externe" && <span className="rounded-full bg-[#5561c9]/[0.14] px-2 py-0.5 text-xs font-medium text-navy" title="Inscrit automatiquement depuis un rendez-vous de l'agenda">Agenda</span>}
+                  {l.map((x) => (
+                    <span key={x.kind} title={`${new Date(x.updated_at).toLocaleString("fr-FR")}${x.error ? ` · ${x.error}` : ""}`}
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${x.status === "sent" ? "bg-[#2fa862]/[0.14] text-[#1f7a44]" : "bg-[#c23b17]/10 text-[#b3361a]"}`}>{MAIL[x.kind] || x.kind}{x.status === "sent" ? "" : " : échec"}</span>
+                  ))}
+                  {!l.length && i.calendar_hash !== "externe" && <span className="text-xs text-muted">aucun</span>}
+                </div>
+              );
+            },
+          },
+          {
             key: "state", label: "État", sort: (i) => i.used_at,
             cell: (i) => i.used_at ? <span className="text-ok">code utilisé le {new Date(i.used_at).toLocaleString("fr-FR")}</span> : <span className="text-muted">en attente</span>,
           },
@@ -217,6 +246,7 @@ export default function InvitesPage() {
               <button className="underline mr-3" onClick={() => setPreview(i)}>voir</button>
               <button className="underline mr-3" onClick={() => { navigator.clipboard.writeText(accessLink(origin, i.code)); notify("Lien d'accès copié"); }}>lien</button>
               <a href={mailto(i)} className="text-accent underline mr-3">brouillon</a>
+              <button className="underline mr-3" onClick={() => resend(i)} title="Envoie la convocation tout de suite, depuis le compte de l'école relié">renvoyer</button>
               <button className="text-danger" onClick={() => remove(i.id)}>supprimer</button>
             </>,
           },

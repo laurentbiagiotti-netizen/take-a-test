@@ -92,6 +92,23 @@ export default function EditTest() {
     setTest((t: any) => ({ ...t, ...patch }));
     const { error } = await supabase.from("tests").update(patch).eq("id", id);
     setMsg(error ? `Erreur : ${error.message}` : null);
+    return error ? error.message : null;
+  };
+  // Mot-clé d'agenda : enregistré à la sortie du champ, avec l'erreur et les doublons affichés juste à côté
+  const [kw, setKw] = useState<string | null>(null);
+  const [kwNote, setKwNote] = useState<{ tone: "ok" | "err" | "warn"; text: string } | null>(null);
+  const saveKeyword = async () => {
+    if (kw == null) return;
+    const value = kw.trim().replace(/\s+/g, " ") || null;
+    if ((value || "") === (test?.agenda_keyword || "")) { setKw(null); return; }
+    const err = await updateTest({ agenda_keyword: value });
+    if (err) { setTest((t: any) => ({ ...t, agenda_keyword: null })); return setKwNote({ tone: "err", text: /schema cache|column/i.test(err) ? "Non enregistré : la base n'est pas à jour (migration manquante). Lancez ./scripts/migrer.sh, ou redéployez." : `Non enregistré : ${err}` }); }
+    setKw(null);
+    if (!value) return setKwNote({ tone: "ok", text: "Inscription automatique désactivée pour cette épreuve." });
+    const { data: others } = await supabase.from("tests").select("id, title, agenda_keyword").eq("is_published", true).neq("id", id);
+    const same = (others || []).filter((o: any) => (o.agenda_keyword || "").trim().toLowerCase() === value.toLowerCase());
+    setKwNote(same.length ? { tone: "warn", text: `Enregistré, mais ce mot-clé est aussi sur « ${same.map((o: any) => o.title).join(" », « ")} » : les candidats iront à la plus récente. Gardez-le sur une seule épreuve.` }
+      : { tone: "ok", text: test?.is_published ? "Enregistré. Les rendez-vous à venir portant ce mot-clé sont repris dans les dix minutes." : "Enregistré. L'inscription automatique commencera quand l'épreuve sera publiée." });
   };
 
   const updateSecrets = async (patch: any) => {
@@ -412,8 +429,9 @@ export default function EditTest() {
               <Toggle checked={!!test.slots} onChange={(v) => updateTest({ slots: v })} label="Créneaux individuels (tests d'admission)"
                 hint="Chaque candidat a sa date et son heure, fixées dans l'onglet Inscriptions. Il reçoit la convocation, une invitation d'agenda à son nom, un rappel la veille et un autre dix minutes avant ; son lien ne fonctionne que dans son créneau." />
               <Field label="Inscription automatique depuis l'agenda" hint={`Mot-clé de la classe attendu dans le titre du rendez-vous créé par HubSpot dans l'agenda du compte relié, par exemple « ${shortClass(test.formation) || "B3 Cyber"} » pour « Test technique ${shortClass(test.formation) || "B3 Cyber"} - Prénom ». L'invité du rendez-vous est inscrit à cette épreuve avec ce créneau, puis convoqué. Vide : pas d'inscription automatique.`}>
-                <input className={`${inputCls} max-w-xs`} maxLength={60} value={test.agenda_keyword || ""} placeholder={shortClass(test.formation) || "B3 Cyber"}
-                  onChange={(e) => updateTest({ agenda_keyword: e.target.value || null })} />
+                <input className={`${inputCls} max-w-xs`} maxLength={60} value={kw ?? test.agenda_keyword ?? ""} placeholder={shortClass(test.formation) || "B3 Cyber"}
+                  onChange={(e) => { setKw(e.target.value); setKwNote(null); }} onBlur={saveKeyword} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+                {kwNote && <p role="status" className={`mt-1.5 text-sm font-medium ${kwNote.tone === "ok" ? "text-[#1f7a44]" : kwNote.tone === "warn" ? "text-[#a64a12]" : "text-[#b3361a]"}`}>{kwNote.text}</p>}
               </Field>
               <p className="text-xs text-muted">Sans créneaux individuels, l&apos;épreuve publiée et datée est portée dans l&apos;agenda du compte, avec sa salle et son campus.</p>
             </Section>
