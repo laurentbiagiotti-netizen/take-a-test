@@ -166,7 +166,7 @@ export default function InvitesPage() {
           <span className="font-medium">Créneaux individuels (tests d&apos;admission)</span>
           <span className="mt-0.5 block text-xs text-muted">
             Chaque candidat a sa date et son heure (colonne « Créneau »). Son lien ne fonctionne que dans son créneau, à distance. Il reçoit la convocation et une
-            invitation d&apos;agenda « Test technique Prénom &lt;&gt; Cybersup » dès que le créneau est fixé, un rappel la veille avec son lien, un autre dix minutes avant.
+            invitation d&apos;agenda « Test technique B3 Cyber - Prénom » dès que le créneau est fixé, un rappel la veille avec son lien, un autre dix minutes avant.
             Créneau = durée de l&apos;épreuve + temps supplémentaire + 15 minutes d&apos;installation. Un événement déplacé dans l&apos;agenda déplace le créneau ici.
           </span>
         </span>

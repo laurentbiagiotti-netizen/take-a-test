@@ -188,3 +188,15 @@ export function eventDescription(i: { code: string; testTitle: string; durationM
     "En cas d'empêchement, répondez au mail de convocation.",
   ].join("\n");
 }
+
+/** Classe en abrégé pour le titre de l'événement : « Bachelor 3 Cybersécurité » devient « B3 Cyber ». */
+export function shortClass(formation?: string | null): string {
+  const f = (formation || "").trim();
+  if (!f) return "";
+  return f.replace(/^Bachelor\s*(\d)/i, "B$1").replace(/^Mast[eè]re\s*(\d)/i, "M$1").replace(/^Master\s*(\d)/i, "M$1")
+    .replace(/Cybers[ée]curit[ée]/i, "Cyber").replace(/\s+/g, " ").trim();
+}
+
+/** Titre de l'événement d'un candidat : « Test technique B3 Cyber - Prénom » (sans classe : « Test technique - Prénom »). */
+export const eventTitle = (formation: string | null | undefined, firstName: string) =>
+  ["Test technique", shortClass(formation)].filter(Boolean).join(" ") + ` - ${firstName}`;

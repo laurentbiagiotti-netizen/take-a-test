@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { convocation, eventDescription, rappel, relance, slotEnd } from "@/lib/exam/convocation";
+import { convocation, eventDescription, eventTitle, rappel, relance, slotEnd } from "@/lib/exam/convocation";
 import { appUrl } from "@/lib/security/env";
 import { changedEvents, deleteEvent, googleConfigured, loadAccount, sendMail, upsertEvent, type MailAccount } from "@/lib/google";
 import { span } from "@/lib/admin/calendar";
@@ -28,7 +28,7 @@ export async function runMailsAndCalendar(admin: SupabaseClient): Promise<Out | 
 }
 
 const firstName = (full?: string | null, email = "") => (full || "").trim().split(/\s+/)[0] || email.split("@")[0].split(/[._]/)[0].replace(/^./, (c) => c.toUpperCase());
-const slotHash = (t: any, i: any, end: string) => [t.title, i.email, i.full_name, i.code, i.slot_at, end].join("|");
+const slotHash = (t: any, i: any, end: string) => [t.title, t.formation, i.email, i.full_name, i.code, i.slot_at, end].join("|");
 
 async function pass(admin: SupabaseClient): Promise<Out | null> {
   if (!googleConfigured()) return null;
@@ -136,7 +136,7 @@ async function pass(admin: SupabaseClient): Promise<Out | null> {
       if (hash === i.calendar_hash || +new Date(i.slotEndAt) < now) continue;
       calls++;
       const id = await upsertEvent(acc, i.calendar_event_id, {
-        summary: `Test technique ${firstName(i.full_name, i.email)} <> Cybersup`, location: "À distance",
+        summary: eventTitle(t.formation, firstName(i.full_name, i.email)), location: "À distance",
         description: eventDescription({ code: i.code, testTitle: t.title, durationMinutes: t.duration_minutes, extraMinutes: i.extra, origin: appUrl() }),
         start: new Date(i.slot_at).toISOString(), end: i.slotEndAt, attendee: i.email, reminders: [10], tags: { cx: "creneau", cxInvite: i.id },
       });

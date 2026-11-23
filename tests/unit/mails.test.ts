@@ -16,6 +16,7 @@ vi.mock("@/lib/google", () => ({
 vi.mock("@/lib/security/env", () => ({ appUrl: () => "https://exam.cybersup.ai" }));
 
 import { runMailsAndCalendar } from "@/lib/mails";
+import { eventTitle } from "@/lib/exam/convocation";
 
 /** Faux client Supabase : tables en mémoire, filtres eq, neq et in. */
 function fake(db: Record<string, any[]>) {
@@ -93,7 +94,7 @@ describe("mails automatiques", () => {
     const r = await runMailsAndCalendar(fake(db));
     expect(r?.convocations).toBe(1);
     expect(events).toHaveLength(1);
-    expect(events[0].summary).toBe("Test technique Inès <> Cybersup");
+    expect(events[0].summary).toBe("Test technique B1 - Inès");
     expect(events[0].attendee).toBe("a@cybersup.ai");
     expect(events[0].location).toBe("À distance");
     expect(events[0].description).toContain("https://exam.cybersup.ai/acces#code=ABC-DEF");
@@ -128,5 +129,12 @@ describe("mails automatiques", () => {
     changed = [{ id: "evt9", cancelled: true, start: null, invite: "i-a@cybersup.ai" }];
     await runMailsAndCalendar(fake(db));
     expect(db.invites[0].slot_at).toBeNull();
+  });
+
+  it("titre de l'événement : la classe en abrégé puis le prénom", () => {
+    expect(eventTitle("Bachelor 3 Cybersécurité", "Dylan")).toBe("Test technique B3 Cyber - Dylan");
+    expect(eventTitle("Mastère 1 IA et Data", "Lauryn")).toBe("Test technique M1 IA et Data - Lauryn");
+    expect(eventTitle("Mastère DPO", "Léa")).toBe("Test technique Mastère DPO - Léa");
+    expect(eventTitle(null, "Léa")).toBe("Test technique - Léa");
   });
 });
