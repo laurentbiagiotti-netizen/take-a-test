@@ -1,6 +1,5 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { notify } from "@/components/Toaster";
 import { createClient } from "@/lib/supabase/client";
 import { DEFAULT_DOMAINS, LEVELS, draftToBank, fileToBank, normLevel, type BankRow } from "@/lib/admin/bank";
@@ -120,9 +119,8 @@ export default function BankPage() {
 
   const ids = [...sel];
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
-      <Link href="/admin" className="text-sm text-muted hover:text-fg">← Épreuves</Link>
-      <div className="flex flex-wrap items-end justify-between gap-3 mt-2">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="h1">Banque de questions</h1>
           <p className="text-sm text-muted mt-1">Questions classées par niveau et par domaine, à piocher depuis l&apos;éditeur d&apos;une épreuve.</p>

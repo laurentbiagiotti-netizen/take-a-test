@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { staffPageGuard } from "@/lib/auth/staff";
+import AdminNav from "@/components/admin/AdminNav";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +11,10 @@ export const metadata = { title: "Administration" };
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const g = await staffPageGuard();
   if ("redirect" in g) redirect(g.redirect);
-  return <>{children}</>;
+  return (
+    <>
+      <AdminNav isAdmin={g.role === "admin"} />
+      {children}
+    </>
+  );
 }

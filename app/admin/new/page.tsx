@@ -30,7 +30,7 @@ export default function NewTest() {
       const e2 = await writeQuestions(supabase as any, data.id, x.questions.map(toDraftQuestion));
       if (e2) throw new Error(`épreuve créée mais questions incomplètes : ${e2}`);
       const rep = importReport(x);
-      router.push(`/admin/tests/${data.id}${rep ? `?import=${encodeURIComponent(`${x.questions.length} question(s) importée(s). ${rep}`)}` : ""}`);
+      router.push(`/admin/tests/${data.id}/questions${rep ? `?import=${encodeURIComponent(`${x.questions.length} question(s) importée(s). ${rep}`)}` : ""}`);
     } catch (e: any) {
       setErr(`Import impossible : ${e?.message || "fichier illisible"}.`);
     } finally {
@@ -46,7 +46,7 @@ export default function NewTest() {
     const { data, error } = await supabase
       .from("tests").insert({ title, description, duration_minutes: duration, owner_id: user.id }).select().single();
     if (error) return setErr(error.message);
-    router.push(`/admin/tests/${data.id}`);
+    router.push(`/admin/tests/${data.id}/questions`);
   };
 
   return (

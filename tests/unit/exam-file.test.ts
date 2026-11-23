@@ -76,3 +76,14 @@ describe("banque et noms", () => {
     expect(cleanName("")).toBeNull();
   });
 });
+
+import { splitName } from "@/lib/admin/roster";
+describe("prénom et nom affichés", () => {
+  it("déclarés, saisis ou tirés de l'e-mail", () => {
+    expect(splitName({ first_name: "Inès", last_name: "Bernard" })).toEqual({ first: "Inès", last: "BERNARD", named: true });
+    expect(splitName({ full_name: "Jean-Pierre DE LA TOUR", email: "x@y.fr" })).toMatchObject({ first: "Jean-Pierre", last: "DE LA TOUR" });
+    expect(splitName({ full_name: "Inès Bernard" })).toMatchObject({ first: "Inès", last: "BERNARD" });
+    expect(splitName({ full_name: "ines.bernard@exemple.fr", email: "ines.bernard@exemple.fr" })).toEqual({ first: "Ines", last: "BERNARD", named: false });
+    expect(splitName({ email: "candidat.test.b3@cybersup.ai" })).toMatchObject({ first: "Candidat", last: "TEST B" });
+  });
+});
