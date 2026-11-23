@@ -139,6 +139,7 @@ export default function RosterTable({ rows, tests, showTest = false, emptyText }
                     <span className={`font-bold uppercase tracking-wide ${r.absent ? "text-fg/60" : "text-navy"}`}>{r.last}</span>
                     {!r.named && !r.absent && <span title={r.email} className="ml-2 text-[10px] uppercase tracking-wide text-faint">d&apos;après l&apos;e-mail</span>}
                     {r.preview && <span className="ml-2 rounded bg-fg/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">essai</span>}
+                    <div className="mt-0.5 text-xs font-normal normal-case tracking-normal text-muted">{r.email}</div>
                   </td>
                   {showTest && <td className="max-w-[16rem] truncate px-4 py-3 text-muted">{tests?.[r.test_id]?.title}</td>}
                   <td className="px-4 py-3 text-right tabular-nums">

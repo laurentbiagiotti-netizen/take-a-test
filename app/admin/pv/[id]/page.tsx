@@ -58,7 +58,7 @@ export default async function ProcesVerbal({ params }: { params: Promise<{ id: s
 
         <table className="mt-4 w-full border-collapse">
           <thead className="bg-black/[0.05]">
-            <tr><th className={`${th} w-8`}>N°</th><th className={th}>Nom</th><th className={th}>Prénom</th><th className={`${th} w-16`}>Note /20</th><th className={`${th} w-24`}>Surveillance</th><th className={`${th} w-24`}>Décision</th><th className={th}>Observations du jury</th></tr>
+            <tr><th className={`${th} w-8`}>N°</th><th className={th}>Nom</th><th className={th}>Prénom</th><th className={th}>Adresse mail</th><th className={`${th} w-16`}>Note /20</th><th className={`${th} w-24`}>Surveillance</th><th className={`${th} w-24`}>Décision</th><th className={th}>Observations du jury</th></tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
@@ -66,13 +66,14 @@ export default async function ProcesVerbal({ params }: { params: Promise<{ id: s
                 <td className={`${td} tabular-nums`}>{i + 1}</td>
                 <td className={`${td} font-semibold`}>{r.last || r.email}</td>
                 <td className={td}>{r.first}</td>
+                <td className={`${td} break-all text-[11px]`}>{r.email}</td>
                 <td className={`${td} text-right font-semibold tabular-nums`}>{r.absent ? "abs." : fmt20(r.score20)}</td>
                 <td className={td}>{r.absent ? "" : r.suspicion ? "Suspicion" : r.violations ? `${r.violations} infr.` : "RAS"}</td>
                 <td className={td}>{r.absent ? "Absent" : r.status === "in_progress" ? "En cours" : r.verdict ? `${DECISION[r.verdict]}${r.forced ? " *" : ""}` : r.needs_manual ? "À corriger" : ""}</td>
                 <td className={td}>&nbsp;</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className={`${td} py-6 text-center`}>Aucun candidat inscrit.</td></tr>}
+            {!rows.length && <tr><td colSpan={8} className={`${td} py-6 text-center`}>Aucun candidat inscrit.</td></tr>}
           </tbody>
         </table>
         {rows.some((r) => r.forced) && <p className="mt-1 text-[11px]">* Décision arrêtée par l&apos;équipe, motif consigné sur la fiche jury du candidat.</p>}

@@ -83,7 +83,7 @@ export default function ClassMatrix({ exams, students, className }: { exams: Mat
                   <td className="sticky left-0 z-10 bg-surface px-4 py-2.5">
                     <span className="flex items-center gap-3">
                       <Avatar first={s.first} last={s.last} note={s.avg} />
-                      <span className="truncate"><span className="font-bold uppercase tracking-wide text-navy">{s.last}</span> <span className="text-fg">{s.first}</span></span>
+                      <span className="min-w-0"><span className="block truncate"><span className="font-bold uppercase tracking-wide text-navy">{s.last}</span> <span className="text-fg">{s.first}</span></span><span className="block truncate text-xs text-muted">{s.email}</span></span>
                     </span>
                   </td>
                   {exams.map((e) => {

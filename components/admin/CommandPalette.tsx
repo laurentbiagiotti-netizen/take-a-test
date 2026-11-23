@@ -12,7 +12,7 @@ const PAGES: Hit[] = [
 ].map(([label, href, k]) => ({ group: "Aller à", label, sub: k, href, text: norm(label) }));
 const GO: Record<string, string> = { e: "/admin", c: "/admin/classes", b: "/admin/banque", k: "/admin/calendrier", p: "/admin/pilotage" };
 const SHORTCUTS: [string, string][] = [["Cmd K ou Ctrl K", "Recherche globale"], ["/", "Recherche globale"], ["g puis e", "Examens"], ["g puis c", "Classes"], ["g puis b", "Banque de questions"],
-  ["g puis k", "Calendrier"], ["g puis p", "Pilotage"], ["n", "Nouvelle épreuve"], ["d", "Mode clair ou sombre"], ["?", "Afficher cette aide"], ["Échap", "Fermer"]];
+  ["g puis k", "Calendrier"], ["g puis p", "Pilotage"], ["n", "Nouvelle épreuve"], ["?", "Afficher cette aide"], ["Échap", "Fermer"]];
 
 /** Recherche globale (Cmd+K) : étudiants, examens, questions ; et raccourcis clavier de l'espace équipe. */
 export default function CommandPalette() {
@@ -71,7 +71,6 @@ export default function CommandPalette() {
       else if (e.key === "/") { e.preventDefault(); setOpen(true); }
       else if (e.key === "?") setHelp((h) => !h);
       else if (e.key === "n") router.push("/admin/new");
-      else if (e.key === "d") window.dispatchEvent(new Event("cx-theme-toggle"));
     };
     const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey); window.addEventListener("cx-palette", onOpen);

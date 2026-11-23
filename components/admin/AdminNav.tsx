@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import ThemeToggle from "@/components/admin/ThemeToggle";
 
 const I = {
   exams: <path d="M9 4h6m-6 0a1 1 0 0 0-1 1v1h8V5a1 1 0 0 0-1-1M9 4h6M8 6H6.5A1.5 1.5 0 0 0 5 7.5v12A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-12A1.5 1.5 0 0 0 17.5 6H16m-7 7 2 2 4-4" />,
@@ -50,10 +49,11 @@ export default function AdminNav({ isAdmin }: { isAdmin: boolean }) {
         <nav className="flex gap-1 lg:flex-col" aria-label="Espace équipe">{main.map(item)}</nav>
         {tools.length > 0 && <div className="mx-3 my-3 hidden h-px bg-line lg:block" />}
         <nav className="flex gap-1 lg:flex-col" aria-label="Outils">{tools.map(item)}</nav>
-        <div className="mt-auto hidden space-y-3 lg:block">
-          <ThemeToggle />
-          {isAdmin && <Link href="/admin/new" className="btn w-full justify-center">+ Nouvelle épreuve</Link>}
-        </div>
+        {isAdmin && (
+          <div className="mt-auto hidden lg:block">
+            <Link href="/admin/new" className="btn w-full justify-center">+ Nouvelle épreuve</Link>
+          </div>
+        )}
       </div>
     </aside>
   );

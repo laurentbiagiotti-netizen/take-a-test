@@ -9,19 +9,6 @@
   --c-bg: 243 239 232; --c-surface: 255 253 249; --c-surface-2: 248 244 237; --c-line: 233 226 214; --c-line-strong: 214 204 188;
   --c-fg: 15 22 64; --c-muted: 85 92 122; --c-faint: 139 143 165; --c-navy: 10 16 71;
 }
-/* Mode sombre (espace équipe uniquement, au choix de chacun) */
-html.dark {
-  color-scheme: dark;
-  --c-bg: 10 13 36; --c-surface: 19 24 58; --c-surface-2: 26 32 74; --c-line: 40 48 98; --c-line-strong: 58 68 130;
-  --c-fg: 238 240 251; --c-muted: 172 178 212; --c-faint: 128 135 176; --c-navy: 199 205 255;
-}
-html.dark .bg-navy { background-color: #2a3382; }
-html.dark .bg-navy\/50, html.dark .bg-navy\/40 { background-color: rgb(0 0 0 / 0.62); }
-html.dark .text-\[\#1f7a44\], html.dark .text-\[\#1f6b3d\] { color: #6fd79a; }
-html.dark .text-\[\#b3361a\], html.dark .text-\[\#c23b17\] { color: #ff9478; }
-html.dark .text-\[\#a64a12\] { color: #ffb685; }
-html.dark .btn-secondary { background-color: rgb(var(--c-surface-2)); }
-
 @layer base { *, ::before, ::after { border-color: rgb(var(--c-line)); } }
 
 html, body { min-height: 100%; }
@@ -57,4 +44,3 @@ a.underline { @apply decoration-accent decoration-[1.5px] underline-offset-[3px]
   .no-print, body > header, body > footer, body > div > header { display: none !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-html.dark body > header img { filter: invert(1) hue-rotate(180deg); }

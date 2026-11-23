@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 
 /** Direction artistique alignée sur le Cybersup Vulhub Launcher / vms.cybersup.ai. */
 const config: Config = {
-  darkMode: "class",
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
