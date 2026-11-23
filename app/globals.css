@@ -8,7 +8,7 @@
   color-scheme: light;
 }
 
-@layer base { *, ::before, ::after { border-color: #e2e6ef; } }
+@layer base { *, ::before, ::after { border-color: #e9e2d6; } }
 
 html, body { min-height: 100%; }
 body { @apply bg-bg text-fg font-sans antialiased; }

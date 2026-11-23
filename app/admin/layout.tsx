@@ -12,9 +12,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const g = await staffPageGuard();
   if ("redirect" in g) redirect(g.redirect);
   return (
-    <>
+    <div className="lg:flex min-h-[calc(100vh-4rem)]">
       <AdminNav isAdmin={g.role === "admin"} />
-      {children}
-    </>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
   );
 }

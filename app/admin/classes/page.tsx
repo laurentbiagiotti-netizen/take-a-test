@@ -1,108 +1,96 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { loadRoster, summarize } from "@/lib/admin/roster";
-import RosterTable from "@/components/admin/RosterTable";
-import { Kpi, Pill, VerdictBar, fmt20 } from "@/components/admin/ui";
+import ClassMatrix, { type MatrixExam, type MatrixStudent } from "@/components/admin/ClassMatrix";
+import { Breadcrumb, Donut, PageTitle, Stat, examState, fmt20, fmtDay, tier } from "@/components/admin/ui";
 import { FORMATIONS } from "@/lib/excel/bank";
 
 export const dynamic = "force-dynamic";
 const COMMUNE = "Communes";
 
-/** Vue par classe : les épreuves d'une promo et tous ses candidats avec leur note, toutes épreuves confondues. */
+/** Classes : la liste des promos, puis pour chacune un tableau étudiants × examens. */
 export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ classe?: string }> }) {
   const { classe } = await searchParams;
   const supabase = await createClient();
   const { data: tests } = await supabase.from("tests")
-    .select("id, title, formation, is_published, verdict_pass, verdict_fail, created_at").order("created_at", { ascending: false });
+    .select("id, title, formation, is_published, opens_at, closes_at, created_at").order("created_at", { ascending: true });
   const all = tests || [];
-  const roster = await loadRoster(supabase as any, all.map((t: any) => t.id));
+  const roster = (await loadRoster(supabase as any, all.map((t: any) => t.id))).filter((r) => !r.preview);
 
   const known = FORMATIONS as readonly string[];
   const names = Array.from(new Set(all.map((t: any) => t.formation || COMMUNE)));
   names.sort((a, b) => (a === COMMUNE ? 1 : b === COMMUNE ? -1 : (known.indexOf(a) + 1 || 99) - (known.indexOf(b) + 1 || 99) || a.localeCompare(b)));
-  const current = classe && names.includes(classe) ? classe : names[0];
   const testsOf = (c: string) => all.filter((t: any) => (t.formation || COMMUNE) === c);
-  const realOf = (c: string) => { const ids = new Set(testsOf(c).map((t: any) => t.id)); return roster.filter((r) => ids.has(r.test_id) && !r.preview); };
+  const rowsOf = (c: string) => { const ids = new Set(testsOf(c).map((t: any) => t.id)); return roster.filter((r) => ids.has(r.test_id)); };
 
-  if (!current) {
+  // Liste des classes
+  if (!classe || !names.includes(classe)) {
     return (
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
-        <h1 className="h1">Classes</h1>
-        <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center text-muted">
-          Aucune épreuve pour l&apos;instant. Chaque épreuve publiée pour une promo apparaîtra ici avec ses candidats.
+      <main className="mx-auto max-w-6xl px-4 sm:px-8 py-8">
+        <PageTitle>Classes</PageTitle>
+        <p className="mt-1.5 text-[15px] text-muted">{names.length} classe(s) · les notes de chaque étudiant, examen par examen.</p>
+        {!names.length && <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-16 text-center text-muted">Aucun examen pour l&apos;instant.</div>}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {names.map((c) => {
+            const r = rowsOf(c), s = summarize(r);
+            const people = new Set(r.map((x) => x.email.toLowerCase())).size;
+            return (
+              <Link key={c} href={`/admin/classes?classe=${encodeURIComponent(c)}`}
+                className="group flex flex-col rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(15,22,64,0.04)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-24px_rgba(15,22,64,0.45)]">
+                <h2 className="font-display text-xl uppercase text-navy">{c}</h2>
+                <p className="mt-1 text-sm text-muted">{people} étudiant(s) · {testsOf(c).length} examen(s)</p>
+                <div className="mt-5 flex items-center gap-4 border-t border-line pt-4">
+                  <Donut value={s.avg} />
+                  <div className="leading-tight"><div className={`text-lg font-bold tabular-nums ${tier(s.avg).text}`}>{fmt20(s.avg)}</div><div className="text-xs text-muted">moyenne</div></div>
+                  <div className="leading-tight"><div className="text-lg font-bold tabular-nums text-navy">{s.done}</div><div className="text-xs text-muted">copies</div></div>
+                  <span className="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-fg/[0.06] text-fg/60 transition-colors group-hover:bg-navy group-hover:text-white">›</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </main>
     );
   }
 
-  const cTests = testsOf(current);
-  const ids = new Set(cTests.map((t: any) => t.id));
-  const rows = roster.filter((r) => ids.has(r.test_id));
-  const real = rows.filter((r) => !r.preview);
-  const s = summarize(real.length ? real : rows);
-  const people = new Set((real.length ? real : rows).map((r) => r.email)).size;
-  const testMap = Object.fromEntries(cTests.map((t: any) => [t.id, { title: t.title, pass: t.verdict_pass, fail: t.verdict_fail }]));
+  // Détail d'une classe
+  const cTests = testsOf(classe).sort((a: any, b: any) => +new Date(a.opens_at || a.created_at) - +new Date(b.opens_at || b.created_at));
+  const rows = rowsOf(classe);
+  const students = new Map<string, MatrixStudent>();
+  for (const r of rows) {
+    const k = r.email.toLowerCase();
+    const s = students.get(k) || { key: k, first: r.first, last: r.last, email: r.email, cells: {}, avg: null };
+    if (!r.absent && (!s.first || !s.last)) { s.first = r.first; s.last = r.last; }
+    if (r.named && !r.absent) { s.first = r.first; s.last = r.last; }
+    s.cells[r.test_id] = { note: r.score20, score: r.score, max: r.max, status: r.absent ? "absent" : r.status, attempt_id: r.attempt_id };
+    students.set(k, s);
+  }
+  const list = [...students.values()].map((s) => {
+    const notes = Object.values(s.cells).map((c) => c?.note).filter((n): n is number => n != null);
+    return { ...s, avg: notes.length ? notes.reduce((a, b) => a + b, 0) / notes.length : null };
+  }).sort((a, b) => a.last.localeCompare(b.last, "fr"));
+  const exams: MatrixExam[] = cTests.map((t: any) => ({
+    id: t.id, title: t.title, date: t.opens_at || t.closes_at || t.created_at, state: examState(t).key,
+    invitedCount: rows.filter((r) => r.test_id === t.id).length,
+  }));
+  const s = summarize(rows);
+  const passed = exams.filter((e) => e.state === "done" || rows.some((r) => r.test_id === e.id && r.score20 != null)).length;
+  const next = cTests.filter((t: any) => t.opens_at && +new Date(t.opens_at) > Date.now()).sort((a: any, b: any) => +new Date(a.opens_at) - +new Date(b.opens_at))[0];
+  const missing = rows.filter((r) => r.absent && ["done", "live", "open"].includes(exams.find((e) => e.id === r.test_id)?.state || "")).length;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 sm:px-6 py-8">
-      <header>
-        <h1 className="h1">Classes</h1>
-        <p className="mt-1 text-sm text-muted">Les épreuves et les candidats de chaque promo, toutes épreuves confondues.</p>
-      </header>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <nav aria-label="Classes" className="flex gap-2 overflow-x-auto lg:flex-col lg:overflow-visible">
-          {names.map((c) => {
-            const r = realOf(c), on = c === current;
-            return (
-              <Link key={c} href={`/admin/classes?classe=${encodeURIComponent(c)}`} aria-current={on ? "page" : undefined}
-                className={`shrink-0 rounded-lg px-3.5 py-2.5 text-sm transition-colors ring-1 ring-inset ${on ? "bg-surface text-fg ring-accent shadow-sm" : "bg-transparent text-muted ring-transparent hover:bg-surface hover:text-fg"}`}>
-                <div className="font-medium">{c}</div>
-                <div className="text-xs text-faint">{testsOf(c).length} épreuve(s) · {new Set(r.map((x) => x.email)).size} candidat(s)</div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="min-w-0 space-y-5">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-2xl font-bold tracking-tight">{current}</h2>
-            {!real.length && rows.length > 0 && <span className="text-xs text-warn">Seules des copies d&apos;essai de l&apos;équipe pour l&apos;instant.</span>}
-          </div>
-
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi label="Candidats" value={people} hint={`${s.done} copie(s) rendue(s)`} />
-            <Kpi label="Moyenne" value={s.avg == null ? "—" : <>{fmt20(s.avg)}<span className="text-base font-normal text-faint">/20</span></>} />
-            <Kpi label="Réussis" value={s.pass} tone="ok" hint={s.done ? `${Math.round((s.pass / s.done) * 100)} % des copies` : undefined} />
-            <Kpi label="À statuer / échoués" value={<>{s.review}<span className="font-normal text-faint"> / </span><span className="text-danger">{s.fail}</span></>} tone="warn" />
-          </section>
-          {s.done > 0 && <VerdictBar pass={s.pass} review={s.review} fail={s.fail} />}
-
-          <section>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-faint">Épreuves</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {cTests.map((t: any) => {
-                const tr = roster.filter((r) => r.test_id === t.id && !r.preview);
-                const ts = summarize(tr);
-                return (
-                  <Link key={t.id} href={`/admin/tests/${t.id}`} className="group flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3 hover:border-line-strong">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium group-hover:text-accent">{t.title}</div>
-                      <div className="mt-0.5 text-xs text-muted">{ts.done} rendue(s) · moyenne {fmt20(ts.avg)}/20</div>
-                    </div>
-                    {t.is_published ? <Pill cls="bg-ok/10 text-ok ring-ok/25">Publiée</Pill> : <Pill cls="bg-fg/5 text-muted ring-fg/10">Brouillon</Pill>}
-                  </Link>
-                );
-              })}
-            </div>
-          </section>
-
-          <section>
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-faint">Candidats</h3>
-            <RosterTable rows={rows} tests={testMap} showTest emptyText="Aucun candidat de cette promo n'a encore composé." />
-          </section>
-        </div>
+    <main className="mx-auto max-w-6xl px-4 sm:px-8 py-8">
+      <Breadcrumb items={[{ href: "/admin/classes", label: "Classes" }, { label: classe }]} />
+      <div className="mt-5">
+        <PageTitle>{classe}</PageTitle>
+        <p className="mt-1.5 text-[15px] text-muted">{list.length} étudiant(s) · {cTests.length} examen(s)</p>
       </div>
+      <section className="mt-6 grid gap-3 sm:grid-cols-3">
+        <Stat dark label="Moyenne de la classe" value={fmt20(s.avg)} unit="/20" hint={`sur ${s.done} copie(s)`} />
+        <Stat label="Examens passés" value={passed} unit={`/${cTests.length}`} hint={next ? `prochain ${fmtDay(next.opens_at)}` : "aucun examen à venir"} />
+        <Stat label="Copies manquantes" value={missing} hint="copies attendues non rendues" tone={missing ? "text-[#c23b17]" : undefined} />
+      </section>
+      <div className="mt-5"><ClassMatrix exams={exams} students={list} className={classe} /></div>
     </main>
   );
 }

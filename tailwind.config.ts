@@ -7,20 +7,21 @@ const config: Config = {
     extend: {
       colors: {
         // Interface claire (16/11) : fond blanc cassé, cartes blanches, texte bleu nuit de la charte.
-        bg: "#f4f6fb",
-        surface: "#ffffff",
-        "surface-2": "#f7f8fc",
-        line: "#e2e6ef",
-        "line-strong": "#c9d0de",
-        fg: "#141a33",
-        muted: "#525c75",
-        faint: "#7a8399",
+        bg: "#f3efe8",
+        surface: "#fffdf9",
+        "surface-2": "#f8f4ed",
+        line: "#e9e2d6",
+        "line-strong": "#d6ccbc",
+        fg: "#0f1640",
+        muted: "#555c7a",
+        faint: "#8b8fa5",
         accent: "#e8600b",
         "accent-light": "#fd7119",
         ok: "#0f9d58",
         warn: "#b45309",
         danger: "#d93025",
         cream: "#f6e9e0",
+        navy: "#0a1047",
       },
 
       fontFamily: {

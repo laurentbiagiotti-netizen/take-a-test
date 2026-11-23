@@ -21,6 +21,8 @@ export type RosterRow = {
   preview: boolean;        // copie d'essai de l'équipe
   violations: number;
   suspicion: boolean;
+  duration_s: number | null;  // temps passé (début → rendu)
+  absent?: boolean;           // inscrit, jamais venu
 };
 
 const cap = (s: string) => s.replace(/(^|[\s'-])(\p{L})/gu, (_m, a, b) => a + b.toUpperCase());
@@ -53,12 +55,20 @@ export async function loadRoster(supabase: SupabaseClient, testIds: string[]): P
     supabase.from("attempts")
       .select("id, test_id, status, started_at, submitted_at, score, max_score, violation_count, suspicion_at, verdict_override, candidate:profiles(*)")
       .in("test_id", testIds).neq("status", "pending"),
-    supabase.from("invites").select("test_id, email").in("test_id", testIds).eq("preview", true),
+    supabase.from("invites").select("test_id, email, full_name, preview").in("test_id", testIds),
     Promise.all(testIds.map((id) => supabase.rpc("test_results", { p_test: id }).then((r) => (r.data || {}) as Record<string, any>))),
   ]);
   const rep: Record<string, any> = Object.assign({}, ...reports);
-  const prev = new Set((previews || []).map((p: any) => `${p.test_id}|${String(p.email).toLowerCase()}`));
-  return (attempts || []).map((a: any) => {
+  const prev = new Set((previews || []).filter((p: any) => p.preview).map((p: any) => `${p.test_id}|${String(p.email).toLowerCase()}`));
+  const seen = new Set((attempts || []).map((a: any) => `${a.test_id}|${String(a.candidate?.email || "").toLowerCase()}`));
+  const absents: RosterRow[] = (previews || []).filter((i: any) => !i.preview && !seen.has(`${i.test_id}|${String(i.email).toLowerCase()}`))
+    .map((i: any) => {
+      const n = splitName({ full_name: i.full_name, email: i.email });
+      return { attempt_id: `absent-${i.test_id}-${i.email}`, test_id: i.test_id, first: n.first, last: n.last, named: n.named, email: i.email,
+        status: "absent", started_at: null, submitted_at: null, score: null, max: null, score20: null, verdict: null, needs_manual: false,
+        forced: false, preview: false, violations: 0, suspicion: false, duration_s: null, absent: true };
+    });
+  return [...(attempts || []).map((a: any) => {
     const c = a.candidate || {};
     const r = rep[a.id] || {};
     const n = splitName(c);
@@ -71,13 +81,17 @@ export async function loadRoster(supabase: SupabaseClient, testIds: string[]): P
       verdict: done ? (r.verdict ?? null) : null, needs_manual: !!r.needs_manual, forced: !!a.verdict_override,
       preview: prev.has(`${a.test_id}|${String(c.email || "").toLowerCase()}`),
       violations: a.violation_count || 0, suspicion: !!a.suspicion_at,
+      duration_s: a.started_at && a.submitted_at ? Math.max(0, Math.round((+new Date(a.submitted_at) - +new Date(a.started_at)) / 1000)) : null,
     } as RosterRow;
-  });
+  }), ...absents];
 }
 
 /** Chiffres d'une liste de copies (copies d'essai exclues sauf demande). */
-export function summarize(rows: RosterRow[]) {
+export function summarize(all: RosterRow[]) {
+  const rows = all.filter((r) => !r.absent);
   const done = rows.filter((r) => r.score20 != null);
+  const notes = done.map((r) => r.score20 as number).sort((a, b) => a - b);
+  const median = notes.length ? (notes.length % 2 ? notes[(notes.length - 1) / 2] : (notes[notes.length / 2 - 1] + notes[notes.length / 2]) / 2) : null;
   const avg = done.length ? done.reduce((s, r) => s + (r.score20 || 0), 0) / done.length : null;
   return {
     total: rows.length,
@@ -87,5 +101,10 @@ export function summarize(rows: RosterRow[]) {
     pass: rows.filter((r) => r.verdict === "pass").length,
     review: rows.filter((r) => r.verdict === "review").length,
     fail: rows.filter((r) => r.verdict === "fail").length,
+    median, best: notes.length ? notes[notes.length - 1] : null, worst: notes.length ? notes[0] : null,
+    above10: notes.filter((n) => n >= 10).length,
+    absent: all.filter((r) => r.absent).length,
+    /** Répartition des notes en 7 tranches de 0 à 20 */
+    bins: Array.from({ length: 7 }, (_, k) => notes.filter((n) => Math.min(6, Math.floor((n / 20) * 7)) === k).length),
   };
 }

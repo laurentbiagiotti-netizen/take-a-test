@@ -10,8 +10,8 @@ import { FORMATIONS } from "@/lib/excel/bank";
  * brouillon. La promo choisie est enregistrée sur l'épreuve et sert aussi
  * à l'import des questions de la banque.
  */
-export default function PublishButton({ id, title, published, questions, formation, className, onDone }: {
-  id: string; title: string; published: boolean; questions: number; formation?: string | null;
+export default function PublishButton({ id, title, published, questions, formation, className, onDone, variant }: {
+  id: string; title: string; published: boolean; questions: number; formation?: string | null; variant?: "switch";
   className?: string; onDone?: (patch: { is_published: boolean; formation?: string | null }) => void;
 }) {
   const router = useRouter();
@@ -45,9 +45,19 @@ export default function PublishButton({ id, title, published, questions, formati
 
   return (
     <>
-      <button className={className ?? (published ? "btn-secondary !py-1.5" : "btn !py-1.5")} onClick={click} disabled={busy}>
-        {busy ? "…" : published ? "Dépublier" : "Publier"}
-      </button>
+      {variant === "switch" ? (
+        <button role="switch" aria-checked={published} onClick={click} disabled={busy}
+          className="inline-flex items-center gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm font-semibold shadow-[0_1px_2px_rgba(15,22,64,0.05)] hover:border-line-strong disabled:opacity-60">
+          <span className={`relative h-6 w-11 rounded-full transition-colors ${published ? "bg-[#2fa862]" : "bg-fg/20"}`}>
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${published ? "left-[22px]" : "left-0.5"}`} />
+          </span>
+          {published ? "Publié" : "Brouillon"}
+        </button>
+      ) : (
+        <button className={className ?? (published ? "btn-secondary !py-1.5" : "btn !py-1.5")} onClick={click} disabled={busy}>
+          {busy ? "…" : published ? "Dépublier" : "Publier"}
+        </button>
+      )}
       {open && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal aria-label="Publier l'épreuve" onClick={() => setOpen(false)}>
           <div className="card w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
