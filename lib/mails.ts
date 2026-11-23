@@ -188,7 +188,10 @@ async function syncFromCalendar(admin: SupabaseClient, acc: MailAccount): Promis
   const { data: row } = await admin.from("mail_account").select("calendar_synced_at").maybeSingle();
   const started = new Date().toISOString();
   const last = (row as any)?.calendar_synced_at as string | undefined;
-  const changed = await changedEvents(acc, last ? new Date(+new Date(last) - 60000).toISOString() : null);
+  // Passage complet (rendez-vous à venir sur 90 jours) au premier passage, puis toutes les dix minutes : il rattrape
+  // les rendez-vous créés avant qu'une épreuve porte leur mot-clé. Entre deux, seuls les événements modifiés sont relus.
+  const full = !last || new Date().getMinutes() % 10 === 0;
+  const changed = await changedEvents(acc, full ? null : new Date(+new Date(last!) - 60000).toISOString());
   let moved = 0;
   let keyed: { id: string; duration_minutes: number; key: string }[] | null = null;
   for (const e of changed) {
