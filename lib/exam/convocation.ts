@@ -123,3 +123,68 @@ export function relance(i: { email: string; fullName?: string | null; testTitle:
     ].join("\n"),
   };
 }
+
+/** Marge d'installation ajoutée à la durée de l'épreuve pour former le créneau (pièce d'identité, caméra, lecture des consignes). */
+export const SLOT_MARGIN_MIN = 15;
+/** Fin du créneau d'un candidat : début + durée de l'épreuve + temps supplémentaire + marge. Même règle que _slot_window en base. */
+export const slotEnd = (slotAt: string, durationMinutes: number, extraMinutes = 0) =>
+  new Date(+new Date(slotAt) + (durationMinutes + extraMinutes + SLOT_MARGIN_MIN) * 60000).toISOString();
+
+const CONSIGNES = [
+  "- un ordinateur (pas de téléphone ni de tablette) avec Chrome, Edge, Firefox ou Safari, et un seul écran ;",
+  "- une webcam et une connexion stable ;",
+  "- un endroit calme où vous serez seul(e).",
+];
+
+/** Rappel envoyé la veille (avec le lien) ou dix minutes avant le créneau. */
+export function rappel(kind: "veille" | "10min", i: { email: string; fullName?: string | null; code: string; testTitle: string; slotAt: string; durationMinutes: number; extraMinutes?: number; origin: string }): { to: string; subject: string; body: string } {
+  const first = (i.fullName || "").trim().split(/\s+/)[0];
+  const link = accessLink(i.origin, i.code);
+  const body = kind === "veille" ? [
+    `Bonjour${first ? " " + first : ""},`,
+    "",
+    `Petit rappel : votre test « ${i.testTitle} » a lieu ${fmt(i.slotAt)}, à distance. Durée : ${i.durationMinutes + (i.extraMinutes || 0)} minutes.`,
+    "",
+    `Votre lien personnel : ${link}`,
+    `Votre code, si on vous le demande : ${i.code}`,
+    "Le lien s'ouvre dix minutes avant l'heure prévue. Il est personnel : ne le transmettez à personne.",
+    "",
+    "Dès aujourd'hui, testez votre matériel sur la page d'essai (caméra, plein écran) :",
+    `${i.origin}/demo`,
+    "",
+    "Ce qu'il vous faut :", ...CONSIGNES,
+    "",
+    "En cas d'empêchement, répondez à ce message.",
+    "",
+    "À demain,",
+    "L'équipe admissions Cybersup",
+  ] : [
+    `Bonjour${first ? " " + first : ""},`,
+    "",
+    `Votre test « ${i.testTitle} » commence dans dix minutes. Vous pouvez vous connecter dès maintenant :`,
+    link,
+    `Code personnel : ${i.code}`,
+    "",
+    "Installez-vous sur votre ordinateur, seul(e), caméra allumée. Le chronomètre démarre quand vous lancez l'épreuve.",
+    "",
+    "Bonne épreuve,",
+    "L'équipe admissions Cybersup",
+  ];
+  return { to: i.email, subject: kind === "veille" ? `Rappel : votre test « ${i.testTitle} » demain` : `Votre test « ${i.testTitle} » commence dans 10 minutes`, body: body.join("\n") };
+}
+
+/** Description de l'événement d'agenda du candidat : tout ce qu'il faut pour passer le test avec la seule invitation. */
+export function eventDescription(i: { code: string; testTitle: string; durationMinutes: number; extraMinutes?: number; origin: string }): string {
+  return [
+    `Test « ${i.testTitle} », à distance. Durée : ${i.durationMinutes + (i.extraMinutes || 0)} minutes, chronométrées dès le démarrage.`,
+    "",
+    `Votre lien personnel : ${accessLink(i.origin, i.code)}`,
+    `Votre code : ${i.code}`,
+    "Le lien s'ouvre dix minutes avant l'heure prévue. Il est personnel : ne le transmettez à personne.",
+    "",
+    "Ce qu'il vous faut :", ...CONSIGNES,
+    "",
+    `Page d'essai pour tester votre matériel : ${i.origin}/demo`,
+    "En cas d'empêchement, répondez au mail de convocation.",
+  ].join("\n");
+}

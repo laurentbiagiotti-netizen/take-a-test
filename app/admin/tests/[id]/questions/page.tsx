@@ -408,7 +408,9 @@ export default function EditTest() {
                 hint="Chaque étudiant inscrit reçoit son lien et son code personnels, dès que l'épreuve est publiée." />
               <Toggle checked={test.mail_relance !== false} onChange={(v) => updateTest({ mail_relance: v })} label="Relancer une fois ceux qui ne l'ont pas passée"
                 hint="Deux heures après la fin de l'épreuve, un seul mail aux inscrits qui ne l'ont pas commencée." />
-              <p className="text-xs text-muted">L&apos;épreuve publiée et datée est aussi portée dans l&apos;agenda du compte, avec sa salle et son campus.</p>
+              <Toggle checked={!!test.slots} onChange={(v) => updateTest({ slots: v })} label="Créneaux individuels (tests d'admission)"
+                hint="Chaque candidat a sa date et son heure, fixées dans l'onglet Inscriptions. Il reçoit la convocation, une invitation d'agenda à son nom, un rappel la veille et un autre dix minutes avant ; son lien ne fonctionne que dans son créneau." />
+              <p className="text-xs text-muted">Sans créneaux individuels, l&apos;épreuve publiée et datée est portée dans l&apos;agenda du compte, avec sa salle et son campus.</p>
             </Section>
 
             <Section id="acces" title="Accès et Safe Exam Browser">

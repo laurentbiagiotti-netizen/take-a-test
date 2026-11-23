@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
-import { accessLink, convocation, importCandidates } from "@/lib/exam/convocation";
+import { accessLink, convocation, importCandidates, slotEnd } from "@/lib/exam/convocation";
 import { DataTable } from "@/components/admin/DataTable";
 
 type Invite = {
   id: string; test_id: string; email: string; code: string; full_name: string | null;
-  extra_minutes: number; external_ref: string | null; used_at: string | null; created_at: string;
+  extra_minutes: number; external_ref: string | null; used_at: string | null; created_at: string; slot_at: string | null;
 };
 
 /**
@@ -68,6 +68,23 @@ export default function InvitesPage() {
     setInvites((all) => all.map((x) => x.id === inv.id ? { ...x, extra_minutes: v } : x));
   };
 
+  // Créneau individuel : la date de l'inscription remplace la fenêtre de l'épreuve pour ce candidat
+  const toLocal = (d?: string | null) => { if (!d) return ""; const x = new Date(d); return new Date(+x - x.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const setSlot = async (i: Invite, value: string) => {
+    const slot_at = value ? new Date(value).toISOString() : null;
+    if ((slot_at ? +new Date(slot_at) : 0) === (i.slot_at ? +new Date(i.slot_at) : 0)) return;
+    const { error } = await supabase.from("invites").update({ slot_at }).eq("id", i.id);
+    if (error) return notify(error.message);
+    setInvites((l) => l.map((x) => (x.id === i.id ? { ...x, slot_at } : x)));
+    notify(slot_at ? "Créneau enregistré : l'invitation d'agenda et les rappels suivent." : "Créneau retiré.", "ok");
+  };
+  const setSlots = async (v: boolean) => {
+    setTest((t: any) => ({ ...t, slots: v }));
+    const { error } = await supabase.from("tests").update({ slots: v }).eq("id", id);
+    if (error) notify(error.message);
+  };
+  const hm = (d: string) => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
   const remove = async (inviteId: string) => {
     if (!confirm("Supprimer cette invitation ?")) return;
     await supabase.from("invites").delete().eq("id", inviteId);
@@ -77,7 +94,7 @@ export default function InvitesPage() {
   const conv = (i: Invite) => convocation({
     email: i.email, fullName: i.full_name, code: i.code, extraMinutes: i.extra_minutes,
     testTitle: test?.title || "", durationMinutes: test?.duration_minutes || 0,
-    opensAt: test?.opens_at, closesAt: test?.closes_at, origin, testId: id,
+    opensAt: i.slot_at || test?.opens_at, closesAt: i.slot_at ? slotEnd(i.slot_at, test?.duration_minutes || 0, i.extra_minutes) : test?.closes_at, origin, testId: id,
   });
 
   const mailto = (i: Invite) => {
@@ -140,9 +157,20 @@ export default function InvitesPage() {
         )}
       </div>
       <p className="text-xs text-muted mt-1">
-        Les convocations ne partent jamais toutes seules : ouvrez-les une par une dans votre messagerie (bouton « brouillon »),
-        ou exportez-les pour les transformer en brouillons Gmail à relire et envoyer vous-même.
+        Avec un compte de l&apos;école relié (menu « Mails et agenda »), la convocation part toute seule à l&apos;inscription. Sans compte relié,
+        ouvrez-les une par une dans votre messagerie (bouton « brouillon ») ou exportez-les.
       </p>
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm">
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#e8600b]" checked={!!test?.slots} onChange={(e) => setSlots(e.target.checked)} />
+        <span>
+          <span className="font-medium">Créneaux individuels (tests d&apos;admission)</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            Chaque candidat a sa date et son heure (colonne « Créneau »). Son lien ne fonctionne que dans son créneau, à distance. Il reçoit la convocation et une
+            invitation d&apos;agenda « Test technique Prénom &lt;&gt; Cybersup » dès que le créneau est fixé, un rappel la veille avec son lien, un autre dix minutes avant.
+            Créneau = durée de l&apos;épreuve + temps supplémentaire + 15 minutes d&apos;installation. Un événement déplacé dans l&apos;agenda déplace le créneau ici.
+          </span>
+        </span>
+      </label>
 
       <DataTable
         rows={invites} rowKey={(i) => i.id} caption="Candidats invités"
@@ -167,6 +195,16 @@ export default function InvitesPage() {
                   onBlur={(e) => setExtra(i, Number(e.target.value))} />
                 <span className="text-xs text-muted">min</span>
               </label>
+            ),
+          },
+          {
+            key: "slot", label: "Créneau", title: "Date et heure de passage de ce candidat", sort: (i) => i.slot_at,
+            cell: (i) => (
+              <div>
+                <input type="datetime-local" key={i.slot_at || "vide"} defaultValue={toLocal(i.slot_at)} disabled={!!i.used_at} className="input !w-52 !py-1 min-h-[40px]"
+                  aria-label={`Créneau de ${i.email}`} onBlur={(e) => setSlot(i, e.target.value)} />
+                {i.slot_at && <div className="mt-0.5 text-xs text-muted">jusqu&apos;à {hm(slotEnd(i.slot_at, test?.duration_minutes || 0, i.extra_minutes))}</div>}
+              </div>
             ),
           },
           {

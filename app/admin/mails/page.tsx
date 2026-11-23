@@ -17,7 +17,7 @@ const ERR: Record<string, string> = {
   domaine: `Ce compte n'est pas un compte @${mailDomain()}.`,
   base: "Le compte n'a pas pu être enregistré.", google: "Google a refusé la connexion. Réessayez.",
 };
-const KIND: Record<string, string> = { convocation: "Convocation", relance: "Relance" };
+const KIND: Record<string, string> = { convocation: "Convocation", relance: "Relance", rappel_veille: "Rappel de la veille", rappel_10min: "Rappel 10 min avant" };
 
 /** Mails et agenda : le compte de l'école qui envoie les convocations et la relance, et le journal des envois. */
 export default async function Mails({ searchParams }: { searchParams: Promise<{ ok?: string; erreur?: string }> }) {
@@ -73,6 +73,7 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
           <li><b>Convocation</b> : dans la minute qui suit l&apos;inscription d&apos;un étudiant à une épreuve publiée (ou la publication de l&apos;épreuve), avec son lien et son code personnels.</li>
           <li><b>Relance</b> : deux heures après la fin de l&apos;épreuve, une seule fois, aux inscrits qui ne l&apos;ont pas commencée.</li>
           <li><b>Agenda</b> : chaque épreuve publiée et datée devient un événement dans l&apos;agenda du compte, mis à jour si la date ou la salle change.</li>
+          <li><b>Tests d&apos;admission à créneaux individuels</b> : un événement « Test technique Prénom &lt;&gt; Cybersup » par candidat, qui y est invité, avec son lien, son code et les consignes ; un rappel la veille avec le lien, un autre dix minutes avant. Si l&apos;événement est déplacé ou supprimé dans l&apos;agenda, le créneau du candidat suit.</li>
           <li>Rien n&apos;est rétroactif : seuls les étudiants inscrits après la connexion du compte sont convoqués, et seules les épreuves terminées après sont relancées.</li>
           <li>Chaque épreuve peut couper la convocation ou la relance dans ses <b>Réglages</b>, section « Mails et agenda ».</li>
         </ul>

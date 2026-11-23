@@ -952,6 +952,23 @@ language sql stable security definer set search_path = public as $$
      where i.test_id = t.id and i.preview and p.id = p_user);
 $$;
 
+-- Créneau individuel : quand l'inscription porte une date (invites.slot_at), elle remplace la fenêtre
+-- de l'épreuve pour ce candidat. Ouverture dix minutes avant, fermeture à la fin du créneau
+-- (durée de l'épreuve + temps supplémentaire + quinze minutes d'installation).
+create or replace function public._slot_window(t tests, p_user uuid) returns tests
+language plpgsql stable security definer set search_path = public as $$
+declare v_slot timestamptz; v_extra int; v_email text;
+begin
+  select lower(email) into v_email from profiles where id = p_user;
+  select i.slot_at, i.extra_minutes into v_slot, v_extra from invites i where i.test_id = t.id and i.email = v_email and not i.preview;
+  if v_slot is not null then
+    v_extra := greatest(coalesce(v_extra, 0), coalesce((select extra_minutes from student_accommodations where email = v_email), 0));
+    t.opens_at := v_slot - interval '10 minutes';
+    t.closes_at := v_slot + make_interval(mins => t.duration_minutes + v_extra + 15);
+  end if;
+  return t;
+end; $$;
+
 create or replace function public.exam_prepare(p_user uuid, p_test uuid)
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
@@ -964,6 +981,7 @@ declare
 begin
   select * into t from tests where id = p_test;
   if t.id is null or not _test_open(t, p_user) then raise exception 'test_not_found' using errcode = 'P0002'; end if;
+  t := _slot_window(t, p_user);
   select email into v_email from profiles where id = p_user;
   select * into inv from invites where test_id = p_test and email = lower(v_email);
   if t.invite_only and inv.id is null then raise exception 'not_invited' using errcode = 'P0001'; end if;
@@ -1129,6 +1147,7 @@ begin
   if a.id is null then raise exception 'attempt_not_found' using errcode = 'P0002'; end if;
   select * into t from tests where id = a.test_id;
   if not _test_open(t, p_user) then raise exception 'test_not_found' using errcode = 'P0002'; end if;
+  t := _slot_window(t, p_user);
   if not a.unlocked then raise exception 'locked' using errcode = 'P0001'; end if;
   if a.identity_status in ('pending', 'rejected')
      or (t.id_verify_before_start and a.identity_status = 'submitted' and a.status = 'pending') then
@@ -1340,6 +1359,7 @@ declare a attempts; t tests; v_q int; v_rest int;
 begin
   select * into a from attempts where id = p_attempt for update;
   select * into t from tests where id = a.test_id;
+  t := _slot_window(t, a.candidate_id);
   if t.timing <> 'question' then
     update attempts set q_started_at = now(), q_deadline_at = null where id = a.id returning * into a;
     return a;
@@ -2652,3 +2672,12 @@ alter table tests add column if not exists mail_convocation boolean not null def
 alter table tests add column if not exists mail_relance boolean not null default true;
 alter table tests add column if not exists calendar_event_id text;
 alter table tests add column if not exists calendar_hash text;
+
+-- Créneaux individuels (tests d'admission) : date par inscription, événement d'agenda par candidat, rappels
+alter table invites add column if not exists slot_at timestamptz;
+alter table invites add column if not exists calendar_event_id text;
+alter table invites add column if not exists calendar_hash text;
+alter table mail_account add column if not exists calendar_synced_at timestamptz;
+alter table mail_log drop constraint if exists mail_log_kind_check;
+alter table mail_log add constraint mail_log_kind_check check (kind in ('convocation', 'relance', 'rappel_veille', 'rappel_10min'));
+alter table tests add column if not exists slots boolean not null default false;
