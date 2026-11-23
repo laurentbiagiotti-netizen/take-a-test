@@ -50,7 +50,7 @@ export default function ImportFromTests({ currentId, locked, existing, onImport 
   const add = () => {
     const picked = [...sel].sort((a, b) => a - b).map((i) => {
       const { id: _id, test_id: _t, position: _p, created_at: _c, ...rest } = qs[i];
-      return rest;
+      return { ...rest, origin_id: _id };
     });
     if (!picked.length) return;
     onImport(picked);

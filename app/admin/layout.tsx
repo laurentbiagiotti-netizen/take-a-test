@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { staffPageGuard } from "@/lib/auth/staff";
 import AdminNav from "@/components/admin/AdminNav";
+import CommandPalette from "@/components/admin/CommandPalette";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="lg:flex min-h-[calc(100vh-4rem)]">
       <AdminNav isAdmin={g.role === "admin"} />
       <div className="min-w-0 flex-1">{children}</div>
+      <CommandPalette />
     </div>
   );
 }

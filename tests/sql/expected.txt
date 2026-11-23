@@ -15,3 +15,5 @@ networky.sql 2
 games.sql 7
 tirage.sql 0
 sso.sql 1
+tirage-v2.sql 0
+archive-v2.sql 0

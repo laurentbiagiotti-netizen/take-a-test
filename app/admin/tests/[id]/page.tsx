@@ -30,6 +30,7 @@ export default async function ExamResults({ params }: { params: Promise<{ id: st
         <Stat label="Au-dessus de 10" value={s.done ? Math.round((s.above10 / s.done) * 100) : "—"} unit={s.done ? "%" : undefined} hint={s.done ? `${s.above10} sur ${s.done}` : undefined} />
         <div className="col-span-2 md:col-span-2 xl:col-span-1"><Histogram bins={s.bins} /></div>
       </section>
+      <div className="flex justify-end"><a className="btn-secondary" href={`/admin/pv/${id}`}>Procès-verbal de jury (PDF)</a></div>
       <RosterTable rows={rows} emptyText="Aucun étudiant inscrit ni passé pour l'instant." />
     </main>
   );

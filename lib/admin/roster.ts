@@ -23,6 +23,7 @@ export type RosterRow = {
   suspicion: boolean;
   duration_s: number | null;  // temps passé (début → rendu)
   absent?: boolean;           // inscrit, jamais venu
+  domains?: { domain: string; score: number; max: number }[];
 };
 
 const cap = (s: string) => s.replace(/(^|[\s'-])(\p{L})/gu, (_m, a, b) => a + b.toUpperCase());
@@ -81,6 +82,7 @@ export async function loadRoster(supabase: SupabaseClient, testIds: string[]): P
       verdict: done ? (r.verdict ?? null) : null, needs_manual: !!r.needs_manual, forced: !!a.verdict_override,
       preview: prev.has(`${a.test_id}|${String(c.email || "").toLowerCase()}`),
       violations: a.violation_count || 0, suspicion: !!a.suspicion_at,
+      domains: done && Array.isArray(r.domains) ? r.domains.map((d: any) => ({ domain: d.domain, score: Number(d.score) || 0, max: Number(d.max) || 0 })) : undefined,
       duration_s: a.started_at && a.submitted_at ? Math.max(0, Math.round((+new Date(a.submitted_at) - +new Date(a.started_at)) / 1000)) : null,
     } as RosterRow;
   }), ...absents];

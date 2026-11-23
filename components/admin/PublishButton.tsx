@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { notify } from "@/components/Toaster";
 import { createClient } from "@/lib/supabase/client";
 import { FORMATIONS } from "@/lib/excel/bank";
+import { useClasses } from "@/lib/admin/classes";
 
 /**
  * Publier un brouillon pour une promo (formation visée), ou le repasser en
@@ -15,6 +16,7 @@ export default function PublishButton({ id, title, published, questions, formati
   className?: string; onDone?: (patch: { is_published: boolean; formation?: string | null }) => void;
 }) {
   const router = useRouter();
+  const classes = useClasses();
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const known = formation && (FORMATIONS as readonly string[]).includes(formation);
@@ -68,7 +70,7 @@ export default function PublishButton({ id, title, published, questions, formati
             <label className="block text-sm">Pour quelle promo ?
               <select className="input mt-1" value={promo} onChange={(e) => setPromo(e.target.value)}>
                 <option value="">Toutes les promos (épreuve commune)</option>
-                {FORMATIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                {classes.map((f) => <option key={f} value={f}>{f}</option>)}
                 <option value="__autre">Autre promo…</option>
               </select>
             </label>

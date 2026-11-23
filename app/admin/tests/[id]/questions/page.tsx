@@ -1,7 +1,10 @@
 "use client";
 import { notify } from "@/components/Toaster";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
+import { Field, Num, Section, Toggle, inputCls } from "@/components/admin/form";
+import { useClasses } from "@/lib/admin/classes";
+import StudentPreview from "@/components/admin/StudentPreview";
 import { createClient } from "@/lib/supabase/client";
 import { genCode } from "@/lib/security/tokens";
 import TypeEditor from "@/components/admin/TypeEditor";
@@ -30,6 +33,7 @@ type Question = {
   explanation?: string | null; time_limit_s?: number | null;
   terminal?: { scenario: string; flag: string } | null;
   external?: ExternalDraft | null;
+  difficulty?: string | null;
 };
 
 
@@ -49,6 +53,10 @@ export default function EditTest() {
   const toggleQ = (i: number) => setOpenQ((s) => { const n = new Set(s); if (n.has(i)) n.delete(i); else n.add(i); return n; });
   const domains = Array.from(new Set(questions.map((q) => q.domain?.trim()).filter(Boolean) as string[])).sort();
   const [link, setLink] = useState("");
+  const classes = useClasses();
+  const vue = useSearchParams()?.get("vue") === "reglages" ? "reglages" : "questions";
+  const [panel, setPanel] = useState<null | "add" | "import">(null);
+  const [preview, setPreview] = useState<Question | null>(null);
 
   // Compte rendu d'un import (lignes écartées, colonnes non reconnues)
   useEffect(() => {
@@ -173,349 +181,343 @@ export default function EditTest() {
     setSaving(false);
   };
 
-  if (!test) return <main className="p-10">Chargement…</main>;
+  if (!test) return <main className="px-8 py-10 text-muted">Chargement…</main>;
+
+  const ADD_GROUPS: [string, [QType, string, string][]][] = [
+    ["Questions", [
+      ["mcq_single", "QCM", "une seule réponse"], ["mcq_multi", "QCM", "plusieurs réponses"],
+      ["short_answer", "Réponse courte", "mot, nombre, donnée"], ["long_text", "Réponse rédigée", "corrigée à la main"],
+      ["ordering", "Remettre en ordre", "étapes, procédure"], ["matching", "Associer", "deux colonnes"], ["hotspot", "Repérer", "code, log, mail"],
+    ]],
+    ["Activités pratiques", [
+      ["terminal", "Défi terminal", "Linux simulé"], ["bash", "Script Bash", "noté sur les fichiers"], ["sql", "Requête SQL", "logs, injection"],
+      ["headers", "En-têtes de mail", "phishing"], ["subnet", "Sous-réseaux", "valeurs par candidat"], ["blocks", "Pare-feu en blocs", "règles"],
+      ["adsim", "Active Directory", "OU, comptes, GPO"], ["evtx", "Journaux Windows", "enquête SOC"], ["tickets", "Tickets de support", "priorisation"],
+      ["sim", "Simulation", "appli, pare-feu, capture"], ["password", "Mots de passe", "classer ou créer"], ["external", "Exercice outil", "GeoGuess…"],
+    ]],
+    ["Logique et culture", [
+      ["feed", "Vrai ou fake ?", "fil d'actualité"], ["netpuzzle", "Puzzle réseau", "sans prérequis"],
+      ["sokoban", "Caisses à pousser", "persévérance"], ["robot", "Robot", "algorithmique"], ["decode", "Décoder", "base64, hex…"],
+    ]],
+  ];
+  const settingsNav: [string, string][] = [["general", "Général"], ["dates", "Dates et lieu"], ["tirage", "Tirage"], ["admission", "Notation et admission"],
+    ["chrono", "Chronomètre"], ["surveillance", "Surveillance"], ["acces", "Accès et Safe Exam Browser"], ["danger", "Zone sensible"]];
+  const rules: { domain: string; min: number }[] = test.draw_rules?.domains || [];
+  const setRules = (next: { domain: string; min: number }[], balance = !!test.draw_rules?.balance) =>
+    updateTest({ draw_rules: next.length || balance ? { domains: next, balance } : null });
+  const visible = questions.map((q, i) => ({ q, i })).filter(({ q }) => (!qType || q.type === qType)
+    && (!qFilter.trim() || `${q.prompt || ""} ${q.domain || ""}`.toLowerCase().includes(qFilter.trim().toLowerCase())));
+  const totalPts = questions.reduce((s, q) => s + (Number(q.points) || 0), 0);
+  const DIFF: Record<string, string> = { facile: "bg-[#2fa862]/[0.12] text-[#1f7a44]", moyen: "bg-[#5561c9]/[0.12] text-navy", difficile: "bg-[#c23b17]/10 text-[#b3361a]" };
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="h2">Questions et réglages</h2>
-          <p className="text-sm text-muted mt-1">{questions.length} question(s) · enregistrez après chaque modification.</p>
-        </div>
-        <div className="flex items-center gap-4">
-        <button
-          className="text-sm text-danger underline"
-          onClick={async () => {
-            if (!confirm(`Supprimer « ${test.title} » ?\n\nLes questions, tentatives, réponses, invitations et journaux de cet examen seront aussi supprimés. Action irréversible.`)) return;
-            const { error } = await supabase.from("tests").delete().eq("id", id);
-            if (error) return notify(error.message);
-            window.location.href = "/admin";
-          }}
-        >Supprimer l&apos;examen</button>
-        </div>
-      </div>
+    <main className="px-4 sm:px-8 py-6">
+      {msg && <p className="mb-4 rounded-xl bg-[#c23b17]/10 px-4 py-2.5 text-sm text-[#b3361a]">{msg}</p>}
 
-      <nav aria-label="Sections de l'épreuve" className="sticky top-0 z-30 -mx-6 px-6 py-2 mt-4 bg-bg/90 backdrop-blur border-b border-line flex items-center gap-3 text-sm">
-        <div className="flex gap-1 overflow-x-auto min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {[["general", "Général"], ["surveillance", "Surveillance"], ["tirage", "Tirage"], ["admission", "Admission"], ["chrono", "Chrono"], ["acces", "Accès et SEB"], ["questions", `Questions · ${questions.length}`]].map(([k, l]) => (
-            <a key={k} href={`#${k}`} className="px-3 py-1.5 rounded-md text-muted hover:text-fg hover:bg-surface-2 whitespace-nowrap">{l}</a>
-          ))}
-        </div>
-        <button className="btn !py-1.5 shrink-0 ml-auto" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
-      </nav>
-      <p className="text-xs text-faint mt-2">Les réglages s&apos;enregistrent tout seuls ; les questions avec le bouton « Enregistrer les questions ».</p>
-
-      <div id="general" className="card mt-4 space-y-3 scroll-mt-16">
-        <label className="block text-sm">Titre
-          <input className="input mt-1" value={test.title} onChange={(e) => updateTest({ title: e.target.value })} />
-        </label>
-        <label className="block text-sm">Présentation affichée aux candidats avant l&apos;épreuve
-          <textarea className="input mt-1 min-h-[96px]" value={test.description || ""} onChange={(e) => updateTest({ description: e.target.value })} placeholder="Ce que le candidat doit savoir : contenu, durée, matériel" />
-        </label>
-        <label className="block text-sm">Durée (minutes)
-          <input className="input mt-1" type="number" min={1} max={600} value={test.duration_minutes} onChange={(e) => updateTest({ duration_minutes: parseInt(e.target.value) || 1 })} />
-        </label>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={test.is_published} onChange={(e) => updateTest({ is_published: e.target.checked })} />
-          Publié (visible par les candidats autorisés)
-        </label>
-
-        <div className="border-t pt-3 grid grid-cols-2 gap-3 text-sm">
-          <label>Ouverture
-            <input className="input mt-1" type="datetime-local" value={toLocalInput(test.opens_at)} onChange={(e) => updateTest({ opens_at: fromLocalInput(e.target.value) })} />
-          </label>
-          <label>Fermeture
-            <input className="input mt-1" type="datetime-local" value={toLocalInput(test.closes_at)} onChange={(e) => updateTest({ closes_at: fromLocalInput(e.target.value) })} />
-          </label>
-        </div>
-
-        <div id="surveillance" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
-          <div className="font-medium">Surveillance</div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.invite_only} onChange={(e) => updateTest({ invite_only: e.target.checked })} />
-            Sur invitation uniquement (recommandé)
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.require_seb} onChange={(e) => updateTest({ require_seb: e.target.checked })} />
-            Safe Exam Browser obligatoire (vérifié sur chaque requête)
-          </label>
-          <p className="text-muted">Toujours actifs, non désactivables : caméra lancée automatiquement et analysée, plein écran obligatoire, une question à la fois sans retour en arrière.</p>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.require_id_check} onChange={(e) => updateTest({ require_id_check: e.target.checked })} />
-            Vérification d&apos;identité (pièce + selfie) avant l&apos;épreuve
-          </label>
-          {test.require_id_check && <label className="flex items-center gap-2 pl-6">
-            <input type="checkbox" checked={!!test.id_verify_before_start} onChange={(e) => updateTest({ id_verify_before_start: e.target.checked })} />
-            Attendre la validation du surveillant avant de laisser commencer
-          </label>}
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.allow_resume} onChange={(e) => updateTest({ allow_resume: e.target.checked })} />
-            Autoriser la reprise sur un autre appareil sans intervention du surveillant
-          </label>
-          <div className="grid sm:grid-cols-3 gap-3 pt-1">
-            <label title="Au-delà, le surveillant est alerté ; l'épreuve n'est jamais arrêtée automatiquement">Seuil d&apos;alerte (infractions)
-              <input className="input mt-1" type="number" min={1} max={50} value={test.max_violations} onChange={(e) => updateTest({ max_violations: parseInt(e.target.value) || 1 })} />
-            </label>
-            <label>Tolérance fin (s)
-              <input className="input mt-1" type="number" min={0} max={600} value={test.grace_seconds} onChange={(e) => updateTest({ grace_seconds: parseInt(e.target.value) || 0 })} />
-            </label>
-            <label>Conservation photos et vidéos (j)
-              <input className="input mt-1" type="number" min={1} max={3650} value={test.retention_days} onChange={(e) => updateTest({ retention_days: parseInt(e.target.value) || 90 })} />
-            </label>
-          </div>
-        </div>
-
-        <div id="tirage" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
-          <div className="font-medium">Tirage et ordre (chaque candidat a un sujet différent)</div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.shuffle_questions} onChange={(e) => updateTest({ shuffle_questions: e.target.checked })} />
-            Mélanger l&apos;ordre des questions
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.shuffle_options} onChange={(e) => updateTest({ shuffle_options: e.target.checked })} />
-            Mélanger l&apos;ordre des réponses
-          </label>
-          <label className="block">Tirer au hasard N questions dans la banque (vide = toutes)
-            <input className="input mt-1 w-32" type="number" min={1} value={test.draw_count ?? ""} onChange={(e) => updateTest({ draw_count: e.target.value ? parseInt(e.target.value) : null })} />
-          </label>
-          <label className="block">Activités pratiques tirées au hasard, durée maximale par candidat (minutes, vide = toutes les activités)
-            <input className="input mt-1 w-32" type="number" min={1} max={600} value={test.activity_minutes ?? ""} onChange={(e) => updateTest({ activity_minutes: e.target.value ? parseInt(e.target.value) : null })} />
-          </label>
-          <p className="text-xs text-muted">Avec une durée, chaque candidat reçoit tous les QCM, plus des activités (terminal, simulations, jeux, outils…) tirées au hasard, de types variés, sans dépasser cette durée. Pensez à régler la durée de l&apos;épreuve en conséquence (durée des QCM + cette durée).</p>
-          <p className="text-xs text-muted">Variantes : les questions qui partagent un même « groupe de variantes » sont interchangeables ; chaque candidat n&apos;en reçoit qu&apos;une, tirée au hasard.</p>
-        </div>
-
-        <div id="admission" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
-          <div className="font-medium">Admission</div>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <label className="block">« Test réussi » à partir de (sur 20)
-              <input className="input mt-1 w-28" type="number" min={0} max={20} step={0.5} value={test.verdict_pass ?? 10}
-                onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 20 && v >= (test.verdict_fail ?? 8)) updateTest({ verdict_pass: v }); }} />
-            </label>
-            <label className="block">« Test échoué » sous (sur 20)
-              <input className="input mt-1 w-28" type="number" min={0} max={20} step={0.5} value={test.verdict_fail ?? 8}
-                onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 20 && v <= (test.verdict_pass ?? 10)) updateTest({ verdict_fail: v }); }} />
-            </label>
-            <label className="block">Points minimum en plus (facultatif)
-              <input className="input mt-1 w-28" type="number" min={0} step={0.5} value={test.pass_mark ?? ""} onChange={(e) => updateTest({ pass_mark: e.target.value === "" ? null : Number(e.target.value) })} />
-            </label>
-          </div>
-          <p className="text-xs text-muted">
-            Entre les deux seuils, le résultat est « À statuer ». Il l&apos;est aussi tant qu&apos;une réponse rédigée n&apos;est pas corrigée,
-            ou si un plancher par domaine n&apos;est pas atteint. L&apos;équipe peut toujours forcer la décision, avec un motif.
-          </p>
-          <div>
-            <div>Plancher par domaine (% minimum de réussite ; en dessous, le candidat est signalé au jury)</div>
-            <div className="grid sm:grid-cols-2 gap-2 mt-1">
-              {domains.map((d) => (
-                <label key={d} className="flex items-center justify-between gap-2 border border-line rounded px-2 py-1">
-                  <span>{d}</span>
-                  <span className="flex items-center gap-1">
-                    <input className="input !w-16 !py-0.5" type="number" min={0} max={100} value={test.domain_floors?.[d] != null ? Math.round(test.domain_floors[d] * 100) : ""}
-                      onChange={(e) => {
-                        const f = { ...(test.domain_floors || {}) };
-                        if (e.target.value === "") delete f[d]; else f[d] = Math.min(100, Math.max(0, Number(e.target.value))) / 100;
-                        updateTest({ domain_floors: f });
-                      }} /> %
-                  </span>
-                </label>
+      {vue === "reglages" ? (
+        <div className="grid gap-6 lg:grid-cols-[13rem_minmax(0,1fr)]">
+          <nav aria-label="Sections des réglages" className="hidden lg:block">
+            <ul className="sticky top-6 space-y-0.5 text-sm">
+              {settingsNav.map(([k, l]) => (
+                <li key={k}><a href={`#${k}`} className={`block rounded-lg px-3 py-2 hover:bg-fg/5 ${k === "danger" ? "text-[#b3361a]" : "text-fg/75 hover:text-fg"}`}>{l}</a></li>
               ))}
-              {!domains.length && <span className="text-xs text-muted">Indiquez le domaine de chaque question pour régler les planchers.</span>}
+            </ul>
+          </nav>
+          <div className="min-w-0 space-y-5">
+            <p className="text-sm text-muted">Chaque réglage s&apos;enregistre tout seul.</p>
+
+            <Section id="general" title="Général" desc="Ce que voient les étudiants avant de commencer.">
+              <Field label="Titre"><input className={inputCls} value={test.title} onChange={(e) => updateTest({ title: e.target.value })} /></Field>
+              <Field label="Présentation" hint="Affichée avant l'épreuve : contenu, durée, matériel autorisé. La première ligne sert de sous-titre dans l'espace équipe.">
+                <textarea className={`${inputCls} min-h-[110px]`} value={test.description || ""} onChange={(e) => updateTest({ description: e.target.value })} placeholder="Ex. Bloc 16 Réseau Linux" />
+              </Field>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Durée de l'épreuve"><Num value={test.duration_minutes} min={1} max={600} suffix="min" onChange={(v) => updateTest({ duration_minutes: Math.max(1, v || 1) })} /></Field>
+                <Field label="Promo" hint="Choisie aussi au moment de publier.">
+                  <input className={inputCls} list="classes" value={test.formation || ""} onChange={(e) => updateTest({ formation: e.target.value || null })} placeholder="Toutes les promos" />
+                  <datalist id="classes">{classes.map((c) => <option key={c} value={c} />)}</datalist>
+                </Field>
+              </div>
+            </Section>
+
+            <Section id="dates" title="Dates et lieu" desc="Utilisés par le calendrier pour repérer les chevauchements de promo et de salle.">
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Ouverture"><input className={inputCls} type="datetime-local" value={toLocalInput(test.opens_at)} onChange={(e) => updateTest({ opens_at: fromLocalInput(e.target.value) })} /></Field>
+                <Field label="Fermeture"><input className={inputCls} type="datetime-local" value={toLocalInput(test.closes_at)} onChange={(e) => updateTest({ closes_at: fromLocalInput(e.target.value) })} /></Field>
+                <Field label="Campus">
+                  <select className={inputCls} value={test.campus || ""} onChange={(e) => updateTest({ campus: e.target.value || null })}>
+                    <option value="">Non précisé</option><option>Puteaux</option><option>Lille</option><option>Marseille</option><option>À distance</option>
+                  </select>
+                </Field>
+                <Field label="Salle"><input className={inputCls} maxLength={100} value={test.room || ""} onChange={(e) => updateTest({ room: e.target.value || null })} placeholder="Ex. Salle Seine" /></Field>
+              </div>
+            </Section>
+
+            <Section id="tirage" title="Tirage des questions" desc="Chaque étudiant reçoit un sujet différent, tiré dans les questions de l'épreuve.">
+              <Toggle checked={!!test.shuffle_questions} onChange={(v) => updateTest({ shuffle_questions: v })} label="Mélanger l'ordre des questions" />
+              <Toggle checked={!!test.shuffle_options} onChange={(v) => updateTest({ shuffle_options: v })} label="Mélanger l'ordre des réponses" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Nombre de questions par étudiant" hint={`Vide : toutes (${questions.length}).`}>
+                  <Num value={test.draw_count} min={1} placeholder="toutes" onChange={(v) => updateTest({ draw_count: v && v > 0 ? Math.round(v) : null })} />
+                </Field>
+                <Field label="Temps d'activités pratiques" hint="Activités tirées au hasard, de types variés, sans dépasser ce temps. Vide : toutes.">
+                  <Num value={test.activity_minutes} min={1} max={600} suffix="min" placeholder="toutes" onChange={(v) => updateTest({ activity_minutes: v && v > 0 ? Math.round(v) : null })} />
+                </Field>
+              </div>
+              <div className="rounded-xl bg-surface-2 p-4">
+                <div className="text-sm font-medium">Au moins N questions par domaine</div>
+                <p className="mt-0.5 text-xs text-muted">Ex. 4 en Réseau et 3 en Linux ; le reste est complété au hasard jusqu&apos;au nombre de questions.</p>
+                <div className="mt-3 space-y-2">
+                  {rules.map((r, k) => (
+                    <div key={k} className="flex items-center gap-2">
+                      <select className={`${inputCls} !w-auto min-w-[12rem]`} value={r.domain} onChange={(e) => setRules(rules.map((x, j) => j === k ? { ...x, domain: e.target.value } : x))}>
+                        {[r.domain, ...domains.filter((d) => d !== r.domain)].filter(Boolean).map((d) => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                      <span className="text-sm text-muted">au moins</span>
+                      <Num width="w-20" value={r.min} min={1} onChange={(v) => setRules(rules.map((x, j) => j === k ? { ...x, min: Math.max(1, Math.round(v || 1)) } : x))} />
+                      <span className="text-xs text-muted">sur {questions.filter((q) => (q.domain || "").toLowerCase() === r.domain.toLowerCase()).length} disponibles</span>
+                      <button className="ml-auto text-sm text-muted hover:text-[#b3361a]" onClick={() => setRules(rules.filter((_, j) => j !== k))}>Retirer</button>
+                    </div>
+                  ))}
+                  <button className="text-sm font-medium text-accent hover:underline disabled:opacity-40" disabled={!domains.length}
+                    onClick={() => setRules([...rules, { domain: domains.find((d) => !rules.some((r) => r.domain === d)) || domains[0], min: 2 }])}>
+                    + Ajouter une règle
+                  </button>
+                  {!domains.length && <p className="text-xs text-muted">Indiquez le domaine des questions pour créer des règles.</p>}
+                </div>
+                <div className="mt-4 border-t border-line pt-4">
+                  <Toggle checked={!!test.draw_rules?.balance} onChange={(v) => setRules(rules, v)} label="Difficulté équilibrée"
+                    hint="Faciles, moyennes et difficiles alternent dans le tirage. La difficulté se règle sur chaque question, ou s'estime d'après les copies." />
+                  <button className="mt-2 text-sm font-medium text-navy hover:text-accent" onClick={async () => {
+                    const { data, error } = await supabase.rpc("estimate_difficulty", { p_test: id });
+                    if (error) return notify(error.message);
+                    notify(`${data ?? 0} question(s) classée(s) d'après les copies.`, "ok");
+                    setQuestions(await loadDrafts(supabase as any, id));
+                  }}>Estimer la difficulté d&apos;après les copies (5 copies minimum par question)</button>
+                </div>
+              </div>
+            </Section>
+
+            <Section id="admission" title="Notation et admission" desc="Entre les deux seuils, la décision est « À statuer ». L'équipe peut toujours la forcer, avec un motif.">
+              <div className="grid gap-5 sm:grid-cols-3">
+                <Field label="« Réussi » à partir de"><Num value={test.verdict_pass ?? 10} min={0} max={20} step={0.5} suffix="/20" onChange={(v) => v != null && v >= 0 && v <= 20 && v >= (test.verdict_fail ?? 8) && updateTest({ verdict_pass: v })} /></Field>
+                <Field label="« Échoué » sous"><Num value={test.verdict_fail ?? 8} min={0} max={20} step={0.5} suffix="/20" onChange={(v) => v != null && v >= 0 && v <= 20 && v <= (test.verdict_pass ?? 10) && updateTest({ verdict_fail: v })} /></Field>
+                <Field label="Points minimum" hint="Facultatif, en plus de la note."><Num value={test.pass_mark} min={0} step={0.5} suffix="pts" onChange={(v) => updateTest({ pass_mark: v })} /></Field>
+              </div>
+              <Toggle checked={!!test.partial_points} onChange={(v) => updateTest({ partial_points: v })} label="Points partiels aux QCM à plusieurs réponses" hint="Bonnes cases moins mauvaises, au prorata, jamais négatif." />
+              <div>
+                <div className="text-sm font-medium">Plancher par domaine</div>
+                <p className="mt-0.5 text-xs text-muted">Sous ce pourcentage de réussite dans un domaine, l&apos;étudiant est signalé au jury.</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {domains.map((d) => (
+                    <div key={d} className="flex items-center justify-between gap-3 rounded-xl border border-line px-3.5 py-2">
+                      <span className="text-sm">{d}</span>
+                      <Num width="w-24" value={test.domain_floors?.[d] != null ? Math.round(test.domain_floors[d] * 100) : null} min={0} max={100} suffix="%" placeholder="—"
+                        onChange={(v) => { const f = { ...(test.domain_floors || {}) }; if (v == null) delete f[d]; else f[d] = Math.min(100, Math.max(0, v)) / 100; updateTest({ domain_floors: f }); }} />
+                    </div>
+                  ))}
+                  {!domains.length && <span className="text-xs text-muted">Indiquez le domaine des questions pour régler les planchers.</span>}
+                </div>
+              </div>
+              <Field label="Grille d'entretien oral" hint="Affichée sur la fiche jury.">
+                <textarea className={`${inputCls} min-h-[140px]`} value={test.interview_guide || ""} onChange={(e) => updateTest({ interview_guide: e.target.value })} />
+              </Field>
+            </Section>
+
+            <Section id="chrono" title="Chronomètre">
+              <div className="grid gap-5 sm:grid-cols-3">
+                <Field label="Mode">
+                  <select className={inputCls} value={test.timing || "global"} onChange={(e) => updateTest({ timing: e.target.value })}>
+                    <option value="global">Durée totale de l&apos;épreuve</option><option value="question">Temps par question</option>
+                  </select>
+                </Field>
+                {test.timing === "question" && <Field label="Temps par défaut d'une question"><Num value={test.question_time_s ?? 60} min={10} max={3600} suffix="s" onChange={(v) => v && v >= 10 && v <= 3600 && updateTest({ question_time_s: v })} /></Field>}
+                <Field label="Alerte « réponses trop rapides »" hint="Après 3 réponses de suite sous ce temps. 0 : désactivée."><Num value={test.fast_answer_s ?? 4} min={0} max={60} suffix="s" onChange={(v) => v != null && v >= 0 && v <= 60 && updateTest({ fast_answer_s: v })} /></Field>
+              </div>
+              <Field label="Tolérance en fin d'épreuve" hint="Délai accordé pour l'envoi de la dernière réponse."><Num value={test.grace_seconds} min={0} max={600} suffix="s" onChange={(v) => updateTest({ grace_seconds: Math.max(0, v || 0) })} /></Field>
+            </Section>
+
+            <Section id="surveillance" title="Surveillance" desc="Toujours actifs : caméra analysée, plein écran obligatoire, une question à la fois sans retour en arrière.">
+              <Toggle checked={!!test.invite_only} onChange={(v) => updateTest({ invite_only: v })} label="Sur inscription uniquement" hint="Recommandé : seuls les étudiants inscrits peuvent entrer, avec leur code." />
+              <Toggle checked={!!test.require_id_check} onChange={(v) => updateTest({ require_id_check: v })} label="Vérification d'identité" hint="Pièce d'identité et selfie avant l'épreuve." />
+              {test.require_id_check && <div className="pl-6"><Toggle checked={!!test.id_verify_before_start} onChange={(v) => updateTest({ id_verify_before_start: v })} label="Attendre la validation du surveillant avant de commencer" /></div>}
+              <Toggle checked={!!test.allow_resume} onChange={(v) => updateTest({ allow_resume: v })} label="Reprise sur un autre appareil sans le surveillant" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Seuil d'alerte" hint="Au-delà, le surveillant est prévenu. L'épreuve n'est jamais arrêtée automatiquement."><Num value={test.max_violations} min={1} max={50} suffix="infr." onChange={(v) => updateTest({ max_violations: Math.max(1, v || 1) })} /></Field>
+                <Field label="Conservation des photos et vidéos"><Num value={test.retention_days} min={1} max={3650} suffix="jours" onChange={(v) => updateTest({ retention_days: Math.max(1, v || 90) })} /></Field>
+              </div>
+            </Section>
+
+            <Section id="acces" title="Accès et Safe Exam Browser">
+              <Field label="Code d'accès commun" hint="Seulement pour une épreuve ouverte sans inscription. Les inscrits utilisent leur code personnel.">
+                <div className="flex gap-2">
+                  <input className={`${inputCls} font-mono`} placeholder="(aucun)" value={secrets.access_code || ""} onChange={(e) => updateSecrets({ access_code: e.target.value.toUpperCase() || null })} />
+                  <button className="btn-secondary shrink-0" onClick={generateCode} type="button">Générer</button>
+                  {secrets.access_code && <button className="btn-secondary shrink-0" onClick={() => updateSecrets({ access_code: null })} type="button">Effacer</button>}
+                </div>
+              </Field>
+              {test.is_published && <p className="rounded-xl bg-surface-2 px-4 py-3 text-sm break-all">Lien de l&apos;épreuve : <code>{link}</code></p>}
+              <Toggle checked={!!test.require_seb} onChange={(v) => updateTest({ require_seb: v })} label="Safe Exam Browser obligatoire" hint="Vérifié à chaque requête. Les étudiants ouvrent le fichier .seb chiffré que vous leur transmettez." />
+              {test.require_seb && (
+                <div className="space-y-4 rounded-xl bg-surface-2 p-4">
+                  <p className="text-xs leading-relaxed text-muted">
+                    1. <a className="underline" href={`/api/seb/${id}`}>Télécharger le .seb</a> (sel propre à cette épreuve). 2. L&apos;ouvrir dans l&apos;outil SEB, onglet « Exam », copier la Browser Exam Key de chaque version de SEB utilisée.
+                    3. Réenregistrer le .seb chiffré par mot de passe avant de le distribuer.
+                  </p>
+                  <Field label="Browser Exam Keys" hint="Une clé de 64 caractères hexadécimaux par ligne.">
+                    <textarea key={"bek" + (secrets.seb_browser_exam_keys || []).join()} className={`${inputCls} font-mono text-xs`} rows={2} defaultValue={(secrets.seb_browser_exam_keys || []).join("\n")} onBlur={(e) => updateSecrets({ seb_browser_exam_keys: keyList(e.target.value) })} />
+                  </Field>
+                  <Toggle checked={!!test.seb_accept_config_key} onChange={(v) => updateTest({ seb_accept_config_key: v })} label="Accepter aussi la Config Key" hint="Plus simple sur un parc hétérogène, mais forgeable par qui obtient le .seb en clair." />
+                  {test.seb_accept_config_key && (
+                    <Field label="Config Keys">
+                      <textarea key={"ck" + (secrets.seb_config_keys || []).join()} className={`${inputCls} font-mono text-xs`} rows={2} defaultValue={(secrets.seb_config_keys || []).join("\n")} onBlur={(e) => updateSecrets({ seb_config_keys: keyList(e.target.value) })} />
+                    </Field>
+                  )}
+                  <Field label={`Mot de passe de sortie ${secrets.seb_quit_password_hash ? "(défini)" : "(aucun)"}`}>
+                    <div className="flex gap-2">
+                      <input className={inputCls} type="password" autoComplete="new-password" value={quitPwd} onChange={(e) => setQuitPwd(e.target.value)} placeholder="Laisser vide pour supprimer" />
+                      <button className="btn-secondary shrink-0" type="button" onClick={saveQuitPassword}>Enregistrer</button>
+                    </div>
+                  </Field>
+                  {!(secrets.seb_browser_exam_keys?.length || (test.seb_accept_config_key && secrets.seb_config_keys?.length)) &&
+                    <p className="text-xs font-medium text-[#b3361a]">Aucune clé configurée : personne ne pourra composer.</p>}
+                </div>
+              )}
+            </Section>
+
+            <Section id="danger" title="Zone sensible">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted">Supprime l&apos;épreuve, ses questions, copies, inscriptions et journaux. Irréversible.</p>
+                <button className="rounded-xl border border-[#c23b17]/40 px-4 py-2 text-sm font-semibold text-[#b3361a] hover:bg-[#c23b17]/10" onClick={async () => {
+                  if (!confirm(`Supprimer « ${test.title} » ?\n\nLes questions, tentatives, réponses, invitations et journaux de cet examen seront aussi supprimés. Action irréversible.`)) return;
+                  const { error } = await supabase.from("tests").delete().eq("id", id);
+                  if (error) return notify(error.message);
+                  window.location.href = "/admin";
+                }}>Supprimer l&apos;épreuve</button>
+              </div>
+            </Section>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {locked && <p className="rounded-xl bg-[#f08a3e]/[0.12] px-4 py-2.5 text-sm text-[#a64a12]">Des étudiants ont composé : les questions sont figées. Dupliquez l&apos;épreuve pour la modifier.</p>}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="text-sm text-muted">
+              <span className="font-semibold text-fg">{questions.length}</span> question(s) · <span className="font-semibold text-fg">{totalPts}</span> point(s)
+              {test.draw_count ? <> · {test.draw_count} tirée(s) par étudiant</> : null}
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <button className="btn-secondary" disabled={locked} onClick={() => setPanel((p) => (p === "import" ? null : "import"))} aria-expanded={panel === "import"}>Importer ▾</button>
+              </div>
+              <button className="btn-secondary" disabled={locked} onClick={() => setPanel((p) => (p === "add" ? null : "add"))} aria-expanded={panel === "add"}>+ Ajouter une question</button>
+              <button className="btn" onClick={saveAll} disabled={saving || locked}>{saving ? "Enregistrement…" : "Enregistrer"}</button>
             </div>
           </div>
-          <label className="block">Grille d&apos;entretien oral (affichée sur la fiche jury)
-            <textarea className="input mt-1 min-h-[140px] text-sm" value={test.interview_guide || ""} onChange={(e) => updateTest({ interview_guide: e.target.value })} />
-          </label>
-        </div>
 
-        <div id="chrono" className="border-t pt-3 space-y-2 text-sm scroll-mt-16">
-          <div className="font-medium">Chronométrage et notation</div>
-          <div className="grid sm:grid-cols-3 gap-3">
-            <label className="block">Chronométrage
-              <select className="input mt-1" value={test.timing || "global"} onChange={(e) => updateTest({ timing: e.target.value })}>
-                <option value="global">Durée totale de l&apos;épreuve</option>
-                <option value="question">Temps par question</option>
+          {panel === "add" && (
+            <div className="rounded-2xl border border-line bg-surface p-5 shadow-[0_14px_34px_-24px_rgba(15,22,64,0.4)]">
+              {ADD_GROUPS.map(([g, list]) => (
+                <div key={g} className="mb-4 last:mb-0">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-fg/60">{g}</div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                    {list.map(([t, l, d]) => (
+                      <button key={t} className="rounded-xl border border-line px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent/5" onClick={() => { addQuestion(t); setPanel(null); }}>
+                        <div className="text-sm font-semibold text-navy">{l}</div><div className="text-xs text-muted">{d}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {panel === "import" && (
+            <div className="space-y-3 rounded-2xl border border-line bg-surface p-5 shadow-[0_14px_34px_-24px_rgba(15,22,64,0.4)]">
+              <BankPicker locked={locked} existing={questions.map((q: any) => q.prompt)} defaultLevel={test.formation ? normLevel(test.formation) : ""}
+                onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
+              <ImportFromTests currentId={id} locked={locked} existing={questions.map((q: any) => q.prompt)}
+                onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
+              <ExamFileTools test={test} questions={questions as any} locked={locked}
+                onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
+              <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
+                onFormation={(f) => updateTest({ formation: f || null })}
+                onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface-2/60 p-3 text-sm">
+                <span className="mr-1 text-xs text-muted">Packs d&apos;exercices pratiques :</span>
+                {(["b1", "b3", "m1", "b1x", "b3x", "m1x"] as const).map((k) => (
+                  <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>{PACKS[k].label} · {PACKS[k].questions.length}</button>
+                ))}
+              </div>
+              <DylanBank disabled={locked} onAdd={addBank} />
+            </div>
+          )}
+
+          {questions.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[14rem]">
+                <svg aria-hidden viewBox="0 0 20 20" className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"><path fill="currentColor" d="M8.5 3a5.5 5.5 0 0 1 4.38 8.83l3.65 3.64-1.06 1.06-3.64-3.65A5.5 5.5 0 1 1 8.5 3Zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /></svg>
+                <input className={`${inputCls} !pl-10`} placeholder="Rechercher dans les énoncés ou les domaines" value={qFilter} onChange={(e) => setQFilter(e.target.value)} aria-label="Rechercher une question" />
+              </div>
+              <select className={`${inputCls} !w-auto`} value={qType} onChange={(e) => setQType(e.target.value)} aria-label="Filtrer par type">
+                <option value="">Tous les types</option>
+                {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l as string}</option>)}
               </select>
-            </label>
-            {test.timing === "question" && <label className="block">Temps par défaut d&apos;une question (s)
-              <input className="input mt-1 w-28" type="number" min={10} max={3600} value={test.question_time_s ?? 60}
-                onChange={(e) => { const v = parseInt(e.target.value); if (v >= 10 && v <= 3600) updateTest({ question_time_s: v }); }} />
-            </label>}
-            <label className="block" title="0 pour désactiver">Alerte « réponses trop rapides » sous (s)
-              <input className="input mt-1 w-28" type="number" min={0} max={60} value={test.fast_answer_s ?? 4}
-                onChange={(e) => { const v = parseInt(e.target.value); if (v >= 0 && v <= 60) updateTest({ fast_answer_s: v }); }} />
-            </label>
-          </div>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.partial_points} onChange={(e) => updateTest({ partial_points: e.target.checked })} />
-            Points partiels aux QCM à plusieurs réponses (bonnes cases moins mauvaises, au prorata)
-          </label>
-          <p className="text-xs text-muted">
-            En temps par question, chaque question a son propre chrono (le temps fixé sur la question, sinon celui par défaut ; le tiers-temps s&apos;applique au prorata).
-            À zéro, la question est validée automatiquement. L&apos;alerte « réponses trop rapides » prévient le surveillant après 3 réponses de suite données sous le seuil.
-          </p>
-        </div>
-
-        <div id="acces" className="border-t pt-3 scroll-mt-16">
-          <div className="text-sm font-medium">Code d&apos;accès global</div>
-          <p className="text-xs text-muted mt-1">Uniquement pour un test non restreint aux invités. Les invités utilisent leur code personnel.</p>
-          <div className="flex gap-2 mt-2">
-            <input className="input font-mono" placeholder="(aucun)" value={secrets.access_code || ""}
-              onChange={(e) => updateSecrets({ access_code: e.target.value.toUpperCase() || null })} />
-            <button className="btn-secondary" onClick={generateCode} type="button">Générer</button>
-            {secrets.access_code && <button className="btn-secondary" onClick={() => updateSecrets({ access_code: null })} type="button">Effacer</button>}
-          </div>
-        </div>
-
-        <div className="border-t pt-3 space-y-2 text-sm">
-          <div className="font-medium">Clés Safe Exam Browser</div>
-          <p className="text-xs text-muted">
-            1. <a className="underline" href={`/api/seb/${id}`}>Télécharger le .seb</a> (contient un sel propre à cet examen).
-            2. L&apos;ouvrir dans l&apos;outil de configuration SEB, onglet « Exam », copier la <b>Browser Exam Key</b> (une par version et système de SEB utilisés par les candidats).
-            3. Réenregistrer le .seb <b>chiffré par mot de passe</b> avant de le distribuer. Une clé de 64 caractères hexadécimaux par ligne.
-          </p>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={!!test.seb_accept_config_key} onChange={(e) => updateTest({ seb_accept_config_key: e.target.checked })} />
-            Accepter aussi la Config Key (plus simple pour un parc hétérogène, mais forgeable par qui obtient le .seb en clair)
-          </label>
-          <label className="block">Config Keys
-            <textarea key={"ck" + (secrets.seb_config_keys || []).join()} className="input mt-1 font-mono text-xs" rows={2} defaultValue={(secrets.seb_config_keys || []).join("\n")}
-              onBlur={(e) => updateSecrets({ seb_config_keys: keyList(e.target.value) })} />
-          </label>
-          <label className="block">Browser Exam Keys
-            <textarea key={"bek" + (secrets.seb_browser_exam_keys || []).join()} className="input mt-1 font-mono text-xs" rows={2} defaultValue={(secrets.seb_browser_exam_keys || []).join("\n")}
-              onBlur={(e) => updateSecrets({ seb_browser_exam_keys: keyList(e.target.value) })} />
-          </label>
-          <div className="flex gap-2 items-end">
-            <label className="block flex-1">Mot de passe de sortie SEB {secrets.seb_quit_password_hash ? "(défini)" : "(aucun)"}
-              <input className="input mt-1" type="password" autoComplete="new-password" value={quitPwd} onChange={(e) => setQuitPwd(e.target.value)} placeholder="Laisser vide pour supprimer" />
-            </label>
-            <button className="btn-secondary" type="button" onClick={saveQuitPassword}>Enregistrer</button>
-          </div>
-          {test.require_seb && !(secrets.seb_browser_exam_keys?.length || (test.seb_accept_config_key && secrets.seb_config_keys?.length)) &&
-            <p className="text-danger text-xs">SEB est obligatoire mais aucune clé n&apos;est configurée : personne ne pourra composer.</p>}
-        </div>
-        {msg && <p className="text-danger text-sm">{msg}</p>}
-        {locked && <p className="text-warn text-sm">Des candidats ont composé : les questions sont verrouillées.</p>}
-
-        <div className="border-t pt-3">
-          <a href={`/admin/tests/${id}/invites`} className="btn-secondary">Gérer les invitations →</a>
-        </div>
-
-        {test.is_published && (
-          <div className="space-y-2 border-t pt-3">
-            <div className="text-sm bg-surface-2 rounded p-2 break-all">
-              Lien à partager : <code>{link}</code>
-              {secrets.access_code && <div className="text-xs text-muted mt-1">Code : <code className="font-mono">{secrets.access_code}</code></div>}
+              <button className="text-sm text-muted hover:text-fg" onClick={() => setOpenQ(openQ.size ? new Set() : new Set(questions.map((_, k) => k)))}>{openQ.size ? "Tout replier" : "Tout déplier"}</button>
             </div>
-            <div className="text-sm bg-surface-2 border border-warn/40 rounded p-3">
-              <b>Safe Exam Browser</b>
-              <p className="mt-1 text-fg">Les candidats ouvrent le fichier .seb chiffré que vous leur transmettez : SEB verrouille le poste et charge l&apos;examen.</p>
-              <div className="mt-2"><a className="underline text-accent" href={`/api/seb/${id}`}>Télécharger le .seb (admin)</a></div>
-              <p className="mt-1 text-xs text-muted">Les candidats doivent installer SEB : <a className="underline" href="https://safeexambrowser.org/download_en.html" target="_blank" rel="noreferrer">safeexambrowser.org</a></p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      <div id="questions" className="mt-10 flex flex-col gap-3 scroll-mt-16">
-        <h2 className="h2">Questions <span className="text-muted normal-case font-sans text-sm ml-1">{questions.length}</span></h2>
-        <ExcelTools questions={questions} formation={test.formation || ""} locked={locked}
-          onFormation={(f) => updateTest({ formation: f || null })}
-          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k, image_url: null }))])} />
-        <BankPicker locked={locked} existing={questions.map((q: any) => q.prompt)} defaultLevel={test.formation ? normLevel(test.formation) : ""}
-          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
-        <ImportFromTests currentId={id} locked={locked} existing={questions.map((q: any) => q.prompt)}
-          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
-        <ExamFileTools test={test} questions={questions as any} locked={locked}
-          onImport={(added) => setQuestions((qs) => [...qs, ...added.map((q, k) => ({ ...q, test_id: id, position: qs.length + k }) as any)])} />
-      </div>
-      <div className="mt-3">
-        <div className="text-xs uppercase tracking-wider text-muted mb-2">Ajouter une question</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {([
-            ["mcq_single", "QCM", "une seule réponse"],
-            ["mcq_multi", "QCM", "plusieurs réponses"],
-            ["short_answer", "Réponse courte", "mot, nombre, donnée"],
-            ["long_text", "Réponse rédigée", "corrigée à la main"],
-            ["ordering", "Remettre en ordre", "étapes, procédure"],
-            ["matching", "Associer", "deux colonnes"],
-            ["hotspot", "Repérer", "code, log, mail, tableau"],
-            ["terminal", "Défi terminal", "Linux simulé"],
-            ["external", "Exercice outil", "Crime GeoGuess, Cybersup OS"],
-            ["sql", "Requête SQL", "logs en base, injection"],
-            ["password", "Mots de passe", "classer ou créer"],
-            ["blocks", "Pare-feu en blocs", "règles à assembler"],
-            ["headers", "En-têtes de mail", "phishing : IP, SPF, Reply-To"],
-            ["subnet", "Sous-réseaux", "valeurs propres à chaque candidat"],
-            ["netpuzzle", "Puzzle réseau", "logique, sans prérequis"],
-            ["sokoban", "Caisses à pousser", "persévérance, sans prérequis"],
-            ["robot", "Robot à programmer", "pensée algorithmique"],
-            ["adsim", "Console Active Directory", "OU, comptes, groupes, GPO"],
-            ["tickets", "Tickets de support", "impact, urgence, attribution"],
-            ["feed", "Vrai ou fake ?", "fil d'actualité à trier"],
-            ["evtx", "Journaux Windows", "enquête SOC (Mastère)"],
-            ["bash", "Script Bash", "noté sur les fichiers produits"],
-            ["sim", "Simulation", "appli photo, brassage, pare-feu web, capture réseau…"],
-          ] as [QType, string, string][]).map(([t, l, d]) => (
-            <button key={t} className="text-left rounded-lg border border-line bg-surface px-3 py-2.5 hover:border-accent hover:bg-accent/5 transition-colors" onClick={() => addQuestion(t)}>
-              <div className="text-sm font-semibold"><span className="text-accent">+</span> {l}</div>
-              <div className="text-xs text-muted mt-0.5">{d}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-lg border border-dashed border-line-strong p-3 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-muted mr-1">Packs d&apos;exercices pratiques (d&apos;après les grilles de Dylan) :</span>
-        {(["b1", "b3", "m1", "b1x", "b3x", "m1x"] as const).map((k) => (
-          <button key={k} className="btn-secondary !py-1.5" disabled={locked} onClick={() => addPack(k)}>+ {PACKS[k].label} · {PACKS[k].questions.length} exercices</button>
-        ))}
-      </div>
-      <DylanBank disabled={locked} onAdd={addBank} />
-
-      {questions.length > 0 && (
-        <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
-          <input className="input !w-auto flex-1 min-w-[14rem]" placeholder="Rechercher dans les énoncés ou les domaines" value={qFilter} onChange={(e) => setQFilter(e.target.value)} aria-label="Rechercher une question" />
-          <select className="input !w-auto" value={qType} onChange={(e) => setQType(e.target.value)} aria-label="Filtrer par type">
-            <option value="">Tous les types</option>
-            {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l as string}</option>)}
-          </select>
-          <button className="btn-secondary !py-1.5" onClick={() => setOpenQ(new Set(questions.map((_, k) => k)))}>Tout déplier</button>
-          <button className="btn-secondary !py-1.5" onClick={() => setOpenQ(new Set())}>Tout replier</button>
-        </div>
-      )}
-
-      <div className="mt-4 space-y-4">
-        {questions.map((q, i) => {
-          const f = qFilter.trim().toLowerCase();
-          if (qType && q.type !== qType) return null;
-          if (f && !`${q.prompt || ""} ${q.domain || ""}`.toLowerCase().includes(f)) return null;
-          const err = validateQuestion(q.type as any, q.options, q.correct);
-          const isOpen = openQ.has(i);
-          return (
-          <div key={i} id={`q-${i}`} className={`card scroll-mt-20 ${isOpen ? "space-y-2 border-line-strong" : "!py-3"}`}>
-            <div className="flex items-center gap-3">
-              <button className="flex-1 min-w-0 flex items-center gap-3 text-left" onClick={() => toggleQ(i)} aria-expanded={isOpen}>
-                <span className="text-faint font-mono text-xs w-8 shrink-0">Q{i + 1}</span>
-                <span className="shrink-0 text-[11px] px-2 py-0.5 rounded-full bg-accent/15 text-accent font-semibold">{KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</span>
-                <span className={`truncate text-sm ${q.prompt ? "" : "text-faint italic"}`}>{(q.prompt || "Énoncé à écrire").replace(/\s+/g, " ").slice(0, 140)}</span>
-                <span className="ml-auto shrink-0 flex items-center gap-2 text-xs text-muted">
-                  {q.domain && <span className="hidden md:inline">{q.domain}</span>}
-                  <span>{q.points} pt{q.points > 1 ? "s" : ""}</span>
-                  {err && <span className="text-danger" title={err}>à compléter</span>}
-                  <span aria-hidden className={`transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
-                </span>
-              </button>
-              <button className="text-danger text-xs shrink-0" onClick={() => { if (confirm(`Retirer la question ${i + 1} ?`)) { setQuestions((arr) => arr.filter((_, k) => k !== i)); setOpenQ(new Set()); } }}>Retirer</button>
-            </div>
-            {isOpen && <>
+          <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
+            {!questions.length && (
+              <div className="px-6 py-14 text-center">
+                <p className="text-muted">Aucune question pour l&apos;instant.</p>
+                <div className="mt-4 flex justify-center gap-2">
+                  <button className="btn" disabled={locked} onClick={() => setPanel("add")}>+ Ajouter une question</button>
+                  <button className="btn-secondary" disabled={locked} onClick={() => setPanel("import")}>Importer</button>
+                </div>
+              </div>
+            )}
+            {visible.map(({ q, i }) => {
+              const err = validateQuestion(q.type as any, q.options, q.correct);
+              const isOpen = openQ.has(i);
+              return (
+                <div key={i} id={`q-${i}`} className={`scroll-mt-6 border-b border-line last:border-b-0 ${isOpen ? "bg-surface-2/40" : ""}`}>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => toggleQ(i)} aria-expanded={isOpen}>
+                      <span className="w-8 shrink-0 text-right font-mono text-xs text-faint">{i + 1}</span>
+                      <span className="shrink-0 rounded-md bg-navy/[0.07] px-2 py-0.5 text-[11px] font-semibold text-navy">{KIND_LABEL[q.type as keyof typeof KIND_LABEL] || q.type}</span>
+                      <span className={`truncate text-[15px] ${q.prompt ? "text-fg" : "italic text-faint"}`}>{(q.prompt || "Énoncé à écrire").replace(/\s+/g, " ").slice(0, 160)}</span>
+                      <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted">
+                        {q.domain && <span className="hidden rounded-md bg-fg/[0.06] px-2 py-0.5 md:inline">{q.domain}</span>}
+                        {q.difficulty && <span className={`hidden rounded-md px-2 py-0.5 sm:inline ${DIFF[q.difficulty]}`}>{q.difficulty}</span>}
+                        <span className="tabular-nums">{q.points} pt{q.points > 1 ? "s" : ""}</span>
+                        {err && <span className="font-medium text-[#b3361a]" title={err}>à compléter</span>}
+                        <span aria-hidden className={`text-base transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
+                      </span>
+                    </button>
+                    <button className="shrink-0 text-xs text-muted hover:text-navy" onClick={() => setPreview(q)} title="Voir comme un étudiant">Aperçu</button>
+                    <button className="shrink-0 text-xs text-muted hover:text-[#b3361a]" disabled={locked} onClick={() => { if (confirm(`Retirer la question ${i + 1} ?`)) { setQuestions((arr) => arr.filter((_, k) => k !== i)); setOpenQ(new Set()); } }}>Retirer</button>
+                  </div>
+                  {isOpen && (
+                    <div className="space-y-3 border-t border-line bg-surface px-6 py-5">
             {err && <p className="text-xs text-danger">À corriger avant d&apos;enregistrer : {err}</p>}
-            <textarea className="input" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
+            <textarea className="input min-h-[96px] text-[15px] leading-relaxed" placeholder="Énoncé de la question" value={q.prompt} onChange={(e) => {
               const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, prompt: v } : x));
             }} />
-            <div className="grid sm:grid-cols-4 gap-2 text-sm">
+            <div className="grid sm:grid-cols-6 gap-3 text-sm">
+              <label>Points
+                <input className="input mt-1" type="number" min={0} value={q.points} onChange={(e) => {
+                  const v = parseInt(e.target.value); setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, points: v } : x));
+                }} />
+              </label>
+              <label>Difficulté
+                <select className="input mt-1" value={q.difficulty || ""} onChange={(e) => {
+                  const v = e.target.value || null; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, difficulty: v } : x));
+                }}>
+                  <option value="">Non précisée</option><option value="facile">Facile</option><option value="moyen">Moyenne</option><option value="difficile">Difficile</option>
+                </select>
+              </label>
               <label className="sm:col-span-2">Domaine (compétence)
                 <input className="input mt-1" list="domains" value={q.domain || ""} placeholder="ex. Réseaux" onChange={(e) => {
                   const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, domain: v } : x));
@@ -532,7 +534,7 @@ export default function EditTest() {
                   setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, time_limit_s: Number.isFinite(n) ? Math.min(3600, n) : null } : x));
                 }} />
               </label>
-              <label className="sm:col-span-4">Explication (équipe et fiche de correction, jamais le candidat)
+              <label className="sm:col-span-6">Explication (équipe et fiche de correction, jamais le candidat)
                 <input className="input mt-1" maxLength={5000} value={q.explanation || ""} onChange={(e) => {
                   const v = e.target.value; setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, explanation: v } : x));
                 }} />
@@ -557,11 +559,6 @@ export default function EditTest() {
             </div>
             {q.image_url && <img src={q.image_url} alt="" className="max-h-40 rounded border mt-1" />}
 
-            <label className="text-sm block">Points
-              <input className="input mt-1" type="number" min={0} value={q.points} onChange={(e) => {
-                const v = parseInt(e.target.value); setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, points: v } : x));
-              }} />
-            </label>
 
             {FUN_TYPES.includes(q.type) && (
               <TypeEditor key={(q.id || "new") + i} type={q.type as any} options={q.options} correct={q.correct}
@@ -627,15 +624,21 @@ export default function EditTest() {
                 <button className="btn-secondary text-xs" onClick={() => setQuestions((arr) => arr.map((x, k) => k === i ? { ...x, options: [...(x.options || []), { id: crypto.randomUUID(), text: "" }] } : x))}>+ Ajouter une réponse</button>
               </div>
             )}
-            </>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          );
-        })}
-      </div>
 
-      <div className="mt-6">
-        <button className="btn" onClick={saveAll} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
-      </div>
+          {questions.length > 0 && (
+            <div className="flex justify-end">
+              <button className="btn" onClick={saveAll} disabled={saving || locked}>{saving ? "Enregistrement…" : "Enregistrer les questions"}</button>
+            </div>
+          )}
+        </div>
+      )}
+      {preview && <StudentPreview q={preview} onClose={() => setPreview(null)} />}
       <datalist id="domains">{domains.map((d) => <option key={d} value={d} />)}</datalist>
     </main>
   );

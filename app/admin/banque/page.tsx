@@ -7,11 +7,13 @@ import { LEVELS, bankToDraft, draftToBank, fileToBank, normLevel, type BankRow }
 import { readExamFile, importReport } from "@/components/admin/ExamFileTools";
 import { TYPE_LABEL } from "@/lib/questions/kinds";
 import { PageTitle } from "@/components/admin/ui";
+import QuestionEditor, { type EditTarget } from "@/components/admin/QuestionEditor";
 
 type Item = {
   key: string; source: "exam" | "bank"; id: string; test_id?: string; level: string; promo: string | null;
   type: string; prompt: string; options: any; correct: any; points: number; domain: string | null; explanation: string | null;
   terminal?: any; external?: any; rate: number | null; position: number; bank?: BankRow;
+  difficulty?: string | null; image_url?: string | null; disc?: number | null; n?: number; alerte?: string | null; unused?: string[];
 };
 type Exam = { id: string; title: string; formation: string | null; opens_at: string | null; created_at: string; locked: boolean };
 
@@ -31,6 +33,7 @@ export default function BankPage() {
   const [items, setItems] = useState<Item[] | null>(null);
   const [exams, setExams] = useState<Exam[]>([]);
   const [q, setQ] = useState("");
+  useEffect(() => { const v = new URLSearchParams(window.location.search).get("q"); if (v) setQ(v); }, []);
   const [promo, setPromo] = useState("");
   const [exam, setExam] = useState("");
   const [domain, setDomain] = useState("");
@@ -39,6 +42,8 @@ export default function BankPage() {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [copyFor, setCopyFor] = useState<Item | null>(null);
   const [panel, setPanel] = useState(false);
+  const [edit, setEdit] = useState<EditTarget | null>(null);
+  const [flag, setFlag] = useState("");
 
   const load = useCallback(async () => {
     const [{ data: tests }, { data: qs }, { data: bank }, { data: prev }, { data: atts }] = await Promise.all([
@@ -55,8 +60,14 @@ export default function BankPage() {
       supabase.from("question_terminals").select("question_id, scenario, flag").in("question_id", ids),
       supabase.from("question_externals").select("question_id, tool, label, time_limit_s, scenario, answer_key").in("question_id", ids),
     ]) : [empty, empty, empty];
-    const stats = await Promise.all((tests || []).map((t: any) => supabase.rpc("item_stats", { p_test: t.id }).then((r) => (Array.isArray(r.data) ? r.data : []))));
-    const rate = new Map<string, number>(); stats.flat().forEach((s: any) => s?.id && s.reussite != null && rate.set(s.id, Number(s.reussite)));
+    const withQ = new Set((qs || []).map((x: any) => x.test_id));
+    const [stats, picks] = await Promise.all([
+      Promise.all((tests || []).filter((t: any) => withQ.has(t.id)).map((t: any) => supabase.rpc("item_stats", { p_test: t.id }).then((r) => (Array.isArray(r.data?.questions) ? r.data.questions : [])))),
+      Promise.all((tests || []).filter((t: any) => withQ.has(t.id)).map((t: any) => supabase.rpc("option_stats", { p_test: t.id }).then((r) => (r.data || {}) as Record<string, Record<string, number>>))),
+    ]);
+    const rate = new Map<string, number>(); const st = new Map<string, any>();
+    stats.flat().forEach((s: any) => { if (!s?.id) return; st.set(s.id, s); if (s.n > 0 && s.reussite != null) rate.set(s.id, Number(s.reussite)); });
+    const chosen: Record<string, Record<string, number>> = Object.assign({}, ...picks);
     const k = new Map((keys || []).map((x: any) => [x.question_id, x.correct]));
     const tm = new Map((terms || []).map((x: any) => [x.question_id, { scenario: x.scenario, flag: x.flag }]));
     const xm = new Map((exts || []).map(({ question_id, ...x }: any) => [question_id, x]));
@@ -69,11 +80,14 @@ export default function BankPage() {
         const t: any = tmap.get(x.test_id) || {};
         return { key: `q-${x.id}`, source: "exam" as const, id: x.id, test_id: x.test_id, level: normLevel(t.formation), promo: t.formation || null,
           type: x.type, prompt: x.prompt, options: x.options, correct: k.get(x.id) ?? null, points: Number(x.points), domain: x.domain,
-          explanation: x.explanation, terminal: tm.get(x.id) ?? null, external: xm.get(x.id) ?? null, rate: rate.get(x.id) ?? null, position: x.position };
+          explanation: x.explanation, terminal: tm.get(x.id) ?? null, external: xm.get(x.id) ?? null, rate: rate.get(x.id) ?? null, position: x.position,
+          difficulty: x.difficulty, image_url: x.image_url, n: st.get(x.id)?.n ?? 0, disc: st.get(x.id)?.n >= 10 ? Number(st.get(x.id)?.discrimination) : null, alerte: st.get(x.id)?.alerte ?? null,
+          unused: (x.type === "mcq_single" || x.type === "mcq_multi") && Array.isArray(x.options) && (st.get(x.id)?.n ?? 0) >= 10
+            ? x.options.filter((o: any) => !(chosen[x.id]?.[String(o.id)] > 0) && !(Array.isArray(k.get(x.id)) && (k.get(x.id) as any[]).map(String).includes(String(o.id)))).map((o: any) => String(o.id)) : [] };
       }),
       ...((bank as BankRow[]) || []).map((b) => ({ key: `b-${b.id}`, source: "bank" as const, id: b.id!, level: b.level, promo: null,
         type: b.type, prompt: b.prompt, options: b.options, correct: b.correct, points: Number(b.points), domain: b.domain, explanation: b.explanation,
-        terminal: b.terminal, external: b.external, rate: null, position: 0, bank: b })),
+        terminal: b.terminal, external: b.external, rate: null, position: 0, bank: b, difficulty: (b as any).difficulty, image_url: b.image_url })),
     ]);
   }, [supabase]);
   useEffect(() => { load(); }, [load]);
@@ -90,8 +104,9 @@ export default function BankPage() {
       (!promo || (promo === "__bank" ? i.source === "bank" : i.promo === promo || (i.source === "bank" && (i.level === normLevel(promo) || i.level === "Tous"))))
       && (!exam || (exam === "__bank" ? i.source === "bank" : i.test_id === exam))
       && (!domain || i.domain === domain) && (!type || i.type === type)
+      && (!flag || (flag === "alerte" ? !!i.alerte : flag === "distracteur" ? !!i.unused?.length : flag === "disc" ? i.disc != null && i.disc < 0.15 : true))
       && (!f || norm(`${i.prompt} ${i.explanation || ""} ${JSON.stringify(i.options || "")}`).includes(f)));
-  }, [items, q, promo, exam, domain, type]);
+  }, [items, q, promo, exam, domain, type, flag]);
 
   const groups = useMemo(() => {
     if (sort !== "exam") {
@@ -120,7 +135,7 @@ export default function BankPage() {
     const { count } = await supabase.from("questions").select("id", { count: "exact", head: true }).eq("test_id", target);
     const { data: row, error } = await supabase.from("questions").insert({
       test_id: target, position: count ?? 0, type: it.type, prompt: it.prompt, options: it.options, points: it.points,
-      domain: it.domain, explanation: it.explanation, image_url: it.bank?.image_url ?? null,
+      domain: it.domain, explanation: it.explanation, image_url: it.image_url ?? null, difficulty: it.difficulty ?? null, origin_id: it.id,
     }).select("id").single();
     if (error || !row) return notify(error?.message || "Copie impossible.");
     if (it.correct != null && !["long_text", "terminal", "external"].includes(it.type)) await supabase.from("answer_keys").upsert({ question_id: row.id, correct: it.correct });
@@ -160,7 +175,7 @@ export default function BankPage() {
           <input className="w-full rounded-xl border border-line-strong bg-surface py-2.5 pl-10 pr-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
             placeholder="Rechercher dans les énoncés, les réponses, les explications…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           <select className={select} value={promo} onChange={(e) => setPromo(e.target.value)} aria-label="Classe">
             <option value="">Toutes les classes</option>{promos.map((p) => <option key={p} value={p}>{p}</option>)}<option value="__bank">Banque libre seulement</option>
           </select>
@@ -172,6 +187,9 @@ export default function BankPage() {
           </select>
           <select className={select} value={type} onChange={(e) => setType(e.target.value)} aria-label="Type">
             <option value="">Tous les types</option>{types.map((t) => <option key={t} value={t}>{labelOf(t)}</option>)}
+          </select>
+          <select className={select} value={flag} onChange={(e) => setFlag(e.target.value)} aria-label="Qualité">
+            <option value="">Toutes les qualités</option><option value="alerte">À revoir (alerte)</option><option value="disc">Ne départage pas</option><option value="distracteur">Réponse jamais choisie</option>
           </select>
           <select className={select} value={sort} onChange={(e) => setSort(e.target.value as "exam" | "rate" | "domain")} aria-label="Tri">
             <option value="exam">Trier par examen</option><option value="rate">Les moins réussies d&apos;abord</option><option value="domain">Trier par thème</option>
@@ -203,12 +221,18 @@ export default function BankPage() {
                     {it.domain && <span className="rounded-md bg-fg/[0.06] px-2 py-0.5 text-xs text-fg/75">{it.domain}</span>}
                     {it.source === "bank" && <span className="rounded-md bg-navy/[0.08] px-2 py-0.5 text-xs font-semibold text-navy">{it.level === "Tous" ? "Tous niveaux" : it.level}</span>}
                     {!isQcm && <span className="text-xs text-muted">{labelOf(it.type)}</span>}
+                    {it.difficulty && <span className="rounded-md bg-fg/[0.06] px-2 py-0.5 text-xs text-fg/75">{it.difficulty}</span>}
+                    {it.alerte && <span className="rounded-md bg-[#f08a3e]/[0.14] px-2 py-0.5 text-xs font-semibold text-[#a64a12]" title="D'après les copies rendues">{it.alerte}</span>}
+                    {it.disc != null && <span className={`text-xs tabular-nums ${it.disc < 0.15 ? "font-semibold text-[#a64a12]" : it.disc >= 0.3 ? "text-[#1f7a44]" : "text-muted"}`} title="Indice de discrimination : réussite du quart des meilleurs moins celle du quart des plus faibles. 0,30 et plus : bonne question.">discrimination {it.disc.toFixed(2).replace(".", ",")}</span>}
+                    {!!it.unused?.length && <span className="rounded-md bg-[#c23b17]/10 px-2 py-0.5 text-xs font-semibold text-[#b3361a]" title="Mauvaises réponses que personne n'a choisies : elles n'apportent rien, à réécrire.">{it.unused.length} réponse(s) jamais choisie(s)</span>}
                     <div className="ml-auto flex items-center gap-4">
                       <div className="flex items-center gap-3 text-sm opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
                         <button className="inline-flex items-center gap-1.5 text-navy hover:text-accent" onClick={() => setCopyFor(it)}>
                           <svg aria-hidden viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="7" y="7" width="10" height="10" rx="2" /><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" /></svg>Copier vers…
                         </button>
-                        {it.source === "exam" && <Link className="text-navy hover:text-accent" href={`/admin/tests/${it.test_id}/questions#questions`}>Modifier</Link>}
+                        <button className="text-navy hover:text-accent" onClick={() => setEdit({ source: it.source, id: it.id, type: it.type, prompt: it.prompt, options: it.options, correct: it.correct, points: it.points,
+                          domain: it.domain, explanation: it.explanation, difficulty: it.difficulty, level: it.level, image_url: it.image_url, terminal: it.terminal, external: it.external,
+                          locked: it.source === "exam" && !!examMap.get(it.test_id!)?.locked, examTitle: examMap.get(it.test_id || "")?.title })}>Modifier</button>
                         <button className="text-[#c23b17] hover:underline" onClick={() => remove(it)}>Supprimer</button>
                       </div>
                       {it.rate != null && (
@@ -228,7 +252,8 @@ export default function BankPage() {
                         return (
                           <div key={i} className={`flex items-center gap-3 rounded-lg px-2.5 py-1.5 text-sm ${ok ? "bg-[#2fa862]/[0.12] text-[#1f6b3d]" : "text-fg/80"}`}>
                             <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold ${ok ? "bg-[#2fa862] text-white" : "bg-fg/[0.07] text-fg/60"}`}>{LETTERS[i] || i + 1}</span>
-                            {optText(o)}
+                            <span className="min-w-0 flex-1">{optText(o)}</span>
+                            {!ok && it.unused?.includes(optId(o, i)) && <span className="shrink-0 text-xs font-semibold text-[#b3361a]">jamais choisie</span>}
                           </div>
                         );
                       })}
@@ -248,6 +273,7 @@ export default function BankPage() {
       ))}
       {items && !shown.length && <div className="mt-8 rounded-2xl border border-dashed border-line-strong bg-surface px-6 py-14 text-center text-muted">Aucune question ne correspond.</div>}
 
+      {edit && <QuestionEditor target={edit} domains={domains} onClose={() => setEdit(null)} onSaved={load} />}
       {copyFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal aria-label="Copier la question" onClick={() => setCopyFor(null)}>
           <div className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>

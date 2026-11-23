@@ -3,7 +3,7 @@ import { DataTable, type Column } from "@/components/admin/DataTable";
 
 export type ItemStat = {
   id: string; position: number; domain: string | null; variant_group: string | null; type: string; prompt: string;
-  n: number; reussite: number; sans_reponse: number; discrimination: number; alerte: string | null;
+  n: number; reussite: number; sans_reponse: number; discrimination: number; alerte: string | null; unused?: string[];
 };
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
@@ -21,6 +21,10 @@ const columns: Column<ItemStat>[] = [
   {
     key: "disc", label: "Discrimination", title: "Quart supérieur moins quart inférieur", sort: (i) => i.discrimination,
     cell: (i) => <span className={i.discrimination < 0.15 ? "text-warn" : i.discrimination >= 0.3 ? "text-ok" : ""}>{i.discrimination.toFixed(2)}</span>,
+  },
+  {
+    key: "unused", label: "Jamais choisies", title: "Mauvaises réponses de QCM qu'aucun étudiant n'a choisies", sort: (i) => i.unused?.length ?? 0,
+    cell: (i) => i.unused?.length ? <span className="text-danger" title={i.unused.join("\n")}>{i.unused.length} réponse(s)</span> : <span className="text-muted">-</span>,
   },
   { key: "alert", label: "Alerte", sort: (i) => i.alerte, cell: (i) => <span className="text-warn">{i.alerte || ""}</span> },
 ];

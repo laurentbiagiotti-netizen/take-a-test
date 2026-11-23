@@ -36,7 +36,7 @@ export default function BankPicker({ locked, existing, defaultLevel, onImport }:
   const allShown = shown.length > 0 && shown.every((r) => sel.has(r.id!));
 
   const add = () => {
-    const picked = (rows || []).filter((r) => sel.has(r.id!)).map(bankToDraft);
+    const picked = (rows || []).filter((r) => sel.has(r.id!)).map((r) => ({ ...bankToDraft(r), origin_id: r.id, difficulty: (r as any).difficulty ?? null }) as any);
     if (!picked.length) return;
     onImport(picked);
     notify(`${picked.length} question(s) ajoutée(s) depuis la banque. Pensez à enregistrer.`, "ok");

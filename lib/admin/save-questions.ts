@@ -5,37 +5,54 @@ import type { DraftQuestion } from "@/lib/admin/exam-file";
 export const KEYED_TYPES = ["mcq_single", "mcq_multi", "ordering", "matching", "hotspot", "short_answer", "sql", "decode", "password", "blocks", "headers",
   "subnet", "netpuzzle", "sokoban", "robot", "adsim", "tickets", "feed", "evtx", "bash", "sim"];
 
+type Q = DraftQuestion & { id?: string; difficulty?: string | null; origin_id?: string | null };
+
 /**
- * Remplace toutes les questions d'une épreuve (questions, corrigés, scénarios
- * de terminal et d'exercices externes). Renvoie le premier message d'erreur.
+ * Enregistre les questions d'une épreuve : les questions existantes sont mises à jour
+ * (ce qui garde leur historique de versions), les nouvelles sont créées, les retirées
+ * supprimées. Renvoie le premier message d'erreur.
  */
-export async function writeQuestions(supabase: SupabaseClient, testId: string, questions: DraftQuestion[]): Promise<string | null> {
-  const del = await supabase.from("questions").delete().eq("test_id", testId);
-  if (del.error) return del.error.message;
-  if (!questions.length) return null;
-  const rows = questions.map((q, i) => ({
-    test_id: testId, position: i, type: q.type, prompt: q.prompt,
-    options: q.options, points: q.points,
-    image_url: q.image_url ?? null,
-    domain: q.domain?.trim() || null, variant_group: q.variant_group?.trim() || null,
+export async function writeQuestions(supabase: SupabaseClient, testId: string, questions: Q[]): Promise<string | null> {
+  const { data: existing, error: e0 } = await supabase.from("questions").select("id").eq("test_id", testId);
+  if (e0) return e0.message;
+  const keep = new Set(questions.map((q) => q.id).filter(Boolean) as string[]);
+  const gone = (existing || []).map((r: any) => r.id).filter((x: string) => !keep.has(x));
+  if (gone.length) {
+    const del = await supabase.from("questions").delete().in("id", gone);
+    if (del.error) return del.error.message;
+  }
+  const row = (q: Q, i: number) => ({
+    test_id: testId, position: i, type: q.type, prompt: q.prompt, options: q.options, points: q.points,
+    image_url: q.image_url ?? null, domain: q.domain?.trim() || null, variant_group: q.variant_group?.trim() || null,
     explanation: q.explanation?.trim() || null, time_limit_s: q.time_limit_s || null,
-  }));
-  const { data: inserted, error } = await supabase.from("questions").insert(rows).select("id");
-  if (error) return error.message;
+    difficulty: q.difficulty || null, ...(q.origin_id ? { origin_id: q.origin_id } : {}),
+  });
+  const ids: string[] = [];
+  for (const [i, q] of questions.entries()) {
+    if (q.id && (existing || []).some((r: any) => r.id === q.id)) {
+      const { error } = await supabase.from("questions").update(row(q, i)).eq("id", q.id);
+      if (error) return error.message;
+      ids.push(q.id);
+    } else {
+      const { data, error } = await supabase.from("questions").insert(row(q, i)).select("id").single();
+      if (error || !data) return error?.message || "Question non créée.";
+      ids.push(data.id);
+      q.id = data.id;
+    }
+  }
   let firstErr: string | null = null;
-  const keyRows = (inserted || []).map((row: any, idx: number) => ({ question_id: row.id, correct: questions[idx].correct ?? [] }))
-    .filter((_, idx) => KEYED_TYPES.includes(questions[idx].type));
+  const keyRows = questions.map((q, i) => ({ question_id: ids[i], correct: q.correct ?? [] })).filter((_, i) => KEYED_TYPES.includes(questions[i].type));
   if (keyRows.length) { const r = await supabase.from("answer_keys").upsert(keyRows); firstErr ||= r.error?.message || null; }
-  const termRows = (inserted || []).map((row: any, idx: number) => questions[idx].type === "terminal" && questions[idx].terminal ? ({
-    question_id: row.id, scenario: JSON.parse(questions[idx].terminal!.scenario), flag: questions[idx].terminal!.flag.trim() || null,
+  const termRows = questions.map((q, i) => q.type === "terminal" && q.terminal ? ({
+    question_id: ids[i], scenario: JSON.parse(q.terminal.scenario), flag: q.terminal.flag.trim() || null,
   }) : null).filter(Boolean);
   if (termRows.length) { const r = await supabase.from("question_terminals").upsert(termRows as any[]); firstErr ||= r.error?.message || null; }
-  const extRows = (inserted || []).map((row: any, idx: number) => {
-    const x = questions[idx].external;
-    if (questions[idx].type !== "external" || !x) return null;
+  const extRows = questions.map((q, i) => {
+    const x = q.external;
+    if (q.type !== "external" || !x) return null;
     const minutes = parseInt(x.time_limit_min, 10);
     return {
-      question_id: row.id, tool: x.tool, label: x.label.trim() || null,
+      question_id: ids[i], tool: x.tool, label: x.label.trim() || null,
       time_limit_s: Number.isFinite(minutes) && minutes > 0 ? minutes * 60 : null,
       scenario: JSON.parse(x.scenario), answer_key: x.answer_key.trim() ? JSON.parse(x.answer_key) : null,
     };
