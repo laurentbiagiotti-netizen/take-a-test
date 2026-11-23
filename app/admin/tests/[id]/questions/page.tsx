@@ -20,6 +20,7 @@ import { normLevel } from "@/lib/admin/bank";
 import { loadDrafts } from "@/lib/admin/load-questions";
 import { writeQuestions } from "@/lib/admin/save-questions";
 import DylanBank, { type BankQuestion } from "@/components/admin/DylanBank";
+import { shortClass } from "@/lib/exam/convocation";
 
 type QType = "mcq_single" | "mcq_multi" | "long_text" | "terminal" | "ordering" | "matching" | "hotspot" | "short_answer" | "external" | "sql" | "decode" | "password" | "blocks" | "headers" | "subnet" | "netpuzzle" | "sokoban" | "robot" | "adsim" | "tickets" | "feed" | "evtx" | "bash" | "sim";
 type ExternalDraft = { tool: string; label: string; time_limit_min: string; scenario: string; answer_key: string };
@@ -410,6 +411,10 @@ export default function EditTest() {
                 hint="Deux heures après la fin de l'épreuve, un seul mail aux inscrits qui ne l'ont pas commencée." />
               <Toggle checked={!!test.slots} onChange={(v) => updateTest({ slots: v })} label="Créneaux individuels (tests d'admission)"
                 hint="Chaque candidat a sa date et son heure, fixées dans l'onglet Inscriptions. Il reçoit la convocation, une invitation d'agenda à son nom, un rappel la veille et un autre dix minutes avant ; son lien ne fonctionne que dans son créneau." />
+              <Field label="Inscription automatique depuis l'agenda" hint={`Mot-clé de la classe attendu dans le titre du rendez-vous créé par HubSpot dans l'agenda du compte relié, par exemple « ${shortClass(test.formation) || "B3 Cyber"} » pour « Test technique ${shortClass(test.formation) || "B3 Cyber"} - Prénom ». L'invité du rendez-vous est inscrit à cette épreuve avec ce créneau, puis convoqué. Vide : pas d'inscription automatique.`}>
+                <input className={`${inputCls} max-w-xs`} maxLength={60} value={test.agenda_keyword || ""} placeholder={shortClass(test.formation) || "B3 Cyber"}
+                  onChange={(e) => updateTest({ agenda_keyword: e.target.value || null })} />
+              </Field>
               <p className="text-xs text-muted">Sans créneaux individuels, l&apos;épreuve publiée et datée est portée dans l&apos;agenda du compte, avec sa salle et son campus.</p>
             </Section>
 

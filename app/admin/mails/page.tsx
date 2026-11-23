@@ -26,11 +26,14 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
   if (g.role !== "admin") redirect("/admin");
   const sp = await searchParams;
   const admin = adminClient();
-  const [{ data: acc }, { data: logs }, { data: tests }] = await Promise.all([
+  const [{ data: acc }, { data: logs }, { data: tests }, { data: inbox }] = await Promise.all([
     admin.from("mail_account").select("email, connected_at, last_error, last_error_at").maybeSingle(),
     admin.from("mail_log").select("id, test_id, email, kind, status, error, tries, updated_at").order("updated_at", { ascending: false }).limit(200),
-    admin.from("tests").select("id, title"),
+    admin.from("tests").select("id, title, agenda_keyword, is_published"),
+    admin.from("agenda_inbox").select("event_id, title, start_at, email, reason").order("start_at"),
   ]);
+  const keyed = (tests || []).filter((t: any) => t.is_published && (t.agenda_keyword || "").trim());
+  const pending = (inbox || []).filter((x: any) => !x.start_at || +new Date(x.start_at) > Date.now());
   const title = new Map((tests || []).map((t: any) => [t.id, t.title]));
   const sent = (logs || []).filter((l: any) => l.status === "sent");
   const ready = googleConfigured();
@@ -77,6 +80,23 @@ export default async function Mails({ searchParams }: { searchParams: Promise<{ 
           <li>Rien n&apos;est rétroactif : seuls les étudiants inscrits après la connexion du compte sont convoqués, et seules les épreuves terminées après sont relancées.</li>
           <li>Chaque épreuve peut couper la convocation ou la relance dans ses <b>Réglages</b>, section « Mails et agenda ».</li>
         </ul>
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(15,22,64,0.04)]">
+        <h2 className="font-display text-lg uppercase text-navy">Inscription depuis l&apos;agenda</h2>
+        <p className="mt-1 text-sm text-muted">L&apos;agenda du compte est relu toutes les minutes. Un rendez-vous « Test technique B3 Cyber - Prénom » (créé par HubSpot) inscrit son invité à l&apos;épreuve qui porte ce mot-clé, avec ce créneau.</p>
+        {keyed.length ? (
+          <ul className="mt-3 flex flex-wrap gap-2 text-sm">{keyed.map((t: any) => <li key={t.id} className="rounded-full bg-[#5561c9]/[0.12] px-3 py-1"><b className="text-navy">{t.agenda_keyword}</b> <span className="text-muted">vers</span> <Link className="hover:text-accent" href={`/admin/tests/${t.id}/invites`}>{t.title}</Link></li>)}</ul>
+        ) : <p className="mt-3 rounded-xl bg-[#f08a3e]/[0.12] px-4 py-2.5 text-sm text-[#a64a12]">Aucune épreuve publiée n&apos;a de mot-clé d&apos;agenda : rien ne sera inscrit. À régler dans les Réglages de l&apos;épreuve d&apos;admission, section « Mails et agenda ».</p>}
+        {pending.length > 0 && (
+          <div className="mt-4">
+            <div className="text-sm font-semibold text-[#b3361a]">{pending.length} rendez-vous non rattaché(s)</div>
+            <ul className="mt-2 divide-y divide-line rounded-xl border border-line text-sm">
+              {pending.map((x: any) => <li key={x.event_id} className="flex flex-wrap items-baseline gap-x-3 px-4 py-2"><span className="font-medium">{x.title}</span><span className="text-muted">{fmtDate(x.start_at, true)}{x.email ? ` · ${x.email}` : ""}</span><span className="ml-auto text-xs text-[#b3361a]">{x.reason}</span></li>)}
+            </ul>
+            <p className="mt-2 text-xs text-muted">Corrigez le titre dans l&apos;agenda (ajoutez la classe) ou inscrivez le candidat à la main dans l&apos;onglet Inscriptions.</p>
+          </div>
+        )}
       </section>
 
       <section className="mt-5 overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(15,22,64,0.04)]">

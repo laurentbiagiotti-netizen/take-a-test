@@ -88,13 +88,35 @@ export async function deleteEvent(acc: MailAccount, eventId: string, notify = tr
   if (!r.ok && r.status !== 404 && r.status !== 410) throw new Error(`Agenda ${r.status}`);
 }
 
-export type ChangedEvent = { id: string; cancelled: boolean; start: string | null; invite: string };
+export type ChangedEvent = { id: string; cancelled: boolean; start: string | null; title: string;
+  /** Inscription liée, quand l'événement a été créé par la plateforme. */
+  invite: string;
+  /** Invités autres que le compte relié (le candidat). */
+  guests: { email: string; name: string }[] };
 
-/** Événements de candidats modifiés dans l'agenda depuis une date (déplacés ou supprimés à la main). */
-export async function changedEvents(acc: MailAccount, since: string): Promise<ChangedEvent[]> {
-  const url = `${calBase(acc)}?${new URLSearchParams({ updatedMin: since, showDeleted: "true", singleEvents: "true", maxResults: "250", privateExtendedProperty: "cx=creneau" })}`;
-  const r = await fetch(url, { headers: { authorization: `Bearer ${await accessToken(acc)}` } });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j?.error?.message || `Agenda ${r.status}`);
-  return (j.items || []).map((e: any) => ({ id: e.id, cancelled: e.status === "cancelled", start: e.start?.dateTime || null, invite: e.extendedProperties?.private?.cxInvite || "" }));
+/**
+ * Événements de l'agenda modifiés depuis une date (créés, déplacés ou supprimés), ou, sans date
+ * (premier passage), les événements à venir sur 90 jours.
+ */
+export async function changedEvents(acc: MailAccount, since: string | null): Promise<ChangedEvent[]> {
+  const out: ChangedEvent[] = [];
+  let pageToken = "";
+  for (let page = 0; page < 5; page++) {
+    const q = new URLSearchParams({ showDeleted: "true", singleEvents: "true", maxResults: "250" });
+    if (since) q.set("updatedMin", since);
+    else { q.set("timeMin", new Date().toISOString()); q.set("timeMax", new Date(Date.now() + 90 * 86400000).toISOString()); }
+    if (pageToken) q.set("pageToken", pageToken);
+    const r = await fetch(`${calBase(acc)}?${q}`, { headers: { authorization: `Bearer ${await accessToken(acc)}` } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j?.error?.message || `Agenda ${r.status}`);
+    for (const e of j.items || []) out.push({
+      id: e.id, cancelled: e.status === "cancelled", start: e.start?.dateTime || null, title: String(e.summary || ""),
+      invite: e.extendedProperties?.private?.cxInvite || "",
+      guests: (e.attendees || []).filter((a: any) => a.email && !a.self && !a.resource && String(a.email).toLowerCase() !== acc.email.toLowerCase())
+        .map((a: any) => ({ email: String(a.email).toLowerCase(), name: String(a.displayName || "") })),
+    });
+    pageToken = j.nextPageToken || "";
+    if (!pageToken) break;
+  }
+  return out;
 }

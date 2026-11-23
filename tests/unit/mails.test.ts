@@ -27,8 +27,10 @@ function fake(db: Record<string, any[]>) {
       eq: (k: string, v: any) => { rows = rows.filter((r) => r[k] === v); return q; },
       neq: (k: string, v: any) => { rows = rows.filter((r) => r[k] !== v); return q; },
       in: (k: string, v: any[]) => { rows = rows.filter((r) => v.includes(r[k])); return q; },
+      order: () => q,
+      insert: async (row: any) => { db[table].push({ id: `new-${db[table].length}`, created_at: new Date().toISOString(), preview: false, extra_minutes: 0, ...row }); return { error: null }; },
       upsert: async (row: any) => {
-        const i = db[table].findIndex((r) => r.test_id === row.test_id && r.email === row.email && r.kind === row.kind);
+        const i = table === "agenda_inbox" ? db[table].findIndex((r) => r.event_id === row.event_id) : db[table].findIndex((r) => r.test_id === row.test_id && r.email === row.email && r.kind === row.kind);
         if (i >= 0) db[table][i] = { ...db[table][i], ...row }; else db[table].push(row);
         return { error: null };
       },
@@ -121,14 +123,40 @@ describe("mails automatiques", () => {
     const db: any = { tests: [t], invites: [invite("a@cybersup.ai", h(-30), { slot_at: h(72), calendar_event_id: "evt9", calendar_hash: "x" })],
       mail_log: [], attempts: [], student_accommodations: [], mail_account: [{ id: true }] };
     const next = h(96);
-    changed = [{ id: "evt9", cancelled: false, start: next, invite: "i-a@cybersup.ai" }];
+    changed = [{ id: "evt9", cancelled: false, start: next, invite: "i-a@cybersup.ai", title: "Test technique B1 - Inès", guests: [] }];
     const r = await runMailsAndCalendar(fake(db));
     expect(r?.moved).toBe(1);
     expect(+new Date(db.invites[0].slot_at)).toBe(+new Date(next));
     expect(events).toHaveLength(0);
-    changed = [{ id: "evt9", cancelled: true, start: null, invite: "i-a@cybersup.ai" }];
+    changed = [{ id: "evt9", cancelled: true, start: null, invite: "i-a@cybersup.ai", title: "", guests: [] }];
     await runMailsAndCalendar(fake(db));
     expect(db.invites[0].slot_at).toBeNull();
+  });
+
+  it("un rendez-vous HubSpot « Test technique B3 Cyber - Prénom » inscrit le candidat à l'épreuve B3, puis le convoque", async () => {
+    const b3 = test({ id: "t1", title: "Admission B3", formation: "Bachelor 3 Cybersécurité", agenda_keyword: "B3 Cyber", opens_at: null, closes_at: null });
+    const db: any = { tests: [b3], invites: [], mail_log: [], attempts: [], student_accommodations: [], mail_account: [{ id: true }], agenda_inbox: [] };
+    const slot = h(72);
+    changed = [
+      { id: "hs1", cancelled: false, start: slot, invite: "", title: "Test technique B3 Cyber - Dylan", guests: [{ email: "candidat@gmail.com", name: "Dylan Martin" }] },
+      { id: "hs2", cancelled: false, start: slot, invite: "", title: "Test technique Lauryn <> Cybersup", guests: [{ email: "lauryn@gmail.com", name: "" }] },
+      { id: "autre", cancelled: false, start: slot, invite: "", title: "Point équipe", guests: [{ email: "x@cybersup.ai", name: "" }] },
+    ];
+    const r = await runMailsAndCalendar(fake(db));
+    expect(db.invites).toHaveLength(1);
+    expect(db.invites[0]).toMatchObject({ test_id: "t1", email: "candidat@gmail.com", full_name: "Dylan Martin", calendar_event_id: "hs1" });
+    expect(+new Date(db.invites[0].slot_at)).toBe(+new Date(slot));
+    expect(db.agenda_inbox.map((x: any) => x.event_id)).toEqual(["hs2"]);
+    expect(r?.convocations).toBe(1);
+    expect(sent[0].to).toBe("candidat@gmail.com");
+    expect(events).toHaveLength(0);
+    // déplacé par HubSpot : le créneau suit
+    const next = h(96);
+    changed = [{ id: "hs1", cancelled: false, start: next, invite: "", title: "Test technique B3 Cyber - Dylan", guests: [{ email: "candidat@gmail.com", name: "Dylan Martin" }] }];
+    await runMailsAndCalendar(fake(db));
+    expect(db.invites).toHaveLength(1);
+    expect(+new Date(db.invites[0].slot_at)).toBe(+new Date(next));
+    expect(events).toHaveLength(0);
   });
 
   it("titre de l'événement : la classe en abrégé puis le prénom", () => {
